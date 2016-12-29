@@ -23,13 +23,13 @@ The same but concurrently:
 
 `xhash -s "abc" -all`
 
-* To hash every file in /etc using both SHA-512 and SHA-256
+* To hash every file in your home directory using both SHA-512 and SHA-256
 
-`xhash -sha512 -sha256 /etc`
+`xhash -sha512 -sha256 $HOME`
 
-* The same as above but using OpenSSL
+* The same as above but using the OpenSSL library
 
-`xhash -ssl -sha512 -sha256 /etc`
+`xhash -ssl -sha512 -sha256 $HOME`
 
 * To hash /etc/password with all algorithms except those of 128 & 160 bits
 
