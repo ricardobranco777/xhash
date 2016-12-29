@@ -3,7 +3,19 @@ This Go program uses goroutines to calculate multiple hashes on strings, files a
 
 # Usage
 
-Usage: xhash [OPTIONS] [-s STRING...]|[FILE... DIRECTORY...]
+Usage: xhash [OPTIONS] [-ossl] [-s STRING...]|[FILE... DIRECTORY...]
+
+# OpenSSL
+
+The _*-ossl*_ flag is used to call the OpenSSL bindings for faster hashing.  You must install OpenSSL 1.1.0 to /usr/local/ssl, add /usr/local/ssl/lib to /etc/ld.so.conf and run `ldconfig`
+
+You can compare the performance of each hash algorithm individually:
+
+`file="/usr/bin/docker" ; hashes="-md4 -md5 -ripemd160 -sha1 -sha224 -sha256 -sha384 -sha512" ; for h in $hashes ; do echo ${h^^} ; time ./xhash $h $file >/dev/null ; echo ; echo OpenSSL ; time ./xhash -ossl $h $file >/dev/null ; echo ; done`
+
+The same but concurrently:
+
+`file="/usr/bin/docker" ; hashes="-md4 -md5 -ripemd160 -sha1 -sha224 -sha256 -sha384 -sha512" ; time ./xhash $hashes $file >/dev/null ; echo ; echo OpenSSL ; time ./xhash -ossl $hashes $file >/dev/null ; echo`
 
 # Examples:
 
@@ -14,6 +26,10 @@ Usage: xhash [OPTIONS] [-s STRING...]|[FILE... DIRECTORY...]
 * To hash every file in /etc using both SHA-512 and SHA-256
 
 `xhash -sha512 -sha256 /etc`
+
+* The same as above but using OpenSSL
+
+`xhash -ssl -sha512 -sha256 /etc`
 
 * To hash /etc/password with all algorithms except those of 128 & 160 bits
 
