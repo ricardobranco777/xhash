@@ -38,17 +38,17 @@ The same but concurrently:
 # Options
 
 * `-128`
-    	all 128 algorithms
+    	all 128 bits algorithms
 * `-160`
-    	all 160 algorithms
+    	all 160 bits algorithms
 * `-224`
-    	all 224 algorithms
+    	all 224 bits algorithms
 * `-256`
-    	all 256 algorithms
+    	all 256 bits algorithms
 * `-384`
-    	all 384 algorithms
+    	all 384 bits algorithms
 * `-512`
-    	all 512 algorithms
+    	all 512 bits algorithms
 * `-all`
     	all algorithms
 * `-blake2`

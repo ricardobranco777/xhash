@@ -119,7 +119,7 @@ func main() {
 
 	for size := range size_hashes {
 		sizeStr := strconv.Itoa(size)
-		size_hashes[size].set = flag.Bool(sizeStr, false, "all "+sizeStr+" algorithms")
+		size_hashes[size].set = flag.Bool(sizeStr, false, "all "+sizeStr+" bits algorithms")
 	}
 	var sha3Opt, sha2Opt, blake2Opt *bool
 	if len(sha3_hashes) > 0 {
