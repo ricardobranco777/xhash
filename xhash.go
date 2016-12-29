@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.1
+// v0.2
 //
 // TODO:
 // + Support HMAC
@@ -20,6 +20,14 @@ import (
 	"crypto/sha512"
 	"flag"
 	"fmt"
+	ossl_blake2b "github.com/ricardobranco777/dgst/blake2b"
+	ossl_blake2s "github.com/ricardobranco777/dgst/blake2s"
+	ossl_md4 "github.com/ricardobranco777/dgst/md4"
+	ossl_md5 "github.com/ricardobranco777/dgst/md5"
+	ossl_ripemd160 "github.com/ricardobranco777/dgst/ripemd160"
+	ossl_sha1 "github.com/ricardobranco777/dgst/sha1"
+	ossl_sha256 "github.com/ricardobranco777/dgst/sha256"
+	ossl_sha512 "github.com/ricardobranco777/dgst/sha512"
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/blake2s"
 	"golang.org/x/crypto/md4"
@@ -78,8 +86,9 @@ func main() {
 		chosen[h] = flag.Bool(strings.ToLower(h), false, fmt.Sprintf("%s algorithm", h))
 	}
 
-	var all, isString *bool
+	var all, ossl, isString *bool
 	all = flag.Bool("all", false, "all algorithms")
+	ossl = flag.Bool("ossl", false, "use OpenSSL")
 	isString = flag.Bool("s", false, "treat arguments as strings")
 
 	sha3_hashes := []string{}
@@ -168,25 +177,65 @@ func main() {
 		case "BLAKE2b384":
 			hashes[k].Hash = blake2_(blake2b.New384)
 		case "BLAKE2b512":
-			hashes[k].Hash = blake2_(blake2b.New512)
+			if *ossl {
+				hashes[k].Hash = blake2_(ossl_blake2b.New512)
+			} else {
+				hashes[k].Hash = blake2_(blake2b.New512)
+			}
 		case "BLAKE2s256":
-			hashes[k].Hash = blake2_(blake2s.New256)
+			if *ossl {
+				hashes[k].Hash = blake2_(ossl_blake2s.New256)
+			} else {
+				hashes[k].Hash = blake2_(blake2s.New256)
+			}
 		case "MD4":
-			hashes[k].Hash = md4.New()
+			if *ossl {
+				hashes[k].Hash = ossl_md4.New()
+			} else {
+				hashes[k].Hash = md4.New()
+			}
 		case "MD5":
-			hashes[k].Hash = md5.New()
+			if *ossl {
+				hashes[k].Hash = ossl_md5.New()
+			} else {
+				hashes[k].Hash = md5.New()
+			}
 		case "RIPEMD160":
-			hashes[k].Hash = ripemd160.New()
+			if *ossl {
+				hashes[k].Hash = ossl_ripemd160.New()
+			} else {
+				hashes[k].Hash = ripemd160.New()
+			}
 		case "SHA1":
-			hashes[k].Hash = sha1.New()
+			if *ossl {
+				hashes[k].Hash = ossl_sha1.New()
+			} else {
+				hashes[k].Hash = sha1.New()
+			}
 		case "SHA224":
-			hashes[k].Hash = sha256.New224()
+			if *ossl {
+				hashes[k].Hash = ossl_sha256.New224()
+			} else {
+				hashes[k].Hash = sha256.New224()
+			}
 		case "SHA256":
-			hashes[k].Hash = sha256.New()
+			if *ossl {
+				hashes[k].Hash = ossl_sha256.New()
+			} else {
+				hashes[k].Hash = sha256.New()
+			}
 		case "SHA384":
-			hashes[k].Hash = sha512.New384()
+			if *ossl {
+				hashes[k].Hash = ossl_sha512.New384()
+			} else {
+				hashes[k].Hash = sha512.New384()
+			}
 		case "SHA512":
-			hashes[k].Hash = sha512.New()
+			if *ossl {
+				hashes[k].Hash = ossl_sha512.New()
+			} else {
+				hashes[k].Hash = sha512.New()
+			}
 		case "SHA512-224":
 			hashes[k].Hash = sha512.New512_224()
 		case "SHA512-256":
