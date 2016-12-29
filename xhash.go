@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.2
+// v0.3
 //
 // TODO:
 // + Support HMAC
@@ -263,6 +263,8 @@ func main() {
 		os.Exit(0)
 	}
 
+	var errors bool
+
 	if *isString {
 		for _, s := range flag.Args() {
 			hash_string(s)
@@ -272,14 +274,17 @@ func main() {
 			info, err := os.Stat(pathname)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
-				os.Exit(1)
-			}
-			if info.IsDir() {
-				hash_dir(pathname)
+				errors = true
+			} else if info.IsDir() {
+				errors = hash_dir(pathname)
 			} else {
-				hash_file(pathname)
+				errors = hash_file(pathname)
 			}
 		}
+	}
+
+	if errors {
+		os.Exit(1)
 	}
 }
 
@@ -301,7 +306,7 @@ func choices(chosen map[string]*bool) bool {
 
 func display() {
 	for _, k := range keys {
-		fmt.Printf("%s", hashes[k].sum)
+		fmt.Println(hashes[k].sum)
 	}
 }
 
@@ -312,7 +317,7 @@ func hash_string(str string) {
 		go func(h string) {
 			defer func() { done <- true }()
 			hashes[h].Write([]byte(str))
-			hashes[h].sum = fmt.Sprintf("%s(\"%s\") = %x\n", h, str, hashes[h].Sum(nil))
+			hashes[h].sum = fmt.Sprintf("%s(\"%s\") = %x", h, str, hashes[h].Sum(nil))
 			hashes[h].Reset()
 			done <- true
 		}(h)
@@ -323,7 +328,7 @@ func hash_string(str string) {
 	display()
 }
 
-func hash_file(filename string) {
+func hash_file(filename string) (errors bool) {
 	done := make(chan error)
 	defer close(done)
 	for h := range hashes {
@@ -339,7 +344,7 @@ func hash_file(filename string) {
 				done <- err
 				return
 			}
-			hashes[h].sum = fmt.Sprintf("%s(%s) = %x\n", h, filename, hashes[h].Sum(nil))
+			hashes[h].sum = fmt.Sprintf("%s(%s) = %x", h, filename, hashes[h].Sum(nil))
 			hashes[h].Reset()
 			done <- nil
 		}(h)
@@ -347,15 +352,20 @@ func hash_file(filename string) {
 	for range hashes {
 		err := <-done
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
-			os.Exit(1)
+			if (!errors) {
+				fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
+			}
+			errors = true
 		}
 	}
-	display()
+	if (!errors) {
+		display()
+	}
+	return
 }
 
 func visit(path string, f os.FileInfo, err error) error {
-	if err != nil {
+	if err != nil && !os.IsPermission(err) {
 		return err
 	}
 	if f.Mode().IsRegular() {
@@ -364,15 +374,16 @@ func visit(path string, f os.FileInfo, err error) error {
 	return nil
 }
 
-func hash_dir(dir string) {
+func hash_dir(dir string) bool {
 	err := filepath.Walk(dir, visit)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
-		os.Exit(1)
+		return false
 	}
+	return true
 }
 
-func hash_stdin() {
+func hash_stdin() (errors bool) {
 	done := make(chan error)
 	defer close(done)
 	for h := range hashes {
@@ -381,7 +392,7 @@ func hash_stdin() {
 				done <- err
 				return
 			}
-			hashes[h].sum = fmt.Sprintf("%s() = %x\n", h, hashes[h].Sum(nil))
+			hashes[h].sum = fmt.Sprintf("%s() = %x", h, hashes[h].Sum(nil))
 			hashes[h].Reset()
 			done <- nil
 		}(h)
@@ -389,9 +400,14 @@ func hash_stdin() {
 	for range hashes {
 		err := <-done
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
-			os.Exit(1)
+			if !errors {
+				fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
+			}
+			errors = true
 		}
 	}
-	display()
+	if (!errors) {
+		display()
+	}
+	return
 }
