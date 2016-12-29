@@ -355,6 +355,9 @@ func hash_file(filename string) {
 }
 
 func visit(path string, f os.FileInfo, err error) error {
+	if err != nil {
+		return err
+	}
 	if f.Mode().IsRegular() {
 		hash_file(path)
 	}
@@ -364,7 +367,7 @@ func visit(path string, f os.FileInfo, err error) error {
 func hash_dir(dir string) {
 	err := filepath.Walk(dir, visit)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %s: %v\n", progname, dir, err)
+		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
 		os.Exit(1)
 	}
 }
