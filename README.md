@@ -5,17 +5,21 @@ This Go program uses goroutines to calculate multiple hashes on strings, files a
 
 Usage: xhash [OPTIONS] [-ossl] [-s STRING...]|[FILE... DIRECTORY...]
 
+# Blake2
+
+Install the Blake2.net library (libb2-dev package on Debian/Ubuntu systems) for faster hashing.
+
 # OpenSSL
 
-The _*-ossl*_ flag is used to call the OpenSSL bindings for faster hashing.  You must install OpenSSL 1.1.0 to /usr/local/ssl, add /usr/local/ssl/lib to /etc/ld.so.conf and run `ldconfig`
+The _*-ossl*_ flag is used to call the OpenSSL (and Blake2.net) bindings for faster hashing.
 
 You can compare the performance of each hash algorithm individually:
 
-`file="/usr/bin/docker" ; hashes="-md4 -md5 -ripemd160 -sha1 -sha224 -sha256 -sha384 -sha512" ; for h in $hashes ; do echo ${h^^} ; time ./xhash $h $file >/dev/null ; echo ; echo OpenSSL ; time ./xhash -ossl $h $file >/dev/null ; echo ; done`
+`file="/usr/bin/docker" ; hashes="-blake2b512 -blake2s256 -md4 -md5 -ripemd160 -sha1 -sha224 -sha256 -sha384 -sha512" ; for h in $hashes ; do echo ${h^^} ; time ./xhash $h $file >/dev/null ; echo ; echo OpenSSL ; time ./xhash -ossl $h $file >/dev/null ; echo ; done`
 
 The same but concurrently:
 
-`file="/usr/bin/docker" ; hashes="-md4 -md5 -ripemd160 -sha1 -sha224 -sha256 -sha384 -sha512" ; time ./xhash $hashes $file >/dev/null ; echo ; echo OpenSSL ; time ./xhash -ossl $hashes $file >/dev/null ; echo`
+`file="/usr/bin/docker" ; hashes="-blake2b512 -md4 -md5 -ripemd160 -sha1 -sha224 -sha256 -sha384 -sha512" ; time ./xhash $hashes $file >/dev/null ; echo ; echo OpenSSL ; time ./xhash -ossl $hashes $file >/dev/null ; echo`
 
 # Examples:
 
