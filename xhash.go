@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.3
+// v0.3.1
 //
 // TODO:
 // + Support HMAC
@@ -173,9 +173,17 @@ func main() {
 		keys = append(keys, k)
 		switch k {
 		case "BLAKE2b256":
-			hashes[k].Hash = blake2_(blake2b.New256)
+			if *ossl {
+				hashes[k].Hash = blake2_(ossl_blake2b.New256)
+			} else {
+				hashes[k].Hash = blake2_(blake2b.New256)
+			}
 		case "BLAKE2b384":
-			hashes[k].Hash = blake2_(blake2b.New384)
+			if *ossl {
+				hashes[k].Hash = blake2_(ossl_blake2b.New384)
+			} else {
+				hashes[k].Hash = blake2_(blake2b.New384)
+			}
 		case "BLAKE2b512":
 			if *ossl {
 				hashes[k].Hash = blake2_(ossl_blake2b.New512)
