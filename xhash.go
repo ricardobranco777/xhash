@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.3.1
+// v0.3.2
 //
 // TODO:
 // + Support HMAC
@@ -327,7 +327,6 @@ func hash_string(str string) {
 			hashes[h].Write([]byte(str))
 			hashes[h].sum = fmt.Sprintf("%s(\"%s\") = %x", h, str, hashes[h].Sum(nil))
 			hashes[h].Reset()
-			done <- true
 		}(h)
 	}
 	for range hashes {
