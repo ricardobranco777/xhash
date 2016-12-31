@@ -74,6 +74,8 @@ var keys []string
 
 var progname string
 
+var done chan error
+
 func main() {
 	progname = path.Base(os.Args[0])
 
@@ -279,6 +281,9 @@ func main() {
 			hash_string(s)
 		}
 	} else {
+		done = make(chan error, len(hashes))
+		defer close(done)
+
 		for _, pathname := range flag.Args() {
 			info, err := os.Stat(pathname)
 			if err != nil {
@@ -335,8 +340,6 @@ func hash_string(str string) {
 }
 
 func hash_file(filename string) (errors bool) {
-	done := make(chan error)
-	defer close(done)
 	for h := range hashes {
 		go func(h string) {
 			f, err := os.Open(filename)
@@ -390,8 +393,6 @@ func hash_dir(dir string) bool {
 }
 
 func hash_stdin() (errors bool) {
-	done := make(chan error)
-	defer close(done)
 	for h := range hashes {
 		go func(h string) {
 			if _, err := io.Copy(hashes[h], os.Stdin); err != nil {
