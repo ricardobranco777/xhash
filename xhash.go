@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.3.2
+// v0.3.3
 //
 // TODO:
 // + Support HMAC
@@ -41,6 +41,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var hashes = map[string]*struct {
@@ -319,19 +320,17 @@ func display() {
 }
 
 func hash_string(str string) {
-	done := make(chan bool)
-	defer close(done)
+	var wg sync.WaitGroup
+	wg.Add(len(hashes))
 	for h := range hashes {
 		go func(h string) {
-			defer func() { done <- true }()
+			defer wg.Done()
 			hashes[h].Write([]byte(str))
 			hashes[h].sum = fmt.Sprintf("%s(\"%s\") = %x", h, str, hashes[h].Sum(nil))
 			hashes[h].Reset()
 		}(h)
 	}
-	for range hashes {
-		<-done
-	}
+	wg.Wait()
 	display()
 }
 
