@@ -353,13 +353,13 @@ func hash_file(filename string) (errors bool) {
 	for range hashes {
 		err := <-done
 		if err != nil {
-			if (!errors) {
+			if !errors {
 				fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
 			}
 			errors = true
 		}
 	}
-	if (!errors) {
+	if !errors {
 		display()
 	}
 	return
@@ -405,7 +405,7 @@ func hash_stdin() (errors bool) {
 			errors = true
 		}
 	}
-	if (!errors) {
+	if !errors {
 		display()
 	}
 	return
