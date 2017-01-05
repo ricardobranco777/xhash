@@ -94,9 +94,6 @@ func main() {
 	ossl = flag.Bool("ossl", false, "use OpenSSL")
 	isString = flag.Bool("s", false, "treat arguments as strings")
 
-	sha3_hashes := []string{}
-	sha2_hashes := []string{}
-	blake2_hashes := []string{}
 	var size_hashes = map[int]*struct {
 		hashes []string
 		set    *bool
@@ -110,13 +107,6 @@ func main() {
 	}
 
 	for h := range hashes {
-		if strings.HasPrefix(h, "SHA3-") {
-			sha3_hashes = append(sha3_hashes, h)
-		} else if strings.HasPrefix(h, "SHA2") || strings.HasPrefix(h, "SHA384") || strings.HasPrefix(h, "SHA512") {
-			sha2_hashes = append(sha2_hashes, h)
-		} else if strings.HasPrefix(h, "BLAKE2") {
-			blake2_hashes = append(blake2_hashes, h)
-		}
 		size_hashes[hashes[h].size*8].hashes = append(size_hashes[hashes[h].size*8].hashes, h)
 	}
 
@@ -125,15 +115,9 @@ func main() {
 		size_hashes[size].set = flag.Bool(sizeStr, false, "all "+sizeStr+" bits algorithms")
 	}
 	var sha3Opt, sha2Opt, blake2Opt *bool
-	if len(sha3_hashes) > 0 {
-		sha3Opt = flag.Bool("sha3", false, "all SHA-3 algorithms")
-	}
-	if len(sha2_hashes) > 0 {
-		sha2Opt = flag.Bool("sha2", false, "all SHA-2 algorithms")
-	}
-	if len(blake2_hashes) > 0 {
-		blake2Opt = flag.Bool("blake2", false, "all BLAKE2 algorithms")
-	}
+	sha3Opt = flag.Bool("sha3", false, "all SHA-3 algorithms")
+	sha2Opt = flag.Bool("sha2", false, "all SHA-2 algorithms")
+	blake2Opt = flag.Bool("blake2", false, "all BLAKE2 algorithms")
 
 	flag.Parse()
 
@@ -147,18 +131,24 @@ func main() {
 	}
 
 	if *sha3Opt {
-		for _, h := range sha3_hashes {
-			*chosen[h] = true
+		for h := range hashes {
+			if strings.HasPrefix(h, "SHA3-") {
+				*chosen[h] = true
+			}
 		}
 	}
 	if *sha2Opt {
-		for _, h := range sha2_hashes {
-			*chosen[h] = true
+		for h := range hashes {
+			if strings.HasPrefix(h, "SHA2") || strings.HasPrefix(h, "SHA384") || strings.HasPrefix(h, "SHA512") {
+				*chosen[h] = true
+			}
 		}
 	}
 	if *blake2Opt {
-		for _, h := range blake2_hashes {
-			*chosen[h] = true
+		for h := range hashes {
+			if strings.HasPrefix(h, "BLAKE2") {
+				*chosen[h] = true
+			}
 		}
 	}
 
