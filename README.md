@@ -51,6 +51,8 @@ Install OpenSSL for faster hashing for multiple algorithms.
     	BLAKE2b512 algorithm
 * `-blake2s256`
     	BLAKE2s256 algorithm
+* `-key value`
+    	key for HMAC (in hexadecimal)
 * `-md4`
     	MD4 algorithm
 * `-md5`
