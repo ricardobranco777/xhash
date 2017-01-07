@@ -2,10 +2,9 @@
 //
 // MIT License
 //
-// v0.3.4
+// v0.4
 //
 // TODO:
-// + Support HMAC
 // + Read filenames from file
 // + Support -c option like md5sum(1)
 // + Use getopt
@@ -15,12 +14,14 @@ package main
 
 import (
 	"crypto"
+	"crypto/hmac"
 	/*
 		_ "crypto/md5"
 		_ "crypto/sha1"
 		_ "crypto/sha256"
 		_ "crypto/sha512"
 	*/
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"github.com/ricardobranco777/dgst/blake2b"
@@ -140,6 +141,10 @@ func main() {
 	all = flag.Bool("all", false, "all algorithms")
 	isString = flag.Bool("s", false, "treat arguments as strings")
 
+	var mac_key []byte
+	var hexkey strFlag
+	flag.Var(&hexkey, "key", "key for HMAC (in hexadecimal)")
+
 	var size_hashes = map[int]*struct {
 		hashes []crypto.Hash
 		set    *bool
@@ -161,6 +166,15 @@ func main() {
 	}
 
 	flag.Parse()
+
+	if hexkey.value != nil {
+		key, err := hex.DecodeString(*hexkey.value)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: %s: Invalid hexadecimal key: %v\n", progname, *hexkey.value)
+			os.Exit(1)
+		}
+		mac_key = key
+	}
 
 	for size := range size_hashes {
 		if !*(size_hashes[size].set) {
@@ -188,20 +202,24 @@ func main() {
 		}
 		switch hashes[i].hash {
 		case BLAKE2b256:
-			hashes[i].Hash = blake2_(blake2b.New256)
+			hashes[i].Hash = blake2_(blake2b.New256, mac_key)
 		case BLAKE2b384:
-			hashes[i].Hash = blake2_(blake2b.New384)
+			hashes[i].Hash = blake2_(blake2b.New384, mac_key)
 		case BLAKE2b512:
-			hashes[i].Hash = blake2_(blake2b.New512)
+			hashes[i].Hash = blake2_(blake2b.New512, mac_key)
 		case BLAKE2s256:
-			hashes[i].Hash = blake2_(blake2s.New256)
+			hashes[i].Hash = blake2_(blake2s.New256, mac_key)
 		default:
 			if !hashes[i].hash.Available() {
 				removeHash(hashes[i].hash)
 				i--
 				continue
 			}
-			hashes[i].Hash = hashes[i].hash.New()
+			if mac_key != nil {
+				hashes[i].Hash = hmac.New(hashes[i].hash.New, mac_key)
+			} else {
+				hashes[i].Hash = hashes[i].hash.New()
+			}
 		}
 	}
 
@@ -243,6 +261,22 @@ func main() {
 	}
 }
 
+type strFlag struct {
+	value *string
+}
+
+func (f *strFlag) Set(value string) error {
+	f.value = &value
+	return nil
+}
+
+func (f *strFlag) String() string {
+	if f.value != nil {
+		return *f.value
+	}
+	return ""
+}
+
 func removeHash(h crypto.Hash) {
 	i := -1
 	for i = range hashes {
@@ -256,8 +290,12 @@ func removeHash(h crypto.Hash) {
 }
 
 // Wrapper for the Blake2 New() methods that needs an optional for MAC
-func blake2_(f func([]byte) (hash.Hash, error)) hash.Hash {
-	h, _ := f(nil)
+func blake2_(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
+	h, err := f(key)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s: %v", progname, err)
+		os.Exit(1)
+	}
 	return h
 }
 
