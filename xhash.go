@@ -144,16 +144,13 @@ func main() {
 		hashes []crypto.Hash
 		set    *bool
 	}{
-		128: {},
-		160: {},
-		224: {},
-		256: {},
-		384: {},
-		512: {},
+		128: {}, 160: {}, 224: {}, 256: {}, 384: {}, 512: {},
 	}
 
 	for h := range hashes {
-		size_hashes[hashes[h].size*8].hashes = append(size_hashes[hashes[h].size*8].hashes, hashes[h].hash)
+		if hashes[h].hash.Available() {
+			size_hashes[hashes[h].size*8].hashes = append(size_hashes[hashes[h].size*8].hashes, hashes[h].hash)
+		}
 	}
 
 	for size := range size_hashes {
