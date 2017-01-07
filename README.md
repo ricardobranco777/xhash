@@ -75,10 +75,6 @@ Install OpenSSL for faster hashing for multiple algorithms.
     	SHA384 algorithm
 * `-sha512`
     	SHA512 algorithm
-* `-sha512-224`
-    	SHA512-224 algorithm
-* `-sha512-256`
-    	SHA512-256 algorithm
 
 # TO DO
 * Support HMAC
