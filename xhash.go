@@ -2,17 +2,16 @@
 //
 // MIT License
 //
-// v0.4
+// v0.5
 //
 // TODO:
-// + Read filenames from file
 // + Support -c option like md5sum(1)
-// + Use getopt
 // + Use different output formats for display
 
 package main
 
 import (
+	"bufio"
 	"crypto"
 	"crypto/hmac"
 	/*
@@ -123,6 +122,8 @@ var progname string
 
 var done chan error
 
+var zeroFlag *bool
+
 func main() {
 	progname = path.Base(os.Args[0])
 
@@ -140,6 +141,10 @@ func main() {
 	var all, isString *bool
 	all = flag.Bool("all", false, "all algorithms")
 	isString = flag.Bool("s", false, "treat arguments as strings")
+	zeroFlag = flag.Bool("0", false, "lines are terminated by a null character by using the -c or -i options")
+
+	var files strFlag
+	flag.Var(&files, "i", "read pathnames from file")
 
 	var mac_key []byte
 	var hexkey strFlag
@@ -228,12 +233,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	if flag.NArg() == 0 {
+	var errors bool
+
+	if files.value != nil {
+		done = make(chan error, len(hashes))
+		defer close(done)
+
+		errors = hash_fromFile(*files.value)
+	} else if flag.NArg() == 0 {
 		hash_stdin()
 		os.Exit(0)
 	}
-
-	var errors bool
 
 	if *isString {
 		for _, s := range flag.Args() {
@@ -244,15 +254,7 @@ func main() {
 		defer close(done)
 
 		for _, pathname := range flag.Args() {
-			info, err := os.Stat(pathname)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
-				errors = true
-			} else if info.IsDir() {
-				errors = hash_dir(pathname)
-			} else {
-				errors = hash_file(pathname)
-			}
+			errors = hash_pathname(pathname)
 		}
 	}
 
@@ -328,6 +330,44 @@ func hash_string(str string) {
 	}
 	wg.Wait()
 	display()
+}
+
+func hash_fromFile(file string) (errors bool) {
+	var terminator string = "\n"
+	if *zeroFlag {
+		terminator = "\x00"
+	}
+
+	f, err := os.Open(file)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v", progname, err)
+	}
+	defer f.Close()
+
+	inputReader := bufio.NewReader(f)
+	for {
+		pathname, err := inputReader.ReadString(terminator[0])
+		if err == io.EOF {
+			return
+		}
+		pathname = strings.TrimRight(pathname, terminator)
+		errors = hash_pathname(pathname)
+	}
+
+	return
+}
+
+func hash_pathname(pathname string) (errors bool) {
+	info, err := os.Stat(pathname)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
+		errors = true
+	} else if info.IsDir() {
+		errors = hash_dir(pathname)
+	} else {
+		errors = hash_file(pathname)
+	}
+	return
 }
 
 func hash_file(filename string) (errors bool) {
