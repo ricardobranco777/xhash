@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.5
+// v0.5.1
 //
 // TODO:
 // + Support -c option like md5sum(1)
@@ -43,10 +43,13 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 )
+
+const version = "0.5.1"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -138,19 +141,19 @@ func main() {
 		chosen[hashes[i].hash] = flag.Bool(name, false, fmt.Sprintf("%s algorithm", name))
 	}
 
-	var all, isString *bool
-	all = flag.Bool("all", false, "all algorithms")
-	isString = flag.Bool("s", false, "treat arguments as strings")
+	all := flag.Bool("all", false, "all algorithms")
+	isString := flag.Bool("s", false, "treat arguments as strings")
+	versionFlag := flag.Bool("version", false, "show version and exit")
 	zeroFlag = flag.Bool("0", false, "lines are terminated by a null character by using the -c or -i options")
 
 	var files strFlag
 	flag.Var(&files, "i", "read pathnames from file")
 
-	var mac_key []byte
-	var hexkey strFlag
-	flag.Var(&hexkey, "key", "key for HMAC (in hexadecimal)")
+	var macKey []byte
+	var hexKey strFlag
+	flag.Var(&hexKey, "key", "key for HMAC (in hexadecimal)")
 
-	var size_hashes = map[int]*struct {
+	sizeHashes := map[int]*struct {
 		hashes []crypto.Hash
 		set    *bool
 	}{
@@ -159,33 +162,38 @@ func main() {
 
 	for h := range hashes {
 		if hashes[h].hash.Available() {
-			size_hashes[hashes[h].size*8].hashes = append(size_hashes[hashes[h].size*8].hashes, hashes[h].hash)
+			sizeHashes[hashes[h].size*8].hashes = append(sizeHashes[hashes[h].size*8].hashes, hashes[h].hash)
 		}
 	}
 
-	for size := range size_hashes {
+	for size := range sizeHashes {
 		sizeStr := strconv.Itoa(size)
-		if len(size_hashes[size].hashes) > 0 {
-			size_hashes[size].set = flag.Bool(sizeStr, false, "all "+sizeStr+" bits algorithms")
+		if len(sizeHashes[size].hashes) > 0 {
+			sizeHashes[size].set = flag.Bool(sizeStr, false, "all "+sizeStr+" bits algorithms")
 		}
 	}
 
 	flag.Parse()
 
-	if hexkey.value != nil {
-		key, err := hex.DecodeString(*hexkey.value)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: %s: Invalid hexadecimal key: %v\n", progname, *hexkey.value)
-			os.Exit(1)
-		}
-		mac_key = key
+	if *versionFlag {
+		fmt.Printf("%s v%s %s %s %s\n", progname, version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+		os.Exit(0)
 	}
 
-	for size := range size_hashes {
-		if !*(size_hashes[size].set) {
+	if hexKey.value != nil {
+		key, err := hex.DecodeString(*hexKey.value)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: %s: Invalid hexadecimal key: %v\n", progname, *hexKey.value)
+			os.Exit(1)
+		}
+		macKey = key
+	}
+
+	for size := range sizeHashes {
+		if !*(sizeHashes[size].set) {
 			continue
 		}
-		for _, h := range size_hashes[size].hashes {
+		for _, h := range sizeHashes[size].hashes {
 			*chosen[h] = true
 		}
 	}
@@ -207,21 +215,21 @@ func main() {
 		}
 		switch hashes[i].hash {
 		case BLAKE2b256:
-			hashes[i].Hash = blake2_(blake2b.New256, mac_key)
+			hashes[i].Hash = blake2_(blake2b.New256, macKey)
 		case BLAKE2b384:
-			hashes[i].Hash = blake2_(blake2b.New384, mac_key)
+			hashes[i].Hash = blake2_(blake2b.New384, macKey)
 		case BLAKE2b512:
-			hashes[i].Hash = blake2_(blake2b.New512, mac_key)
+			hashes[i].Hash = blake2_(blake2b.New512, macKey)
 		case BLAKE2s256:
-			hashes[i].Hash = blake2_(blake2s.New256, mac_key)
+			hashes[i].Hash = blake2_(blake2s.New256, macKey)
 		default:
 			if !hashes[i].hash.Available() {
 				removeHash(hashes[i].hash)
 				i--
 				continue
 			}
-			if mac_key != nil {
-				hashes[i].Hash = hmac.New(hashes[i].hash.New, mac_key)
+			if macKey != nil {
+				hashes[i].Hash = hmac.New(hashes[i].hash.New, macKey)
 			} else {
 				hashes[i].Hash = hashes[i].hash.New()
 			}
@@ -239,22 +247,22 @@ func main() {
 		done = make(chan error, len(hashes))
 		defer close(done)
 
-		errors = hash_fromFile(*files.value)
+		errors = hashFromFile(*files.value)
 	} else if flag.NArg() == 0 {
-		hash_stdin()
+		hashStdin()
 		os.Exit(0)
 	}
 
 	if *isString {
 		for _, s := range flag.Args() {
-			hash_string(s)
+			hashString(s)
 		}
 	} else {
 		done = make(chan error, len(hashes))
 		defer close(done)
 
 		for _, pathname := range flag.Args() {
-			errors = hash_pathname(pathname)
+			errors = hashPathname(pathname)
 		}
 	}
 
@@ -317,7 +325,7 @@ func display() {
 	}
 }
 
-func hash_string(str string) {
+func hashString(str string) {
 	var wg sync.WaitGroup
 	wg.Add(len(hashes))
 	for h := range hashes {
@@ -332,7 +340,7 @@ func hash_string(str string) {
 	display()
 }
 
-func hash_fromFile(file string) (errors bool) {
+func hashFromFile(file string) (errors bool) {
 	var terminator string = "\n"
 	if *zeroFlag {
 		terminator = "\x00"
@@ -351,26 +359,26 @@ func hash_fromFile(file string) (errors bool) {
 			return
 		}
 		pathname = strings.TrimRight(pathname, terminator)
-		errors = hash_pathname(pathname)
+		errors = hashPathname(pathname)
 	}
 
 	return
 }
 
-func hash_pathname(pathname string) (errors bool) {
+func hashPathname(pathname string) (errors bool) {
 	info, err := os.Stat(pathname)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
 		errors = true
 	} else if info.IsDir() {
-		errors = hash_dir(pathname)
+		errors = hashDir(pathname)
 	} else {
-		errors = hash_file(pathname)
+		errors = hashFile(pathname)
 	}
 	return
 }
 
-func hash_file(filename string) (errors bool) {
+func hashFile(filename string) (errors bool) {
 	for h := range hashes {
 		go func(h int) {
 			f, err := os.Open(filename)
@@ -409,12 +417,12 @@ func visit(path string, f os.FileInfo, err error) error {
 		return err
 	}
 	if f.Mode().IsRegular() {
-		hash_file(path)
+		hashFile(path)
 	}
 	return nil
 }
 
-func hash_dir(dir string) bool {
+func hashDir(dir string) bool {
 	err := filepath.Walk(dir, visit)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
@@ -423,7 +431,7 @@ func hash_dir(dir string) bool {
 	return true
 }
 
-func hash_stdin() (errors bool) {
+func hashStdin() (errors bool) {
 	for h := range hashes {
 		go func(h int) {
 			if _, err := io.Copy(hashes[h], os.Stdin); err != nil {
