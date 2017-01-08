@@ -2,13 +2,29 @@
 //
 // MIT License
 //
-// v0.5.1
+// v0.5.2
 //
 // TODO:
 // + Support -c option like md5sum(1)
 // + Use different output formats for display
 
 package main
+
+/*
+#cgo CFLAGS: -I/usr/include
+#cgo LDFLAGS: -lcrypto -L/usr/lib
+#include <openssl/crypto.h>
+
+#if OPENSSL_VERSION_NUMBER >> 20 & 0xff
+// This function was renamed in OpenSSL 1.1.0
+#undef SSLeay_version
+char * SSLeay_version(int t) {
+	return OpenSSL_version(t);
+}
+char * SSLeay_version(int t);
+#endif
+*/
+import "C"
 
 import (
 	"bufio"
@@ -177,6 +193,14 @@ func main() {
 
 	if *versionFlag {
 		fmt.Printf("%s v%s %s %s %s\n", progname, version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+		fmt.Printf("Supported hashes:")
+		for h := range hashes {
+			if hashes[h].hash.Available() {
+				fmt.Printf(" %s", hashes[h].name)
+			}
+		}
+		fmt.Println()
+		fmt.Printf("%s %s\n", C.GoString(C.SSLeay_version(0)), C.GoString(C.SSLeay_version(2)))
 		os.Exit(0)
 	}
 
