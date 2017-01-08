@@ -29,6 +29,9 @@ Install OpenSSL for faster hashing for multiple algorithms.
 
 # Options
 
+* `-0`
+    	lines are terminated by a null character by using the -c or -i options
+
 * `-128`
     	all 128 bits algorithms
 * `-160`
@@ -51,6 +54,8 @@ Install OpenSSL for faster hashing for multiple algorithms.
     	BLAKE2b512 algorithm
 * `-blake2s256`
     	BLAKE2s256 algorithm
+* `-i value`
+    	read pathnames from file
 * `-key value`
     	key for HMAC (in hexadecimal)
 * `-md4`
