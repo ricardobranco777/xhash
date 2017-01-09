@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.6.1
+// v0.6.2
 //
 // TODO:
 // + Support -c option like md5sum(1)
@@ -65,7 +65,7 @@ import (
 	"text/template"
 )
 
-const version = "0.6.1"
+const version = "0.6.2"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -195,8 +195,13 @@ func main() {
 		fmt.Printf("%s v%s %s %s %s\n", progname, version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 		fmt.Printf("Supported hashes:")
 		for h := range hashes {
-			if hashes[h].hash.Available() {
+			switch hashes[h].hash {
+			case BLAKE2b256, BLAKE2b384, BLAKE2b512, BLAKE2s256:
 				fmt.Printf(" %s", hashes[h].Name)
+			default:
+				if hashes[h].hash.Available() {
+					fmt.Printf(" %s", hashes[h].Name)
+				}
 			}
 		}
 		fmt.Println()
