@@ -2,11 +2,10 @@
 //
 // MIT License
 //
-// v0.5.2
+// v0.6
 //
 // TODO:
 // + Support -c option like md5sum(1)
-// + Use different output formats for display
 
 package main
 
@@ -63,9 +62,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"text/template"
 )
 
-const version = "0.5.1"
+const version = "0.6"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -76,63 +76,58 @@ const (
 
 var hashes = []*struct {
 	hash crypto.Hash
-	name string
-	sum  string
+	Name string
+	File string
+	Digest string
 	hash.Hash
 	size int
 }{
-	{name: "BLAKE2b256",
+	{Name: "BLAKE2b256",
 		hash: BLAKE2b256,
 		size: 32},
-	{name: "BLAKE2b384",
+	{Name: "BLAKE2b384",
 		hash: BLAKE2b384,
 		size: 48},
-	{name: "BLAKE2b512",
+	{Name: "BLAKE2b512",
 		hash: BLAKE2b512,
 		size: 64},
-	{name: "BLAKE2s256",
+	{Name: "BLAKE2s256",
 		hash: BLAKE2s256,
 		size: 32},
-	{name: "MD4",
+	{Name: "MD4",
 		hash: crypto.MD4,
 		size: 16},
-	{name: "MD5",
+	{Name: "MD5",
 		hash: crypto.MD5,
 		size: 16},
-	{name: "RIPEMD160",
+	{Name: "RIPEMD160",
 		hash: crypto.RIPEMD160,
 		size: 20},
-	{name: "SHA1",
+	{Name: "SHA1",
 		hash: crypto.SHA1,
 		size: 20},
-	{name: "SHA224",
+	{Name: "SHA224",
 		hash: crypto.SHA224,
 		size: 28},
-	{name: "SHA256",
+	{Name: "SHA256",
 		hash: crypto.SHA256,
 		size: 32},
-	{name: "SHA384",
+	{Name: "SHA384",
 		hash: crypto.SHA384,
 		size: 48},
-	{name: "SHA512",
+	{Name: "SHA512",
 		hash: crypto.SHA512,
 		size: 64},
-	{name: "SHA512-224",
-		hash: crypto.SHA512_224,
-		size: 28},
-	{name: "SHA512-256",
-		hash: crypto.SHA512_256,
-		size: 32},
-	{name: "SHA3-224",
+	{Name: "SHA3-224",
 		hash: crypto.SHA3_224,
 		size: 28},
-	{name: "SHA3-256",
+	{Name: "SHA3-256",
 		hash: crypto.SHA3_256,
 		size: 32},
-	{name: "SHA3-384",
+	{Name: "SHA3-384",
 		hash: crypto.SHA3_384,
 		size: 48},
-	{name: "SHA3-512",
+	{Name: "SHA3-512",
 		hash: crypto.SHA3_512,
 		size: 64},
 }
@@ -140,6 +135,8 @@ var hashes = []*struct {
 var progname string
 
 var done chan error
+
+var tmpl = template.New("tmpl")
 
 var zeroFlag *bool
 
@@ -153,17 +150,20 @@ func main() {
 
 	chosen := make(map[crypto.Hash]*bool)
 	for i := range hashes {
-		name := strings.ToLower(hashes[i].name)
+		name := strings.ToLower(hashes[i].Name)
 		chosen[hashes[i].hash] = flag.Bool(name, false, fmt.Sprintf("%s algorithm", name))
 	}
 
 	all := flag.Bool("all", false, "all algorithms")
 	isString := flag.Bool("s", false, "treat arguments as strings")
 	versionFlag := flag.Bool("version", false, "show version and exit")
-	zeroFlag = flag.Bool("0", false, "lines are terminated by a null character by using the -c or -i options")
+	zeroFlag = flag.Bool("0", false, "lines are terminated by a null character (with the -i option)")
 
 	var fromFile string
 	flag.StringVar(&fromFile, "i", "", "read pathnames from file")
+
+	var template string
+	flag.StringVar(&template, "format", "{{.Name}}({{.File}}) = {{.Digest}}", "output format")
 
 	var macKey []byte
 	var keyFlag strFlag
@@ -196,7 +196,7 @@ func main() {
 		fmt.Printf("Supported hashes:")
 		for h := range hashes {
 			if hashes[h].hash.Available() {
-				fmt.Printf(" %s", hashes[h].name)
+				fmt.Printf(" %s", hashes[h].Name)
 			}
 		}
 		fmt.Println()
@@ -211,6 +211,14 @@ func main() {
 			os.Exit(1)
 		}
 		macKey = key
+	}
+
+	template = "{{range .}}" + template + "\n{{end}}"
+	var err error
+	tmpl, err = tmpl.Parse(template)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: Invalid template: %v\n", progname, template)
+		os.Exit(1)
 	}
 
 	for size := range sizeHashes {
@@ -343,9 +351,7 @@ func choices(chosen map[crypto.Hash]*bool) bool {
 }
 
 func display() {
-	for i := range hashes {
-		fmt.Println(hashes[i].sum)
-	}
+	tmpl.Execute(os.Stdout, hashes)
 }
 
 func hashString(str string) {
@@ -355,7 +361,8 @@ func hashString(str string) {
 		go func(h int) {
 			defer wg.Done()
 			hashes[h].Write([]byte(str))
-			hashes[h].sum = fmt.Sprintf("%s(\"%s\") = %x", hashes[h].name, str, hashes[h].Sum(nil))
+			hashes[h].File = "" + str + ""
+			hashes[h].Digest = hex.EncodeToString(hashes[h].Sum(nil))
 			hashes[h].Reset()
 		}(h)
 	}
@@ -415,7 +422,8 @@ func hashFile(filename string) (errors bool) {
 				done <- err
 				return
 			}
-			hashes[h].sum = fmt.Sprintf("%s(%s) = %x", hashes[h].name, filename, hashes[h].Sum(nil))
+			hashes[h].File = filename
+			hashes[h].Digest = hex.EncodeToString(hashes[h].Sum(nil))
 			hashes[h].Reset()
 			done <- nil
 		}(h)
@@ -461,7 +469,8 @@ func hashStdin() (errors bool) {
 				done <- err
 				return
 			}
-			hashes[h].sum = fmt.Sprintf("%s() = %x", hashes[h].name, hashes[h].Sum(nil))
+			hashes[h].File = ""
+			hashes[h].Digest = hex.EncodeToString(hashes[h].Sum(nil))
 			hashes[h].Reset()
 			done <- nil
 		}(h)
