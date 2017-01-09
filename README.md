@@ -7,7 +7,7 @@ Usage: xhash [OPTIONS] [-s STRING...]|[FILE... DIRECTORY...]
 
 # Blake2
 
-Install the Blake2.net library (libb2-dev package on Debian/Ubuntu systems) for faster hashing of Blake2 algorithms.
+Install the Blake2.net library (libb2-dev package on Ubuntu >= 16.04 systems) for faster hashing of Blake2 algorithms.
 
 # OpenSSL
 
