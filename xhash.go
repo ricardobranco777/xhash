@@ -162,12 +162,12 @@ func main() {
 	versionFlag := flag.Bool("version", false, "show version and exit")
 	zeroFlag = flag.Bool("0", false, "lines are terminated by a null character by using the -c or -i options")
 
-	var files strFlag
-	flag.Var(&files, "i", "read pathnames from file")
+	var fromFile string
+	flag.StringVar(&fromFile, "i", "", "read pathnames from file")
 
 	var macKey []byte
-	var hexKey strFlag
-	flag.Var(&hexKey, "key", "key for HMAC (in hexadecimal)")
+	var keyFlag strFlag
+	flag.Var(&keyFlag, "key", "key for HMAC (in hexadecimal)")
 
 	sizeHashes := map[int]*struct {
 		hashes []crypto.Hash
@@ -204,10 +204,10 @@ func main() {
 		os.Exit(0)
 	}
 
-	if hexKey.value != nil {
-		key, err := hex.DecodeString(*hexKey.value)
+	if keyFlag.value != nil {
+		key, err := hex.DecodeString(*keyFlag.value)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: %s: Invalid hexadecimal key: %v\n", progname, *hexKey.value)
+			fmt.Fprintf(os.Stderr, "ERROR: %s: Invalid hexadecimal key: %v\n", progname, *keyFlag.value)
 			os.Exit(1)
 		}
 		macKey = key
@@ -267,12 +267,14 @@ func main() {
 
 	var errors bool
 
-	if files.value != nil {
-		done = make(chan error, len(hashes))
-		defer close(done)
+	done = make(chan error, len(hashes))
+	defer close(done)
 
-		errors = hashFromFile(*files.value)
-	} else if flag.NArg() == 0 {
+	if fromFile != "" {
+		println("ok")
+		errors = hashFromFile(fromFile)
+	}
+	if flag.NArg() == 0 {
 		hashStdin()
 		os.Exit(0)
 	}
@@ -282,9 +284,6 @@ func main() {
 			hashString(s)
 		}
 	} else {
-		done = make(chan error, len(hashes))
-		defer close(done)
-
 		for _, pathname := range flag.Args() {
 			errors = hashPathname(pathname)
 		}
