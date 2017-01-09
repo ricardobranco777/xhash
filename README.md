@@ -27,11 +27,24 @@ Install OpenSSL for faster hashing for multiple algorithms.
 
 `xhash -all -128 -160 /etc/passwd`
 
+# Output format
+
+The output format is the same as OpenSSL's *dgst* command.  It may be changed with the _*-format*_ option.  The default is:
+
+_*{{.Name}}({{.File}}) = {{.Digest}}"*_
+
+To support the format used by the \*BSD commands add a space before the opening parenthesis like this:
+
+_*{{.Name}} ({{.File}}) = {{.Digest}}"*_
+
+To support the format used by md5sum:
+
+`xhash -md5 -format '{{.Digest}}  {{.File}}' /etc/passwd`
+
 # Options
 
 * `-0`
-    	lines are terminated by a null character by using the -c or -i options
-
+    	lines are terminated by a null character (with the -i option)
 * `-128`
     	all 128 bits algorithms
 * `-160`
@@ -56,6 +69,8 @@ Install OpenSSL for faster hashing for multiple algorithms.
     	BLAKE2s256 algorithm
 * `-i value`
     	read pathnames from file
+* `-format string`
+    	output format (default "{{.Name}}({{.File}}) = {{.Digest}}")
 * `-key value`
     	key for HMAC (in hexadecimal)
 * `-md4`
@@ -86,7 +101,4 @@ Install OpenSSL for faster hashing for multiple algorithms.
     	show version and exit
 
 # TO DO
-* Support HMAC
-* Read list of filenames to hash from file
 * Support -c option like md5sum(1)
-* Use different output formats for display
