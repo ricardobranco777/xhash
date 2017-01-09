@@ -72,7 +72,7 @@ To support the format used by md5sum:
 * `-format string`
     	output format (default "{{.Name}}({{.File}}) = {{.Digest}}")
 * `-key value`
-    	key for HMAC (in hexadecimal)
+    	key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname
 * `-md4`
     	MD4 algorithm
 * `-md5`
