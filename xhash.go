@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.6.2
+// v0.6.3
 //
 // TODO:
 // + Support -c option like md5sum(1)
@@ -55,6 +55,7 @@ import (
 	_ "golang.org/x/crypto/sha3"
 	"hash"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -65,7 +66,7 @@ import (
 	"text/template"
 )
 
-const version = "0.6.2"
+const version = "0.6.3"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -167,7 +168,7 @@ func main() {
 
 	var macKey []byte
 	var keyFlag strFlag
-	flag.Var(&keyFlag, "key", "key for HMAC (in hexadecimal)")
+	flag.Var(&keyFlag, "key", "key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname")
 
 	sizeHashes := map[int]*struct {
 		hashes []crypto.Hash
@@ -210,12 +211,20 @@ func main() {
 	}
 
 	if keyFlag.value != nil {
-		key, err := hex.DecodeString(*keyFlag.value)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: %s: Invalid hexadecimal key: %v\n", progname, *keyFlag.value)
-			os.Exit(1)
+		var err error
+		if strings.HasPrefix(*keyFlag.value, "/") {
+			macKey, err = ioutil.ReadFile(*keyFlag.value)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, *keyFlag.value)
+				os.Exit(1)
+			}
+		} else {
+			macKey, err = hex.DecodeString(*keyFlag.value)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: %s: Invalid hexadecimal key: %v\n", progname, *keyFlag.value)
+				os.Exit(1)
+			}
 		}
-		macKey = key
 	}
 
 	template = "{{range .}}" + template + "\n{{end}}"
