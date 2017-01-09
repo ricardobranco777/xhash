@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.6
+// v0.6.1
 //
 // TODO:
 // + Support -c option like md5sum(1)
@@ -65,7 +65,7 @@ import (
 	"text/template"
 )
 
-const version = "0.6"
+const version = "0.6.1"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -75,9 +75,9 @@ const (
 )
 
 var hashes = []*struct {
-	hash crypto.Hash
-	Name string
-	File string
+	hash   crypto.Hash
+	Name   string
+	File   string
 	Digest string
 	hash.Hash
 	size int
@@ -159,8 +159,8 @@ func main() {
 	versionFlag := flag.Bool("version", false, "show version and exit")
 	zeroFlag = flag.Bool("0", false, "lines are terminated by a null character (with the -i option)")
 
-	var fromFile string
-	flag.StringVar(&fromFile, "i", "", "read pathnames from file")
+	var iFlag strFlag
+	flag.Var(&iFlag, "i", "read pathnames from file (use '-i \"\"' to read from standard input)")
 
 	var template string
 	flag.StringVar(&template, "format", "{{.Name}}({{.File}}) = {{.Digest}}", "output format")
@@ -217,7 +217,7 @@ func main() {
 	var err error
 	tmpl, err = tmpl.Parse(template)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: Invalid template: %v\n", progname, template)
+		fmt.Fprintf(os.Stderr, "ERROR: %s: Invalid template: %v\n", progname, template)
 		os.Exit(1)
 	}
 
@@ -278,11 +278,21 @@ func main() {
 	done = make(chan error, len(hashes))
 	defer close(done)
 
-	if fromFile != "" {
-		println("ok")
-		errors = hashFromFile(fromFile)
-	}
-	if flag.NArg() == 0 {
+	if iFlag.value != nil {
+		func(file string) {
+			var f *os.File = os.Stdin
+			var err error
+			if file != "" {
+				f, err = os.Open(file)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
+					os.Exit(1)
+				}
+				defer f.Close()
+			}
+			errors = hashFromFile(f)
+		}(*iFlag.value)
+	} else if flag.NArg() == 0 {
 		hashStdin()
 		os.Exit(0)
 	}
@@ -334,7 +344,7 @@ func removeHash(h crypto.Hash) {
 func blake2_(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
 	h, err := f(key)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s: %v", progname, err)
+		fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, err)
 		os.Exit(1)
 	}
 	return h
@@ -370,17 +380,11 @@ func hashString(str string) {
 	display()
 }
 
-func hashFromFile(file string) (errors bool) {
+func hashFromFile(f *os.File) (errors bool) {
 	var terminator string = "\n"
 	if *zeroFlag {
 		terminator = "\x00"
 	}
-
-	f, err := os.Open(file)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v", progname, err)
-	}
-	defer f.Close()
 
 	inputReader := bufio.NewReader(f)
 	for {
@@ -391,8 +395,6 @@ func hashFromFile(file string) (errors bool) {
 		pathname = strings.TrimRight(pathname, terminator)
 		errors = hashPathname(pathname)
 	}
-
-	return
 }
 
 func hashPathname(pathname string) (errors bool) {
