@@ -68,7 +68,7 @@ To support the format used by md5sum:
 * `-blake2s256`
     	BLAKE2s256 algorithm
 * `-i value`
-    	read pathnames from file
+    	read pathnames from file (use _*-i ""_* to read from standard input)
 * `-format string`
     	output format (default "{{.Name}}({{.File}}) = {{.Digest}}")
 * `-key value`
