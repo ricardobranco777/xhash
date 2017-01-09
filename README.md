@@ -31,11 +31,11 @@ Install OpenSSL for faster hashing for multiple algorithms.
 
 The output format is the same as OpenSSL's *dgst* command.  It may be changed with the _*-format*_ option.  The default is:
 
-_*{{.Name}}({{.File}}) = {{.Digest}}"*_
+_*{{.Name}}({{.File}}) = {{.Digest}}*_
 
 To support the format used by the \*BSD commands add a space before the opening parenthesis like this:
 
-_*{{.Name}} ({{.File}}) = {{.Digest}}"*_
+_*{{.Name}} ({{.File}}) = {{.Digest}}*_
 
 To support the format used by md5sum:
 
