@@ -141,6 +141,15 @@ var tmpl = template.New("tmpl")
 
 var zeroFlag *bool
 
+func init() {
+	for i := 0; i < len(hashes); i++ {
+		if !hashes[i].hash.Available() {
+			removeHash(hashes[i].hash)
+			i--
+		}
+	}
+}
+
 func main() {
 	progname = path.Base(os.Args[0])
 
@@ -178,9 +187,7 @@ func main() {
 	}
 
 	for h := range hashes {
-		if hashes[h].hash.Available() {
-			sizeHashes[hashes[h].size*8].hashes = append(sizeHashes[hashes[h].size*8].hashes, hashes[h].hash)
-		}
+		sizeHashes[hashes[h].size*8].hashes = append(sizeHashes[hashes[h].size*8].hashes, hashes[h].hash)
 	}
 
 	for size := range sizeHashes {
@@ -196,14 +203,7 @@ func main() {
 		fmt.Printf("%s v%s %s %s %s\n", progname, version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 		fmt.Printf("Supported hashes:")
 		for h := range hashes {
-			switch hashes[h].hash {
-			case BLAKE2b256, BLAKE2b384, BLAKE2b512, BLAKE2s256:
-				fmt.Printf(" %s", hashes[h].Name)
-			default:
-				if hashes[h].hash.Available() {
-					fmt.Printf(" %s", hashes[h].Name)
-				}
-			}
+			fmt.Printf(" %s", hashes[h].Name)
 		}
 		fmt.Println()
 		fmt.Printf("%s %s\n", C.GoString(C.SSLeay_version(0)), C.GoString(C.SSLeay_version(2)))
@@ -228,7 +228,7 @@ func main() {
 	}
 
 	template += "\n"
-	if (*zeroFlag) {
+	if *zeroFlag {
 		template += "\x00"
 	}
 	template = "{{range .}}" + template + "{{end}}"
@@ -259,10 +259,7 @@ func main() {
 		delete(chosen, h)
 	}
 
-	for i := 0; ; i++ {
-		if i >= len(hashes) {
-			break
-		}
+	for i := range hashes {
 		switch hashes[i].hash {
 		case BLAKE2b256:
 			hashes[i].Hash = blake2_(blake2b.New256, macKey)
@@ -273,11 +270,6 @@ func main() {
 		case BLAKE2s256:
 			hashes[i].Hash = blake2_(blake2s.New256, macKey)
 		default:
-			if !hashes[i].hash.Available() {
-				removeHash(hashes[i].hash)
-				i--
-				continue
-			}
 			if macKey != nil {
 				hashes[i].Hash = hmac.New(hashes[i].hash.New, macKey)
 			} else {
