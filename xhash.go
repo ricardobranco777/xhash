@@ -140,7 +140,15 @@ var done chan error
 
 var tmpl = template.New("tmpl")
 
-var zeroFlag *bool
+var opts struct {
+	all      bool
+	iFile    strFlag
+	key      strFlag
+	str      bool
+	template string
+	version  bool
+	zero     bool
+}
 
 func init() {
 	for i := 0; i < len(hashes); i++ {
@@ -149,9 +157,7 @@ func init() {
 			i--
 		}
 	}
-}
 
-func main() {
 	progname = path.Base(os.Args[0])
 
 	flag.Usage = func() {
@@ -159,26 +165,21 @@ func main() {
 		flag.PrintDefaults()
 	}
 
-	for i := range hashes {
-		name := strings.ToLower(hashes[i].Name)
-		flag.BoolVar(&hashes[i].check, name, false, fmt.Sprintf("%s algorithm", name))
+	for h := range hashes {
+		name := strings.ToLower(hashes[h].Name)
+		flag.BoolVar(&hashes[h].check, name, false, fmt.Sprintf("%s algorithm", name))
 	}
 
-	all := flag.Bool("all", false, "all algorithms")
-	isString := flag.Bool("s", false, "treat arguments as strings")
-	versionFlag := flag.Bool("version", false, "show version and exit")
-	zeroFlag = flag.Bool("0", false, "lines are terminated by a null character")
+	flag.BoolVar(&opts.all, "all", false, "all algorithms")
+	flag.BoolVar(&opts.str, "s", false, "treat arguments as strings")
+	flag.BoolVar(&opts.version, "version", false, "show version and exit")
+	flag.BoolVar(&opts.zero, "0", false, "lines are terminated by a null character")
+	flag.StringVar(&opts.template, "format", "{{.Name}}({{.File}}) = {{.Digest}}", "output format")
+	flag.Var(&opts.iFile, "i", "read pathnames from file (use '-i \"\"' to read from standard input)")
+	flag.Var(&opts.key, "key", "key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname")
+}
 
-	var iFlag strFlag
-	flag.Var(&iFlag, "i", "read pathnames from file (use '-i \"\"' to read from standard input)")
-
-	var template string
-	flag.StringVar(&template, "format", "{{.Name}}({{.File}}) = {{.Digest}}", "output format")
-
-	var macKey []byte
-	var keyFlag strFlag
-	flag.Var(&keyFlag, "key", "key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname")
-
+func main() {
 	sizeHashes := map[int]*bool{
 		128: nil, 160: nil, 224: nil, 256: nil, 384: nil, 512: nil,
 	}
@@ -189,7 +190,15 @@ func main() {
 
 	flag.Parse()
 
-	if *versionFlag {
+	for h := range hashes {
+		if !*sizeHashes[hashes[h].size*8] {
+			continue
+		} else {
+			hashes[h].check = true
+		}
+	}
+
+	if opts.version {
 		fmt.Printf("%s v%s %s %s %s\n", progname, version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 		fmt.Printf("Supported hashes:")
 		for h := range hashes {
@@ -200,25 +209,27 @@ func main() {
 		os.Exit(0)
 	}
 
-	if keyFlag.value != nil {
+	var macKey []byte
+	if opts.key.value != nil {
 		var err error
-		if strings.HasPrefix(*keyFlag.value, "/") {
-			macKey, err = ioutil.ReadFile(*keyFlag.value)
+		if strings.HasPrefix(*opts.key.value, "/") {
+			macKey, err = ioutil.ReadFile(*opts.key.value)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, *keyFlag.value)
+				fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, *opts.key.value)
 				os.Exit(1)
 			}
 		} else {
-			macKey, err = hex.DecodeString(*keyFlag.value)
+			macKey, err = hex.DecodeString(*opts.key.value)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: %s: Invalid hexadecimal key: %v\n", progname, *keyFlag.value)
+				fmt.Fprintf(os.Stderr, "ERROR: %s: Invalid hexadecimal key: %v\n", progname, *opts.key.value)
 				os.Exit(1)
 			}
 		}
 	}
 
+	template := opts.template
 	template += "\n"
-	if *zeroFlag {
+	if opts.zero {
 		template += "\x00"
 	}
 	template = "{{range .}}{{if .Digest}}" + template + "{{end}}{{end}}"
@@ -229,15 +240,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	for h := range hashes {
-		if !*sizeHashes[hashes[h].size*8] {
-			continue
-		} else {
-			hashes[h].check = true
-		}
-	}
-
-	if *all || choices() == 0 {
+	if opts.all || choices() == 0 {
 		for h := range hashes {
 			hashes[h].check = true
 		}
@@ -262,17 +265,12 @@ func main() {
 		}
 	}
 
-	if choices() == 0 {
-		flag.Usage()
-		os.Exit(1)
-	}
-
 	var errors bool
 
 	done = make(chan error, choices())
 	defer close(done)
 
-	if iFlag.value != nil {
+	if opts.iFile.value != nil {
 		func(file string) {
 			var f *os.File = os.Stdin
 			var err error
@@ -285,13 +283,13 @@ func main() {
 				defer f.Close()
 			}
 			errors = hashFromFile(f)
-		}(*iFlag.value)
+		}(*opts.iFile.value)
 	} else if flag.NArg() == 0 {
 		hashStdin()
 		os.Exit(0)
 	}
 
-	if *isString {
+	if opts.str {
 		for _, s := range flag.Args() {
 			hashString(s)
 		}
@@ -379,7 +377,7 @@ func hashString(str string) {
 
 func hashFromFile(f *os.File) (errors bool) {
 	var terminator string = "\n"
-	if *zeroFlag {
+	if opts.zero {
 		terminator = "\x00"
 	}
 
