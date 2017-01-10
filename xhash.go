@@ -76,6 +76,7 @@ const (
 )
 
 var hashes = []*struct {
+	check  bool
 	hash   crypto.Hash
 	Name   string
 	File   string
@@ -158,10 +159,9 @@ func main() {
 		flag.PrintDefaults()
 	}
 
-	chosen := make(map[crypto.Hash]*bool)
 	for i := range hashes {
 		name := strings.ToLower(hashes[i].Name)
-		chosen[hashes[i].hash] = flag.Bool(name, false, fmt.Sprintf("%s algorithm", name))
+		flag.BoolVar(&hashes[i].check, name, false, fmt.Sprintf("%s algorithm", name))
 	}
 
 	all := flag.Bool("all", false, "all algorithms")
@@ -179,22 +179,12 @@ func main() {
 	var keyFlag strFlag
 	flag.Var(&keyFlag, "key", "key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname")
 
-	sizeHashes := map[int]*struct {
-		hashes []crypto.Hash
-		set    *bool
-	}{
-		128: {}, 160: {}, 224: {}, 256: {}, 384: {}, 512: {},
+	sizeHashes := map[int]*bool{
+		128: nil, 160: nil, 224: nil, 256: nil, 384: nil, 512: nil,
 	}
-
-	for h := range hashes {
-		sizeHashes[hashes[h].size*8].hashes = append(sizeHashes[hashes[h].size*8].hashes, hashes[h].hash)
-	}
-
 	for size := range sizeHashes {
 		sizeStr := strconv.Itoa(size)
-		if len(sizeHashes[size].hashes) > 0 {
-			sizeHashes[size].set = flag.Bool(sizeStr, false, "all "+sizeStr+" bits algorithms")
-		}
+		sizeHashes[size] = flag.Bool(sizeStr, false, "all "+sizeStr+" bits algorithms")
 	}
 
 	flag.Parse()
@@ -231,7 +221,7 @@ func main() {
 	if *zeroFlag {
 		template += "\x00"
 	}
-	template = "{{range .}}" + template + "{{end}}"
+	template = "{{range .}}{{if .Digest}}" + template + "{{end}}{{end}}"
 	var err error
 	tmpl, err = tmpl.Parse(template)
 	if err != nil {
@@ -239,24 +229,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	for size := range sizeHashes {
-		if !*(sizeHashes[size].set) {
+	for h := range hashes {
+		if !*sizeHashes[hashes[h].size*8] {
 			continue
-		}
-		for _, h := range sizeHashes[size].hashes {
-			*chosen[h] = true
+		} else {
+			hashes[h].check = true
 		}
 	}
 
-	if !(*all || choices(chosen)) {
-		*all = true
-	}
-
-	for h := range chosen {
-		if (*all && *chosen[h]) || !(*all || *chosen[h]) {
-			removeHash(h)
+	if *all || choices() == 0 {
+		for h := range hashes {
+			hashes[h].check = true
 		}
-		delete(chosen, h)
 	}
 
 	for i := range hashes {
@@ -278,14 +262,14 @@ func main() {
 		}
 	}
 
-	if len(hashes) == 0 {
+	if choices() == 0 {
 		flag.Usage()
 		os.Exit(1)
 	}
 
 	var errors bool
 
-	done = make(chan error, len(hashes))
+	done = make(chan error, choices())
 	defer close(done)
 
 	if iFlag.value != nil {
@@ -360,14 +344,14 @@ func blake2_(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
 	return h
 }
 
-// Returns true if at least some algorithm was specified on the command line
-func choices(chosen map[crypto.Hash]*bool) bool {
-	for h := range chosen {
-		if *chosen[h] {
-			return true
+// Returns the number of algorithms chosen
+func choices() (n int) {
+	for h := range hashes {
+		if hashes[h].check {
+			n++
 		}
 	}
-	return false
+	return
 }
 
 func display() {
@@ -376,8 +360,11 @@ func display() {
 
 func hashString(str string) {
 	var wg sync.WaitGroup
-	wg.Add(len(hashes))
+	wg.Add(choices())
 	for h := range hashes {
+		if !hashes[h].check {
+			continue
+		}
 		go func(h int) {
 			defer wg.Done()
 			hashes[h].Write([]byte(str))
@@ -422,6 +409,9 @@ func hashPathname(pathname string) (errors bool) {
 
 func hashFile(filename string) (errors bool) {
 	for h := range hashes {
+		if !hashes[h].check {
+			continue
+		}
 		go func(h int) {
 			f, err := os.Open(filename)
 			if err != nil {
@@ -440,7 +430,10 @@ func hashFile(filename string) (errors bool) {
 			done <- nil
 		}(h)
 	}
-	for range hashes {
+	for h := range hashes {
+		if !hashes[h].check {
+			continue
+		}
 		err := <-done
 		if err != nil {
 			if !errors {
@@ -476,6 +469,9 @@ func hashDir(dir string) bool {
 
 func hashStdin() (errors bool) {
 	for h := range hashes {
+		if !hashes[h].check {
+			continue
+		}
 		go func(h int) {
 			if _, err := io.Copy(hashes[h], os.Stdin); err != nil {
 				done <- err
@@ -487,7 +483,10 @@ func hashStdin() (errors bool) {
 			done <- nil
 		}(h)
 	}
-	for range hashes {
+	for h := range hashes {
+		if !hashes[h].check {
+			continue
+		}
 		err := <-done
 		if err != nil {
 			if !errors {
