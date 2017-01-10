@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.6.3
+// v0.6.4
 //
 // TODO:
 // + Support -c option like md5sum(1)
@@ -66,7 +66,7 @@ import (
 	"text/template"
 )
 
-const version = "0.6.3"
+const version = "0.6.4"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -158,7 +158,7 @@ func main() {
 	all := flag.Bool("all", false, "all algorithms")
 	isString := flag.Bool("s", false, "treat arguments as strings")
 	versionFlag := flag.Bool("version", false, "show version and exit")
-	zeroFlag = flag.Bool("0", false, "lines are terminated by a null character (with the -i option)")
+	zeroFlag = flag.Bool("0", false, "lines are terminated by a null character")
 
 	var iFlag strFlag
 	flag.Var(&iFlag, "i", "read pathnames from file (use '-i \"\"' to read from standard input)")
@@ -227,7 +227,11 @@ func main() {
 		}
 	}
 
-	template = "{{range .}}" + template + "\n{{end}}"
+	template += "\n"
+	if (*zeroFlag) {
+		template += "\x00"
+	}
+	template = "{{range .}}" + template + "{{end}}"
 	var err error
 	tmpl, err = tmpl.Parse(template)
 	if err != nil {
