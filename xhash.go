@@ -76,6 +76,9 @@ const (
 	BLAKE2s256
 )
 
+// Used with -c option
+var check_hashes = make(map[crypto.Hash]bool)
+
 var hashes = []*struct {
 	check  bool
 	hash   crypto.Hash
@@ -422,9 +425,17 @@ func hashPathname(pathname string) (errors bool) {
 	return
 }
 
+func checkHash(h int) bool {
+	if _, ok := check_hashes[hashes[h].hash]; ok && hashes[h].check {
+		return true
+	} else {
+		return false
+	}
+}
+
 func hashFile(filename string) (errors bool) {
 	for h := range hashes {
-		if !hashes[h].check {
+		if !checkHash(h) {
 			continue
 		}
 		go func(h int) {
@@ -446,7 +457,7 @@ func hashFile(filename string) (errors bool) {
 		}(h)
 	}
 	for h := range hashes {
-		if !hashes[h].check {
+		if !checkHash(h) {
 			continue
 		}
 		err := <-done
@@ -529,7 +540,6 @@ func checkFromFile(f *os.File) (errors bool) {
 
 	var hash, file, digest string
 	var previous_file string
-	var check_hashes = make(map[crypto.Hash]bool)
 
 	inputReader := bufio.NewReader(f)
 	for {
@@ -583,7 +593,10 @@ func checkFromFile(f *os.File) (errors bool) {
 			}
 		}
 
+		check_hashes[getHashByName(hash)] = true
+
 		if previous_file != file {
+			hashFile(file)
 			previous_file = file
 			check_hashes = make(map[crypto.Hash]bool)
 		}
@@ -592,7 +605,6 @@ func checkFromFile(f *os.File) (errors bool) {
 			// XXX
 			continue
 		}
-		check_hashes[getHashByName(hash)] = true
 	}
 }
 
