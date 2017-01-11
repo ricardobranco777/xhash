@@ -581,6 +581,7 @@ func checkFromFile(f *os.File) (errors bool) {
 			}
 			fmt.Printf("hash: %s, file: %s, digest: %s\n", hash, file, digest)
 		}
+		digest = strings.ToLower(digest)
 	}
 
 	return
