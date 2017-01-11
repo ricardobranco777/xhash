@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.6.4
+// v0.7
 //
 // TODO:
 // + Support -c option like md5sum(1)
@@ -59,6 +59,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -66,7 +67,7 @@ import (
 	"text/template"
 )
 
-const version = "0.6.4"
+const version = "0.7"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -142,6 +143,7 @@ var tmpl = template.New("tmpl")
 
 var opts struct {
 	all      bool
+	cFile    strFlag
 	iFile    strFlag
 	key      strFlag
 	str      bool
@@ -175,6 +177,7 @@ func init() {
 	flag.BoolVar(&opts.version, "version", false, "show version and exit")
 	flag.BoolVar(&opts.zero, "0", false, "lines are terminated by a null character")
 	flag.StringVar(&opts.template, "format", "{{.Name}}({{.File}}) = {{.Digest}}", "output format")
+	flag.Var(&opts.cFile, "c", "read checksums from file and check them")
 	flag.Var(&opts.iFile, "i", "read pathnames from file (use '-i \"\"' to read from standard input)")
 	flag.Var(&opts.key, "key", "key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname")
 }
@@ -284,6 +287,20 @@ func main() {
 			}
 			errors = hashFromFile(f)
 		}(*opts.iFile.value)
+	} else if opts.cFile.value != nil {
+		func(file string) {
+			var f *os.File = os.Stdin
+			var err error
+			if file != "" {
+				f, err = os.Open(file)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
+					os.Exit(1)
+				}
+				defer f.Close()
+			}
+			errors = checkFromFile(f)
+		}(*opts.cFile.value)
 	} else if flag.NArg() == 0 {
 		hashStdin()
 		os.Exit(0)
@@ -496,5 +513,31 @@ func hashStdin() (errors bool) {
 	if !errors {
 		display()
 	}
+	return
+}
+
+func checkFromFile(f *os.File) (errors bool) {
+	var terminator string = "\n"
+	if opts.zero {
+		terminator += "\x00"
+	}
+
+	bsd := regexp.MustCompile("^([0-9A-Za-z0-9-]+) ?(.*?) = ([0-9a-fA-F]+)$")
+	gnu := regexp.MustCompile("^([0-9a-fA-F]+) \\*?(.*)$")
+
+	inputReader := bufio.NewReader(f)
+	for {
+		line , err := inputReader.ReadString(terminator[0])
+		if err == io.EOF {
+			return
+		}
+		line = strings.TrimRight(line, terminator)
+		if bsd.MatchString(line) {
+			println("bsd")
+		} else if gnu.MatchString(line) {
+			println("gnu")
+		}
+	}
+
 	return
 }
