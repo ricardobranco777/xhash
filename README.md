@@ -70,7 +70,7 @@ To support the format used by md5sum:
 * `-i value`
     	read pathnames from file (use _*-i ""*_ to read from standard input)
 * `-format string`
-    	output format (default "{{.Name}}({{.File}}) = {{.Digest}}")
+    	output format (default "{{.Name}}({{.File}})= {{.Digest}}")
 * `-key value`
     	key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname
 * `-md4`

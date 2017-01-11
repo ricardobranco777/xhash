@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.6.4
+// v0.6.5
 //
 // TODO:
 // + Support -c option like md5sum(1)
@@ -66,7 +66,7 @@ import (
 	"text/template"
 )
 
-const version = "0.6.4"
+const version = "0.6.5"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -174,7 +174,7 @@ func init() {
 	flag.BoolVar(&opts.str, "s", false, "treat arguments as strings")
 	flag.BoolVar(&opts.version, "version", false, "show version and exit")
 	flag.BoolVar(&opts.zero, "0", false, "lines are terminated by a null character")
-	flag.StringVar(&opts.template, "format", "{{.Name}}({{.File}}) = {{.Digest}}", "output format")
+	flag.StringVar(&opts.template, "format", "{{.Name}}({{.File}})= {{.Digest}}", "output format")
 	flag.Var(&opts.iFile, "i", "read pathnames from file (use '-i \"\"' to read from standard input)")
 	flag.Var(&opts.key, "key", "key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname")
 }
