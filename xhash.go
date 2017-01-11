@@ -523,9 +523,9 @@ func checkFromFile(f *os.File) (errors bool) {
 	}
 
 	// Format used by OpenSSL dgst and *BSD md5, et al
-	bsd := regexp.MustCompile(" ?= [0-9a-fA-F]+$")
+	bsd := regexp.MustCompile(" ?= [0-9a-fA-F]{16,}$")
 	// Format used by md5sum, et al
-	gnu := regexp.MustCompile("^[0-9a-fA-F]+ ")
+	gnu := regexp.MustCompile("^[\\\\]?[0-9a-fA-F]{16,} ")
 
 	inputReader := bufio.NewReader(f)
 	for {
@@ -553,6 +553,11 @@ func checkFromFile(f *os.File) (errors bool) {
 			digest := line[i+j+k+2:]
 			fmt.Printf("hash: %s, file: %s, digest: %s\n", hash, file, digest)
 		} else if gnu.MatchString(line) {
+			if strings.HasPrefix(line, "\\") {
+				line = line[1:]
+				line = strings.Replace(line, "\\\\", "\\", -1)
+				line = strings.Replace(line, "\\n", "\n", -1)
+			}
 			i := strings.Index(line, " ")
 			if i < 0 {
 				continue
