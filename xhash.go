@@ -85,6 +85,7 @@ var hashes = []*struct {
 	Name   string
 	File   string
 	Digest string
+	cDigest string
 	hash.Hash
 	size int
 }{
@@ -372,8 +373,22 @@ func choices() (n int) {
 	return
 }
 
-func display() {
-	tmpl.Execute(os.Stdout, hashes)
+func display(file string) {
+	if opts.cFile.value == nil {
+		tmpl.Execute(os.Stdout, hashes)
+	} else if file != "" {
+		var status string
+		for h := range hashes {
+			if hashes[h].File == file {
+				if hashes[h].Digest != hashes[h].cDigest {
+					status = "FAILED"
+				} else {
+					status = "OK"
+				}
+				fmt.Printf("%s: %s\n", file, status)
+			}
+		}
+	}
 }
 
 func hashString(str string) {
@@ -392,7 +407,7 @@ func hashString(str string) {
 		}(h)
 	}
 	wg.Wait()
-	display()
+	display("")
 }
 
 func hashFromFile(f *os.File) (errors bool) {
@@ -473,7 +488,7 @@ func hashFile(filename string) (errors bool) {
 		}
 	}
 	if !errors {
-		display()
+		display(filename)
 	}
 	return
 }
@@ -526,7 +541,7 @@ func hashStdin() (errors bool) {
 		}
 	}
 	if !errors {
-		display()
+		display("")
 	}
 	return
 }
@@ -607,11 +622,11 @@ func checkFromFile(f *os.File) (errors bool) {
 			continue
 		}
 
+		hashes[h].cDigest = digest
+
 		if current != file || err == io.EOF {
-			println(current)
 			hashFile(current)
 			current = file
-			//checkHashes = make(map[crypto.Hash]bool)
 			for k := range checkHashes {
 				delete(checkHashes, k)
 			}
