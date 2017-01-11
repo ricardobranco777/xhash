@@ -523,9 +523,9 @@ func checkFromFile(f *os.File) (errors bool) {
 	}
 
 	// Format used by OpenSSL dgst and *BSD md5, et al
-	bsd := regexp.MustCompile(" ?= [0-9a-fA-F]{16,}$")
+	bsd := regexp.MustCompile("\\) ?= [0-9a-fA-F]{16,}$")
 	// Format used by md5sum, et al
-	gnu := regexp.MustCompile("^[\\\\]?[0-9a-fA-F]{16,} ")
+	gnu := regexp.MustCompile("^[\\\\]?[0-9a-fA-F]{16,} [ \\*]")
 
 	inputReader := bufio.NewReader(f)
 	for {
