@@ -77,7 +77,7 @@ const (
 )
 
 // Used with -c option
-var check_hashes = make(map[crypto.Hash]bool)
+var checkHashes = make(map[crypto.Hash]bool)
 
 var hashes = []*struct {
 	check  bool
@@ -426,8 +426,12 @@ func hashPathname(pathname string) (errors bool) {
 }
 
 func checkHash(h int) bool {
-	if _, ok := check_hashes[hashes[h].hash]; ok && hashes[h].check {
-		return true
+	if hashes[h].check {
+		if _, ok := checkHashes[hashes[h].hash]; ok || len(checkHashes) == 0 {
+			return true
+		} else {
+			return false
+		}
 	} else {
 		return false
 	}
@@ -539,13 +543,13 @@ func checkFromFile(f *os.File) (errors bool) {
 	gnu := regexp.MustCompile("^[\\\\]?[0-9a-fA-F]{16,} [ \\*]")
 
 	var hash, file, digest string
-	var previous_file string
+	var current string
 
 	inputReader := bufio.NewReader(f)
 	for {
 		line, err := inputReader.ReadString(terminator[0])
-		if err == io.EOF {
-			return
+		if err != nil && err != io.EOF {
+			panic(err) // XXX
 		}
 		line = strings.TrimRight(line, terminator)
 		if bsd.MatchString(line) {
@@ -593,19 +597,33 @@ func checkFromFile(f *os.File) (errors bool) {
 			}
 		}
 
-		check_hashes[getHashByName(hash)] = true
-
-		if previous_file != file {
-			hashFile(file)
-			previous_file = file
-			check_hashes = make(map[crypto.Hash]bool)
+		if current == "" {
+			current = file
 		}
+
 		h := getHashByName(hash)
 		if h == 0 {
 			// XXX
 			continue
 		}
+
+		if current != file || err == io.EOF {
+			println(current)
+			hashFile(current)
+			current = file
+			//checkHashes = make(map[crypto.Hash]bool)
+			for k := range checkHashes {
+				delete(checkHashes, k)
+			}
+		}
+		checkHashes[h] = true
+
+		if err == io.EOF {
+			break
+		}
 	}
+
+	return
 }
 
 func getHashByName(name string) crypto.Hash {
