@@ -176,7 +176,7 @@ func init() {
 	flag.BoolVar(&opts.str, "s", false, "treat arguments as strings")
 	flag.BoolVar(&opts.version, "version", false, "show version and exit")
 	flag.BoolVar(&opts.zero, "0", false, "lines are terminated by a null character")
-	flag.StringVar(&opts.template, "format", "{{.Name}}({{.File}}) = {{.Digest}}", "output format")
+	flag.StringVar(&opts.template, "format", "{{.Name}}({{.File}})= {{.Digest}}", "output format")
 	flag.Var(&opts.cFile, "c", "read checksums from file and check them")
 	flag.Var(&opts.iFile, "i", "read pathnames from file (use '-i \"\"' to read from standard input)")
 	flag.Var(&opts.key, "key", "key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname")
@@ -522,8 +522,10 @@ func checkFromFile(f *os.File) (errors bool) {
 		terminator += "\x00"
 	}
 
-	bsd := regexp.MustCompile("^([0-9A-Za-z0-9-]+) ?(.*?) = ([0-9a-fA-F]+)$")
-	gnu := regexp.MustCompile("^([0-9a-fA-F]+) \\*?(.*)$")
+	// Format used by OpenSSL dgst and *BSD md5, et al
+	bsd := regexp.MustCompile(" ?= [0-9a-fA-F]+$")
+	// Format used by md5sum, et al
+	gnu := regexp.MustCompile("^[0-9a-fA-F]+ ")
 
 	inputReader := bufio.NewReader(f)
 	for {
@@ -533,9 +535,46 @@ func checkFromFile(f *os.File) (errors bool) {
 		}
 		line = strings.TrimRight(line, terminator)
 		if bsd.MatchString(line) {
-			println("bsd")
+			i := strings.Index(line, "(")
+			if i < 0 {
+				continue
+			}
+			hash := line[:i]
+			hash = strings.TrimRight(hash, " ")
+			j := strings.LastIndex(line[i:], ")")
+			if j < 0 {
+				continue
+			}
+			file := line[i+1:i+j]
+			k := strings.Index(line[i+j:], "= ")
+			if k < 0 {
+				continue
+			}
+			digest := line[i+j+k+2:]
+			fmt.Printf("hash: %s, file: %s, digest: %s\n", hash, file, digest)
 		} else if gnu.MatchString(line) {
-			println("gnu")
+			i := strings.Index(line, " ")
+			if i < 0 {
+				continue
+			}
+			digest := line[:i]
+			file := line[i+2:]
+			var hash string
+			switch len(digest)/2 {
+			case 64:
+				hash = "SHA512"
+			case 48:
+				hash = "SHA384"
+			case 32:
+				hash = "SHA256"
+			case 28:
+				hash = "SHA224"
+			case 20:
+				hash = "SHA1"
+			case 16:
+				hash = "MD5"
+			}
+			fmt.Printf("hash: %s, file: %s, digest: %s\n", hash, file, digest)
 		}
 	}
 
