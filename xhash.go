@@ -527,6 +527,10 @@ func checkFromFile(f *os.File) (errors bool) {
 	// Format used by md5sum, et al
 	gnu := regexp.MustCompile("^[\\\\]?[0-9a-fA-F]{16,} [ \\*]")
 
+	var hash, file, digest string
+	var previous_file string
+	var check_hashes = make(map[crypto.Hash]bool)
+
 	inputReader := bufio.NewReader(f)
 	for {
 		line, err := inputReader.ReadString(terminator[0])
@@ -539,19 +543,18 @@ func checkFromFile(f *os.File) (errors bool) {
 			if i < 0 {
 				continue
 			}
-			hash := line[:i]
+			hash = line[:i]
 			hash = strings.TrimRight(hash, " ")
 			j := strings.LastIndex(line[i:], ")")
 			if j < 0 {
 				continue
 			}
-			file := line[i+1 : i+j]
+			file = line[i+1 : i+j]
 			k := strings.Index(line[i+j:], "= ")
 			if k < 0 {
 				continue
 			}
-			digest := strings.ToLower(line[i+j+k+2:])
-			fmt.Printf("hash: %s, file: %s, digest: %s\n", hash, file, digest)
+			digest = strings.ToLower(line[i+j+k+2:])
 		} else if gnu.MatchString(line) {
 			if strings.HasPrefix(line, "\\") {
 				line = line[1:]
@@ -562,9 +565,8 @@ func checkFromFile(f *os.File) (errors bool) {
 			if i < 0 {
 				continue
 			}
-			digest := strings.ToLower(line[:i])
-			file := line[i+2:]
-			var hash string
+			digest = strings.ToLower(line[:i])
+			file = line[i+2:]
 			switch len(digest) / 2 {
 			case 64:
 				hash = "SHA512"
@@ -579,7 +581,26 @@ func checkFromFile(f *os.File) (errors bool) {
 			case 16:
 				hash = "MD5"
 			}
-			fmt.Printf("hash: %s, file: %s, digest: %s\n", hash, file, digest)
+		}
+
+		if previous_file != file {
+			previous_file = file
+			check_hashes = make(map[crypto.Hash]bool)
+		}
+		h := getHashByName(hash)
+		if h == 0 {
+			// XXX
+			continue
+		}
+		check_hashes[getHashByName(hash)] = true
+	}
+}
+
+func getHashByName(name string) crypto.Hash {
+	for h := range hashes {
+		if hashes[h].Name == name {
+			return hashes[h].hash
 		}
 	}
+	return crypto.Hash(0)
 }
