@@ -529,7 +529,7 @@ func checkFromFile(f *os.File) (errors bool) {
 
 	inputReader := bufio.NewReader(f)
 	for {
-		line , err := inputReader.ReadString(terminator[0])
+		line, err := inputReader.ReadString(terminator[0])
 		if err == io.EOF {
 			return
 		}
@@ -545,12 +545,12 @@ func checkFromFile(f *os.File) (errors bool) {
 			if j < 0 {
 				continue
 			}
-			file := line[i+1:i+j]
+			file := line[i+1 : i+j]
 			k := strings.Index(line[i+j:], "= ")
 			if k < 0 {
 				continue
 			}
-			digest := line[i+j+k+2:]
+			digest := strings.ToLower(line[i+j+k+2:])
 			fmt.Printf("hash: %s, file: %s, digest: %s\n", hash, file, digest)
 		} else if gnu.MatchString(line) {
 			if strings.HasPrefix(line, "\\") {
@@ -562,10 +562,10 @@ func checkFromFile(f *os.File) (errors bool) {
 			if i < 0 {
 				continue
 			}
-			digest := line[:i]
+			digest := strings.ToLower(line[:i])
 			file := line[i+2:]
 			var hash string
-			switch len(digest)/2 {
+			switch len(digest) / 2 {
 			case 64:
 				hash = "SHA512"
 			case 48:
@@ -581,8 +581,5 @@ func checkFromFile(f *os.File) (errors bool) {
 			}
 			fmt.Printf("hash: %s, file: %s, digest: %s\n", hash, file, digest)
 		}
-		digest = strings.ToLower(digest)
 	}
-
-	return
 }
