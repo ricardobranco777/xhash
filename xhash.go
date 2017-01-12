@@ -472,12 +472,17 @@ func hashDir(dir string) bool {
 }
 
 func hashStdin() (errors bool) {
+	var Writers []io.Writer
+	var pipeWriters []*io.PipeWriter
 	for h := range hashes {
 		if !hashes[h].check {
 			continue
 		}
-		go func(h int) {
-			if _, err := io.Copy(hashes[h], os.Stdin); err != nil {
+		pr, pw := io.Pipe()
+		Writers = append(Writers, pw)
+		pipeWriters = append(pipeWriters, pw)
+		go func(h int, r io.Reader) {
+			if _, err := io.Copy(hashes[h], r); err != nil {
 				done <- err
 				return
 			}
@@ -485,8 +490,22 @@ func hashStdin() (errors bool) {
 			hashes[h].Digest = hex.EncodeToString(hashes[h].Sum(nil))
 			hashes[h].Reset()
 			done <- nil
-		}(h)
+		}(h, pr)
 	}
+
+	go func() {
+		defer func() { for _, pw := range pipeWriters { pw.Close() } }()
+
+		// build the multiwriter for all the pipes
+		mw := io.MultiWriter(Writers...)
+
+		// copy the data into the multiwriter
+		_, err := io.Copy(mw, os.Stdin)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, err)
+		}
+	}()
+
 	for h := range hashes {
 		if !hashes[h].check {
 			continue
