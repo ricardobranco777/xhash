@@ -240,7 +240,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if opts.all {
+	if opts.all || choices() == 0 {
 		if choices() == 0 {
 			for h := range hashes {
 				hashes[h].check = true
