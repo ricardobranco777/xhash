@@ -640,7 +640,7 @@ func checkFromFile(f *os.File) (errors bool) {
 				hash = "MD5"
 			}
 			h := chosen()
-			if h != -1 {
+			if h != -1 && len(digest)/2 == hashes[h].size {
 				hash = hashes[h].name
 			}
 		}
