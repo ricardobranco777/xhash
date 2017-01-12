@@ -79,11 +79,11 @@ const (
 var checkHashes = make(map[crypto.Hash]bool)
 
 var hashes = []*struct {
-	check  bool
-	hash   crypto.Hash
-	name   string
-	file   string
-	digest string
+	check   bool
+	hash    crypto.Hash
+	name    string
+	file    string
+	digest  string
 	cDigest string
 	hash.Hash
 	size int
@@ -143,15 +143,15 @@ var progname string
 var done chan error
 
 var opts struct {
-	all      bool
-	bsd	bool
-	gnu	bool
-	cFile    strFlag
-	iFile    strFlag
-	key      strFlag
-	str      bool
-	version  bool
-	zero     bool
+	all     bool
+	bsd     bool
+	gnu     bool
+	cFile   strFlag
+	iFile   strFlag
+	key     strFlag
+	str     bool
+	version bool
+	zero    bool
 }
 
 func init() {
@@ -402,7 +402,7 @@ func display(fileP *string) {
 				} else {
 					status = "OK"
 				}
-				fmt.Printf("%s: %s\n", file, status)
+				fmt.Printf("%s: %s %s\n", file, hashes[h].name, status)
 			}
 		}
 	}
@@ -634,13 +634,13 @@ func checkFromFile(f *os.File) (errors bool) {
 			current = file
 		}
 
-		h := getHashByName(hash)
-		if h == 0 {
+		i, h := getHashByName(hash)
+		if i == 0 {
 			// XXX
 			continue
 		}
 
-		hashes[h].cDigest = digest
+		hashes[i].cDigest = digest
 
 		if current != file || err == io.EOF {
 			hashFile(current)
@@ -659,11 +659,11 @@ func checkFromFile(f *os.File) (errors bool) {
 	return
 }
 
-func getHashByName(name string) crypto.Hash {
-	for h := range hashes {
-		if hashes[h].name == name {
-			return hashes[h].hash
+func getHashByName(name string) (int, crypto.Hash) {
+	for i := range hashes {
+		if hashes[i].name == name {
+			return i, hashes[i].hash
 		}
 	}
-	return crypto.Hash(0)
+	return 0, 0
 }
