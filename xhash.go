@@ -3,8 +3,6 @@
 // MIT License
 //
 // v0.7
-//
-// Hash from os.Stdin
 
 package main
 
@@ -297,8 +295,8 @@ func main() {
 			errs = checkFromFile(f)
 		}(*opts.cFile.value)
 	} else if flag.NArg() == 0 {
-		flag.Usage()
-		os.Exit(1)
+		hashStdin()
+		os.Exit(0)
 	}
 
 	if opts.str {
@@ -557,6 +555,40 @@ func hashDir(dir string) bool {
 		return false
 	}
 	return true
+}
+
+func hashStdin() (errs bool) {
+	for h := range hashes {
+		if !hashes[h].check {
+			continue
+		}
+		go func(h int) {
+			if _, err := io.Copy(hashes[h], os.Stdin); err != nil {
+				done <- err
+				return
+			}
+			hashes[h].file = ""
+			hashes[h].digest = hex.EncodeToString(hashes[h].Sum(nil))
+			hashes[h].Reset()
+			done <- nil
+		}(h)
+	}
+	for h := range hashes {
+		if !hashes[h].check {
+			continue
+		}
+		err := <-done
+		if err != nil {
+			if !errs {
+				fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
+			}
+			errs = true
+		}
+	}
+	if !errs {
+		display("")
+	}
+	return
 }
 
 func checkFromFile(f *os.File) (errs bool) {
