@@ -1,5 +1,5 @@
 # xhash
-This Go program uses goroutines to calculate multiple hashes on strings, files and directories.  By default it reads from standard input.  You may select algorithms by groups of digest size, digest family or specific algorithms.  Use the _*-all*_ option to (de)select all algorithms.
+This Go program uses goroutines to calculate multiple hashes on strings, files and directories.  You may select algorithms by groups of digest size, digest family or specific algorithms.  Use the _*-all*_ option to (de)select all algorithms.
 
 # Usage
 
