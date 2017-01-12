@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.6.5
+// v0.6.6
 //
 // TODO:
 // + Support -c option like md5sum(1)
@@ -66,7 +66,7 @@ import (
 	"text/template"
 )
 
-const version = "0.6.5"
+const version = "0.6.6"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -240,9 +240,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	if opts.all || choices() == 0 {
-		for h := range hashes {
-			hashes[h].check = true
+	if opts.all {
+		if choices() == 0 {
+			for h := range hashes {
+				hashes[h].check = true
+			}
+		} else {
+			for h := range hashes {
+				hashes[h].check = !hashes[h].check
+			}
 		}
 	}
 
