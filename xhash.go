@@ -580,7 +580,11 @@ func hashStdin() (errs bool) {
 	}
 
 	go func() {
-		defer func() { for _, pw := range pipeWriters { pw.Close() } }()
+		defer func() {
+			for _, pw := range pipeWriters {
+				pw.Close()
+			}
+		}()
 
 		// build the multiwriter for all the pipes
 		mw := io.MultiWriter(Writers...)
