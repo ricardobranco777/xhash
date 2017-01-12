@@ -59,6 +59,8 @@ To support the format used by md5sum:
     	all 512 bits algorithms
 * `-all`
     	all algorithms
+* `-bsd`
+    	output hashes in the format used by \*BSD
 * `-blake2b256`
     	BLAKE2b256 algorithm
 * `-blake2b384`
@@ -67,10 +69,12 @@ To support the format used by md5sum:
     	BLAKE2b512 algorithm
 * `-blake2s256`
     	BLAKE2s256 algorithm
+* `-c value`
+    	read checksums from file and check them
+* `-gnu`
+    	output hashes in the format used by \*sum
 * `-i value`
     	read pathnames from file (use _*-i ""*_ to read from standard input)
-* `-format string`
-    	output format (default "{{.Name}}({{.File}})= {{.Digest}}")
 * `-key value`
     	key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname
 * `-md4`
@@ -100,5 +104,3 @@ To support the format used by md5sum:
 * `-version`
     	show version and exit
 
-# TO DO
-* Support -c option like md5sum(1)
