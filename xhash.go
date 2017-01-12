@@ -271,7 +271,7 @@ func main() {
 		}
 	}
 
-	var errors bool
+	var errs bool
 
 	done = make(chan error, choices())
 	defer close(done)
@@ -288,7 +288,7 @@ func main() {
 				}
 				defer f.Close()
 			}
-			errors = hashFromFile(f)
+			errs = hashFromFile(f)
 		}(*opts.iFile.value)
 	} else if flag.NArg() == 0 {
 		flag.Usage()
@@ -301,11 +301,11 @@ func main() {
 		}
 	} else {
 		for _, pathname := range flag.Args() {
-			errors = hashPathname(pathname)
+			errs = hashPathname(pathname)
 		}
 	}
 
-	if errors {
+	if errs {
 		os.Exit(1)
 	}
 }
@@ -381,7 +381,7 @@ func hashString(str string) {
 	display()
 }
 
-func hashFromFile(f *os.File) (errors bool) {
+func hashFromFile(f *os.File) (errs bool) {
 	var terminator string = "\n"
 	if opts.zero {
 		terminator = "\x00"
@@ -394,24 +394,24 @@ func hashFromFile(f *os.File) (errors bool) {
 			return
 		}
 		pathname = strings.TrimRight(pathname, terminator)
-		errors = hashPathname(pathname)
+		errs = hashPathname(pathname)
 	}
 }
 
-func hashPathname(pathname string) (errors bool) {
+func hashPathname(pathname string) (errs bool) {
 	info, err := os.Stat(pathname)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
-		errors = true
+		errs = true
 	} else if info.IsDir() {
-		errors = hashDir(pathname)
+		errs = hashDir(pathname)
 	} else {
-		errors = hashFile(pathname)
+		errs = hashFile(pathname)
 	}
 	return
 }
 
-func hashFile(filename string) (errors bool) {
+func hashFile(filename string) (errs bool) {
 	for h := range hashes {
 		if !hashes[h].check {
 			continue
@@ -440,13 +440,13 @@ func hashFile(filename string) (errors bool) {
 		}
 		err := <-done
 		if err != nil {
-			if !errors {
+			if !errs {
 				fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
 			}
-			errors = true
+			errs = true
 		}
 	}
-	if !errors {
+	if !errs {
 		display()
 	}
 	return
