@@ -216,14 +216,12 @@ func main() {
 	if opts.key.value != nil {
 		var err error
 		if strings.HasPrefix(*opts.key.value, "/") {
-			macKey, err = ioutil.ReadFile(*opts.key.value)
-			if err != nil {
+			if macKey, err = ioutil.ReadFile(*opts.key.value); err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, *opts.key.value)
 				os.Exit(1)
 			}
 		} else {
-			macKey, err = hex.DecodeString(*opts.key.value)
-			if err != nil {
+			if macKey, err = hex.DecodeString(*opts.key.value); err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: %s: Invalid hexadecimal key: %v\n", progname, *opts.key.value)
 				os.Exit(1)
 			}
@@ -271,12 +269,11 @@ func main() {
 			var f *os.File = os.Stdin
 			var err error
 			if file != "" {
-				f, err = os.Open(file)
-				defer f.Close()
-				if err != nil {
+				if f, err = os.Open(file); err != nil {
 					fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
 					os.Exit(1)
 				}
+				defer f.Close()
 			}
 			errs = hashFromFile(f)
 		}(*opts.iFile.value)
@@ -285,12 +282,11 @@ func main() {
 			var f *os.File = os.Stdin
 			var err error
 			if file != "" {
-				f, err = os.Open(file)
-				defer f.Close()
-				if err != nil {
+				if f, err = os.Open(file); err != nil {
 					fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
 					os.Exit(1)
 				}
+				defer f.Close()
 			}
 			errs = checkFromFile(f)
 		}(*opts.cFile.value)
@@ -473,8 +469,7 @@ func hashFromFile(f *os.File) (errs bool) {
 }
 
 func hashPathname(pathname string) (errs bool) {
-	info, err := os.Stat(pathname)
-	if err != nil {
+	if info, err := os.Stat(pathname); err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
 		errs = true
 	} else if info.IsDir() {
@@ -505,8 +500,7 @@ func hashFile(filename string) (errs bool) {
 		return true
 	}
 
-	errs = hashF(f, filename)
-	if !errs {
+	if errs = hashF(f, filename); !errs {
 		display(filename)
 	}
 	return
@@ -554,8 +548,7 @@ func hashF(f *os.File, filename string) (errs bool) {
 		mw := io.MultiWriter(Writers...)
 
 		// copy the data into the multiwriter
-		_, err := io.Copy(mw, f)
-		if err != nil {
+		if _, err := io.Copy(mw, f); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, err)
 		}
 	}()
@@ -564,12 +557,11 @@ func hashF(f *os.File, filename string) (errs bool) {
 		if !checkHash(h) {
 			continue
 		}
-		err := <-done
-		if err != nil {
+		if err := <-done; err != nil {
 			if !errs {
 				fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
+				errs = true
 			}
-			errs = true
 		}
 	}
 	return
@@ -586,8 +578,7 @@ func visit(path string, f os.FileInfo, err error) error {
 }
 
 func hashDir(dir string) bool {
-	err := filepath.Walk(dir, visit)
-	if err != nil {
+	if err := filepath.Walk(dir, visit); err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
 		return false
 	}
