@@ -376,6 +376,31 @@ func chosen() int {
 	return i
 }
 
+func escapeFilename(filename string) (prefix string, result string) {
+	if strings.ContainsAny(filename, "\n\\") {
+		prefix = "\\"
+		/* NOTE: Only on pathological cases is this code faster
+		r := strings.NewReplacer("\\", "\\\\", "\n", "\\n")
+		result = r.Replace(filename)
+		*/
+		result = strings.Replace(filename, "\\", "\\\\", -1)
+		result = strings.Replace(result, "\n", "\\n", -1)
+		return
+	} else {
+		return "", filename
+	}
+}
+
+func unescapeFilename(filename string) (result string) {
+	/* NOTE: Only on pathological cases is this code faster
+	r := strings.NewReplacer("\\\\", "\\", "\\n", "\n")
+	result = r.Replace(filename)
+	*/
+	result = strings.Replace(filename, "\\\\", "\\", -1)
+	result = strings.Replace(result, "\\n", "\n", -1)
+	return
+}
+
 func display(fileP *string) {
 	var file string
 	if fileP == nil {
@@ -386,6 +411,7 @@ func display(fileP *string) {
 	if file == "" {
 		file = "\"" + file + "\""
 	}
+
 	if opts.cFile.value == nil {
 		var terminator string = "\n"
 		if opts.zero {
@@ -398,8 +424,8 @@ func display(fileP *string) {
 			if opts.bsd {
 				fmt.Printf("%s (%s) = %s%s", hashes[h].name, file, hashes[h].digest, terminator)
 			} else if opts.gnu {
-				// TODO Escape '\n' and '\'
-				fmt.Printf("%s  %s%s", hashes[h].digest, file, terminator)
+				prefix, filename := escapeFilename(file)
+				fmt.Printf("%s%s  %s%s", prefix, hashes[h].digest, filename, terminator)
 			} else {
 				fmt.Printf("%s(%s)= %s%s", hashes[h].name, file, hashes[h].digest, terminator)
 			}
@@ -413,7 +439,8 @@ func display(fileP *string) {
 				} else {
 					status = "OK"
 				}
-				fmt.Printf("%s: %s %s\n", file, hashes[h].name, status)
+				prefix, filename := escapeFilename(file)
+				fmt.Printf("%s%s: %s %s\n", prefix, filename, hashes[h].name, status)
 			}
 		}
 	}
@@ -615,9 +642,7 @@ func checkFromFile(f *os.File) (errors bool) {
 			digest = strings.ToLower(line[i+j+k+2:])
 		} else if gnu.MatchString(line) {
 			if strings.HasPrefix(line, "\\") {
-				line = line[1:]
-				line = strings.Replace(line, "\\\\", "\\", -1)
-				line = strings.Replace(line, "\\n", "\n", -1)
+				line = unescapeFilename(line[1:])
 			}
 			i := strings.Index(line, " ")
 			if i < 0 {
