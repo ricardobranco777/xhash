@@ -471,7 +471,7 @@ func hashDir(dir string) bool {
 	return true
 }
 
-func hashStdin() (errors bool) {
+func hashStdin() (errs bool) {
 	var Writers []io.Writer
 	var pipeWriters []*io.PipeWriter
 	for h := range hashes {
@@ -512,13 +512,13 @@ func hashStdin() (errors bool) {
 		}
 		err := <-done
 		if err != nil {
-			if !errors {
+			if !errs {
 				fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
 			}
-			errors = true
+			errs = true
 		}
 	}
-	if !errors {
+	if !errs {
 		display()
 	}
 	return
