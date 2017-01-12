@@ -362,6 +362,20 @@ func choices() (n int) {
 	return
 }
 
+// Returns an index for the chosen algorithm when choices() == 0
+func chosen() int {
+	i := -1
+	for h := range hashes {
+		if hashes[h].check {
+			if i != -1 {
+				return -1
+			}
+			i = h
+		}
+	}
+	return i
+}
+
 func display(fileP *string) {
 	var file string
 	if fileP == nil {
@@ -624,6 +638,10 @@ func checkFromFile(f *os.File) (errors bool) {
 				hash = "SHA1"
 			case 16:
 				hash = "MD5"
+			}
+			h := chosen()
+			if h != -1 {
+				hash = hashes[h].name
 			}
 		}
 
