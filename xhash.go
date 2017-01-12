@@ -401,17 +401,7 @@ func unescapeFilename(filename string) (result string) {
 	return
 }
 
-func display(fileP *string) {
-	var file string
-	if fileP == nil {
-		file = ""
-	} else {
-		file = *fileP
-	}
-	if file == "" {
-		file = "\"" + file + "\""
-	}
-
+func display(file string) {
 	if opts.cFile.value == nil {
 		var terminator string = "\n"
 		if opts.zero {
@@ -462,8 +452,7 @@ func hashString(str string) {
 		}(h)
 	}
 	wg.Wait()
-	s := ""
-	display(&s)
+	display("" + str + "")
 }
 
 func hashFromFile(f *os.File) (errors bool) {
@@ -544,7 +533,7 @@ func hashFile(filename string) (errors bool) {
 		}
 	}
 	if !errors {
-		display(&filename)
+		display(filename)
 	}
 	return
 }
@@ -597,7 +586,7 @@ func hashStdin() (errors bool) {
 		}
 	}
 	if !errors {
-		display(nil)
+		display("")
 	}
 	return
 }
