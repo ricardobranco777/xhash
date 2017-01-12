@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.7
+// v0.7.1
 
 package main
 
@@ -63,7 +63,7 @@ import (
 	"sync"
 )
 
-const version = "0.7"
+const version = "0.7.1"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -272,11 +272,11 @@ func main() {
 			var err error
 			if file != "" {
 				f, err = os.Open(file)
+				defer f.Close()
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
 					os.Exit(1)
 				}
-				defer f.Close()
 			}
 			errs = hashFromFile(f)
 		}(*opts.iFile.value)
@@ -286,11 +286,11 @@ func main() {
 			var err error
 			if file != "" {
 				f, err = os.Open(file)
+				defer f.Close()
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
 					os.Exit(1)
 				}
-				defer f.Close()
 			}
 			errs = checkFromFile(f)
 		}(*opts.cFile.value)
@@ -498,19 +498,41 @@ func checkHash(h int) bool {
 }
 
 func hashFile(filename string) (errs bool) {
+	f, err := os.Open(filename)
+	defer f.Close()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
+		return true
+	}
+
+	errs = hashF(f, filename)
+	if !errs {
+		display(filename)
+	}
+	return
+}
+
+func hashStdin() (errs bool) {
+	errs = hashF(os.Stdin, "")
+	if !errs {
+		display("")
+	}
+	return
+}
+
+func hashF(f *os.File, filename string) (errs bool) {
+	var Writers []io.Writer
+	var pipeWriters []*io.PipeWriter
+
 	for h := range hashes {
 		if !checkHash(h) {
 			continue
 		}
-		go func(h int) {
-			f, err := os.Open(filename)
-			if err != nil {
-				done <- err
-				return
-			}
-			defer f.Close()
-
-			if _, err := io.Copy(hashes[h], f); err != nil {
+		pr, pw := io.Pipe()
+		Writers = append(Writers, pw)
+		pipeWriters = append(pipeWriters, pw)
+		go func(h int, r io.Reader) {
+			if _, err := io.Copy(hashes[h], r); err != nil {
 				done <- err
 				return
 			}
@@ -518,8 +540,26 @@ func hashFile(filename string) (errs bool) {
 			hashes[h].digest = hex.EncodeToString(hashes[h].Sum(nil))
 			hashes[h].Reset()
 			done <- nil
-		}(h)
+		}(h, pr)
 	}
+
+	go func() {
+		defer func() {
+			for _, pw := range pipeWriters {
+				pw.Close()
+			}
+		}()
+
+		// build the multiwriter for all the pipes
+		mw := io.MultiWriter(Writers...)
+
+		// copy the data into the multiwriter
+		_, err := io.Copy(mw, f)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, err)
+		}
+	}()
+
 	for h := range hashes {
 		if !checkHash(h) {
 			continue
@@ -531,9 +571,6 @@ func hashFile(filename string) (errs bool) {
 			}
 			errs = true
 		}
-	}
-	if !errs {
-		display(filename)
 	}
 	return
 }
@@ -555,63 +592,6 @@ func hashDir(dir string) bool {
 		return false
 	}
 	return true
-}
-
-func hashStdin() (errs bool) {
-	var Writers []io.Writer
-	var pipeWriters []*io.PipeWriter
-	for h := range hashes {
-		if !hashes[h].check {
-			continue
-		}
-		pr, pw := io.Pipe()
-		Writers = append(Writers, pw)
-		pipeWriters = append(pipeWriters, pw)
-		go func(h int, r io.Reader) {
-			if _, err := io.Copy(hashes[h], r); err != nil {
-				done <- err
-				return
-			}
-			hashes[h].file = ""
-			hashes[h].digest = hex.EncodeToString(hashes[h].Sum(nil))
-			hashes[h].Reset()
-			done <- nil
-		}(h, pr)
-	}
-
-	go func() {
-		defer func() {
-			for _, pw := range pipeWriters {
-				pw.Close()
-			}
-		}()
-
-		// build the multiwriter for all the pipes
-		mw := io.MultiWriter(Writers...)
-
-		// copy the data into the multiwriter
-		_, err := io.Copy(mw, os.Stdin)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, err)
-		}
-	}()
-
-	for h := range hashes {
-		if !hashes[h].check {
-			continue
-		}
-		err := <-done
-		if err != nil {
-			if !errs {
-				fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
-			}
-			errs = true
-		}
-	}
-	if !errs {
-		display("")
-	}
-	return
 }
 
 func checkFromFile(f *os.File) (errs bool) {
