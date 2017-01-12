@@ -29,17 +29,7 @@ Install OpenSSL for faster hashing for multiple algorithms.
 
 # Output format
 
-The output format is the same as OpenSSL's *dgst* command.  It may be changed with the _*-format*_ option.  The default is:
-
-_*{{.Name}}({{.File}}) = {{.Digest}}*_
-
-To support the format used by the \*BSD commands add a space before the opening parenthesis like this:
-
-_*{{.Name}} ({{.File}}) = {{.Digest}}*_
-
-To support the format used by md5sum:
-
-`xhash -md5 -format '{{.Digest}}  {{.File}}' /etc/passwd`
+The output format is the same as OpenSSL's *dgst* command.  It may be changed with the _*-bsd*_ option to support the format used by FreeBSD's *md5*, *sha1*, et al; NetBSD's *digest*, or the _*-gnu*_ option to support the format used by *md5sum* and friends.
 
 # Options
 
