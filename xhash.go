@@ -3,9 +3,6 @@
 // MIT License
 //
 // v0.7
-//
-// TODO:
-// + Support -c option like md5sum(1)
 
 package main
 
@@ -76,7 +73,7 @@ const (
 )
 
 // Used with -c option
-var checkHashes = make(map[crypto.Hash]bool)
+var checkHashes = make(map[int]bool)
 
 var hashes = []*struct {
 	check   bool
@@ -460,7 +457,7 @@ func hashPathname(pathname string) (errors bool) {
 
 func checkHash(h int) bool {
 	if hashes[h].check {
-		if _, ok := checkHashes[hashes[h].hash]; ok || len(checkHashes) == 0 {
+		if _, ok := checkHashes[h]; ok || len(checkHashes) == 0 {
 			return true
 		} else {
 			return false
@@ -634,13 +631,13 @@ func checkFromFile(f *os.File) (errors bool) {
 			current = file
 		}
 
-		i, h := getHashByName(hash)
-		if i == 0 {
+		h := getIndex(hash)
+		if h == 0 {
 			// XXX
 			continue
 		}
 
-		hashes[i].cDigest = digest
+		hashes[h].cDigest = digest
 
 		if current != file || err == io.EOF {
 			hashFile(current)
@@ -659,11 +656,11 @@ func checkFromFile(f *os.File) (errors bool) {
 	return
 }
 
-func getHashByName(name string) (int, crypto.Hash) {
+func getIndex(name string) int {
 	for i := range hashes {
 		if hashes[i].name == name {
-			return i, hashes[i].hash
+			return i
 		}
 	}
-	return 0, 0
+	return 0
 }
