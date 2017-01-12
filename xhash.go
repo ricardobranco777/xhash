@@ -632,7 +632,7 @@ func checkFromFile(f *os.File) (errors bool) {
 		}
 
 		h := getIndex(hash)
-		if h == 0 {
+		if h == -1 {
 			// XXX
 			continue
 		}
@@ -662,5 +662,5 @@ func getIndex(name string) int {
 			return i
 		}
 	}
-	return 0
+	return -1
 }
