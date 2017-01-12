@@ -2,10 +2,7 @@
 //
 // MIT License
 //
-// v0.6.6
-//
-// TODO:
-// + Support -c option like md5sum(1)
+// v0.7
 
 package main
 
@@ -59,14 +56,14 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
-	"text/template"
 )
 
-const version = "0.6.6"
+const version = "0.7"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -75,61 +72,65 @@ const (
 	BLAKE2s256
 )
 
+// Used with -c option
+var checkHashes = make(map[int]bool)
+
 var hashes = []*struct {
-	check  bool
-	hash   crypto.Hash
-	Name   string
-	File   string
-	Digest string
+	check   bool
+	hash    crypto.Hash
+	name    string
+	file    string
+	digest  string
+	cDigest string
 	hash.Hash
 	size int
 }{
-	{Name: "BLAKE2b256",
+	{name: "BLAKE2b256",
 		hash: BLAKE2b256,
 		size: 32},
-	{Name: "BLAKE2b384",
+	{name: "BLAKE2b384",
 		hash: BLAKE2b384,
 		size: 48},
-	{Name: "BLAKE2b512",
+	{name: "BLAKE2b512",
 		hash: BLAKE2b512,
 		size: 64},
-	{Name: "BLAKE2s256",
+	{name: "BLAKE2s256",
 		hash: BLAKE2s256,
 		size: 32},
-	{Name: "MD4",
+	{name: "MD4",
 		hash: crypto.MD4,
 		size: 16},
-	{Name: "MD5",
+	{name: "MD5",
 		hash: crypto.MD5,
 		size: 16},
-	{Name: "RIPEMD160",
+	{name: "RIPEMD160",
 		hash: crypto.RIPEMD160,
 		size: 20},
-	{Name: "SHA1",
+	{name: "SHA1",
 		hash: crypto.SHA1,
 		size: 20},
-	{Name: "SHA224",
+	{name: "SHA224",
 		hash: crypto.SHA224,
 		size: 28},
-	{Name: "SHA256",
+	{name: "SHA256",
 		hash: crypto.SHA256,
 		size: 32},
-	{Name: "SHA384",
+	{name: "SHA384",
 		hash: crypto.SHA384,
 		size: 48},
-	{Name: "SHA512",
+	{name: "SHA512",
 		hash: crypto.SHA512,
 		size: 64},
-	{Name: "SHA3-224",
+	{name: "SHA3-224",
 		hash: crypto.SHA3_224,
 		size: 28},
-	{Name: "SHA3-256",
+	{name: "SHA3-256",
 		hash: crypto.SHA3_256,
 		size: 32},
-	{Name: "SHA3-384",
+	{name: "SHA3-384",
 		hash: crypto.SHA3_384,
 		size: 48},
-	{Name: "SHA3-512",
+	{name: "SHA3-512",
 		hash: crypto.SHA3_512,
 		size: 64},
 }
@@ -138,16 +139,16 @@ var progname string
 
 var done chan error
 
-var tmpl = template.New("tmpl")
-
 var opts struct {
-	all      bool
-	iFile    strFlag
-	key      strFlag
-	str      bool
-	template string
-	version  bool
-	zero     bool
+	all     bool
+	bsd     bool
+	gnu     bool
+	cFile   strFlag
+	iFile   strFlag
+	key     strFlag
+	str     bool
+	version bool
+	zero    bool
 }
 
 func init() {
@@ -166,15 +167,17 @@ func init() {
 	}
 
 	for h := range hashes {
-		name := strings.ToLower(hashes[h].Name)
+		name := strings.ToLower(hashes[h].name)
 		flag.BoolVar(&hashes[h].check, name, false, fmt.Sprintf("%s algorithm", name))
 	}
 
 	flag.BoolVar(&opts.all, "all", false, "all algorithms")
+	flag.BoolVar(&opts.bsd, "bsd", false, "output hashes in the format used by *BSD")
+	flag.BoolVar(&opts.gnu, "gnu", false, "output hashes in the format used by *sum")
 	flag.BoolVar(&opts.str, "s", false, "treat arguments as strings")
 	flag.BoolVar(&opts.version, "version", false, "show version and exit")
 	flag.BoolVar(&opts.zero, "0", false, "lines are terminated by a null character")
-	flag.StringVar(&opts.template, "format", "{{.Name}}({{.File}})= {{.Digest}}", "output format")
+	flag.Var(&opts.cFile, "c", "read checksums from file and check them")
 	flag.Var(&opts.iFile, "i", "read pathnames from file (use '-i \"\"' to read from standard input)")
 	flag.Var(&opts.key, "key", "key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname")
 }
@@ -202,7 +205,7 @@ func main() {
 		fmt.Printf("%s v%s %s %s %s\n", progname, version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 		fmt.Printf("Supported hashes:")
 		for h := range hashes {
-			fmt.Printf(" %s", hashes[h].Name)
+			fmt.Printf(" %s", hashes[h].name)
 		}
 		fmt.Println()
 		fmt.Printf("%s %s\n", C.GoString(C.SSLeay_version(0)), C.GoString(C.SSLeay_version(2)))
@@ -225,19 +228,6 @@ func main() {
 				os.Exit(1)
 			}
 		}
-	}
-
-	template := opts.template
-	template += "\n"
-	if opts.zero {
-		template += "\x00"
-	}
-	template = "{{range .}}{{if .Digest}}" + template + "{{end}}{{end}}"
-	var err error
-	tmpl, err = tmpl.Parse(template)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s: Invalid template: %v\n", progname, template)
-		os.Exit(1)
 	}
 
 	if opts.all || choices() == 0 {
@@ -290,6 +280,20 @@ func main() {
 			}
 			errs = hashFromFile(f)
 		}(*opts.iFile.value)
+	} else if opts.cFile.value != nil {
+		func(file string) {
+			var f *os.File = os.Stdin
+			var err error
+			if file != "" {
+				f, err = os.Open(file)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
+					os.Exit(1)
+				}
+				defer f.Close()
+			}
+			errs = checkFromFile(f)
+		}(*opts.cFile.value)
 	} else if flag.NArg() == 0 {
 		hashStdin()
 		os.Exit(0)
@@ -358,8 +362,78 @@ func choices() (n int) {
 	return
 }
 
-func display() {
-	tmpl.Execute(os.Stdout, hashes)
+// Returns an index for the chosen algorithm when choices() == 0
+func chosen() int {
+	i := -1
+	for h := range hashes {
+		if hashes[h].check {
+			if i != -1 {
+				return -1
+			}
+			i = h
+		}
+	}
+	return i
+}
+
+func escapeFilename(filename string) (prefix string, result string) {
+	if strings.ContainsAny(filename, "\n\\") {
+		prefix = "\\"
+		/* NOTE: Only on pathological cases is this code faster
+		r := strings.NewReplacer("\\", "\\\\", "\n", "\\n")
+		result = r.Replace(filename)
+		*/
+		result = strings.Replace(filename, "\\", "\\\\", -1)
+		result = strings.Replace(result, "\n", "\\n", -1)
+		return
+	} else {
+		return "", filename
+	}
+}
+
+func unescapeFilename(filename string) (result string) {
+	/* NOTE: Only on pathological cases is this code faster
+	r := strings.NewReplacer("\\\\", "\\", "\\n", "\n")
+	result = r.Replace(filename)
+	*/
+	result = strings.Replace(filename, "\\\\", "\\", -1)
+	result = strings.Replace(result, "\\n", "\n", -1)
+	return
+}
+
+func display(file string) {
+	if opts.cFile.value == nil {
+		var terminator string = "\n"
+		if opts.zero {
+			terminator += "\x00"
+		}
+		for h := range hashes {
+			if !hashes[h].check {
+				continue
+			}
+			if opts.bsd {
+				fmt.Printf("%s (%s) = %s%s", hashes[h].name, file, hashes[h].digest, terminator)
+			} else if opts.gnu {
+				prefix, filename := escapeFilename(file)
+				fmt.Printf("%s%s  %s%s", prefix, hashes[h].digest, filename, terminator)
+			} else {
+				fmt.Printf("%s(%s)= %s%s", hashes[h].name, file, hashes[h].digest, terminator)
+			}
+		}
+	} else if file != "" {
+		var status string
+		for h := range hashes {
+			if hashes[h].file == file {
+				if hashes[h].digest != hashes[h].cDigest {
+					status = "FAILED"
+				} else {
+					status = "OK"
+				}
+				prefix, filename := escapeFilename(file)
+				fmt.Printf("%s%s: %s %s\n", prefix, filename, hashes[h].name, status)
+			}
+		}
+	}
 }
 
 func hashString(str string) {
@@ -372,13 +446,13 @@ func hashString(str string) {
 		go func(h int) {
 			defer wg.Done()
 			hashes[h].Write([]byte(str))
-			hashes[h].File = "" + str + ""
-			hashes[h].Digest = hex.EncodeToString(hashes[h].Sum(nil))
+			hashes[h].file = "" + str + ""
+			hashes[h].digest = hex.EncodeToString(hashes[h].Sum(nil))
 			hashes[h].Reset()
 		}(h)
 	}
 	wg.Wait()
-	display()
+	display("" + str + "")
 }
 
 func hashFromFile(f *os.File) (errs bool) {
@@ -411,9 +485,21 @@ func hashPathname(pathname string) (errs bool) {
 	return
 }
 
+func checkHash(h int) bool {
+	if hashes[h].check {
+		if _, ok := checkHashes[h]; ok || len(checkHashes) == 0 {
+			return true
+		} else {
+			return false
+		}
+	} else {
+		return false
+	}
+}
+
 func hashFile(filename string) (errs bool) {
 	for h := range hashes {
-		if !hashes[h].check {
+		if !checkHash(h) {
 			continue
 		}
 		go func(h int) {
@@ -428,14 +514,14 @@ func hashFile(filename string) (errs bool) {
 				done <- err
 				return
 			}
-			hashes[h].File = filename
-			hashes[h].Digest = hex.EncodeToString(hashes[h].Sum(nil))
+			hashes[h].file = filename
+			hashes[h].digest = hex.EncodeToString(hashes[h].Sum(nil))
 			hashes[h].Reset()
 			done <- nil
 		}(h)
 	}
 	for h := range hashes {
-		if !hashes[h].check {
+		if !checkHash(h) {
 			continue
 		}
 		err := <-done
@@ -447,7 +533,7 @@ func hashFile(filename string) (errs bool) {
 		}
 	}
 	if !errs {
-		display()
+		display(filename)
 	}
 	return
 }
@@ -486,8 +572,8 @@ func hashStdin() (errs bool) {
 				done <- err
 				return
 			}
-			hashes[h].File = ""
-			hashes[h].Digest = hex.EncodeToString(hashes[h].Sum(nil))
+			hashes[h].file = ""
+			hashes[h].digest = hex.EncodeToString(hashes[h].Sum(nil))
 			hashes[h].Reset()
 			done <- nil
 		}(h, pr)
@@ -519,7 +605,113 @@ func hashStdin() (errs bool) {
 		}
 	}
 	if !errs {
-		display()
+		display("")
 	}
 	return
+}
+
+func checkFromFile(f *os.File) (errs bool) {
+	var terminator string = "\n"
+	if opts.zero {
+		terminator += "\x00"
+	}
+
+	// Format used by OpenSSL dgst and *BSD md5, et al
+	bsd := regexp.MustCompile("\\) ?= [0-9a-fA-F]{16,}$")
+	// Format used by md5sum, et al
+	gnu := regexp.MustCompile("^[\\\\]?[0-9a-fA-F]{16,} [ \\*]")
+
+	var hash, file, digest string
+	var current string
+
+	inputReader := bufio.NewReader(f)
+	for {
+		line, err := inputReader.ReadString(terminator[0])
+		if err != nil && err != io.EOF {
+			panic(err) // XXX
+		}
+		line = strings.TrimRight(line, terminator)
+		if bsd.MatchString(line) {
+			i := strings.Index(line, "(")
+			if i < 0 {
+				continue
+			}
+			hash = line[:i]
+			hash = strings.TrimRight(hash, " ")
+			j := strings.LastIndex(line[i:], ")")
+			if j < 0 {
+				continue
+			}
+			file = line[i+1 : i+j]
+			k := strings.Index(line[i+j:], "= ")
+			if k < 0 {
+				continue
+			}
+			digest = strings.ToLower(line[i+j+k+2:])
+		} else if gnu.MatchString(line) {
+			if strings.HasPrefix(line, "\\") {
+				line = unescapeFilename(line[1:])
+			}
+			i := strings.Index(line, " ")
+			if i < 0 {
+				continue
+			}
+			digest = strings.ToLower(line[:i])
+			file = line[i+2:]
+			switch len(digest) / 2 {
+			case 64:
+				hash = "SHA512"
+			case 48:
+				hash = "SHA384"
+			case 32:
+				hash = "SHA256"
+			case 28:
+				hash = "SHA224"
+			case 20:
+				hash = "SHA1"
+			case 16:
+				hash = "MD5"
+			}
+			h := chosen()
+			if h != -1 && len(digest)/2 == hashes[h].size {
+				hash = hashes[h].name
+			}
+		}
+
+		if current == "" {
+			current = file
+		}
+
+		h := getIndex(hash)
+		if h == -1 {
+			// XXX
+			continue
+		}
+
+		hashes[h].cDigest = digest
+
+		if current != file || err == io.EOF {
+			hashFile(current)
+			current = file
+			for k := range checkHashes {
+				delete(checkHashes, k)
+			}
+		}
+		checkHashes[h] = true
+
+		if err == io.EOF {
+			break
+		}
+	}
+
+	return
+}
+
+func getIndex(name string) int {
+	for i := range hashes {
+		if hashes[i].name == name {
+			return i
+		}
+	}
+	return -1
 }
