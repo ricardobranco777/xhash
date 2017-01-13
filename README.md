@@ -60,7 +60,7 @@ The output format is the same as OpenSSL's *dgst* command.  It may be changed wi
 * `-blake2s256`
     	BLAKE2s256 algorithm
 * `-c value`
-    	read checksums from file and check them
+    	read checksums from file (use _*-c ""*_ to read from standard input)
 * `-gnu`
     	output hashes in the format used by \*sum
 * `-i value`
