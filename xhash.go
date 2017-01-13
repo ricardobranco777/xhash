@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.7.1
+// v0.7.2
 
 package main
 
@@ -26,12 +26,6 @@ import (
 	"bufio"
 	"crypto"
 	"crypto/hmac"
-	/*
-		_ "crypto/md5"
-		_ "crypto/sha1"
-		_ "crypto/sha256"
-		_ "crypto/sha512"
-	*/
 	"encoding/hex"
 	"flag"
 	"fmt"
@@ -43,12 +37,6 @@ import (
 	_ "github.com/ricardobranco777/dgst/sha1"
 	_ "github.com/ricardobranco777/dgst/sha256"
 	_ "github.com/ricardobranco777/dgst/sha512"
-	/*
-		"golang.org/x/crypto/blake2b"
-		"golang.org/x/crypto/blake2s"
-		_ "golang.org/x/crypto/md4"
-		_ "golang.org/x/crypto/ripemd160"
-	*/
 	_ "golang.org/x/crypto/sha3"
 	"hash"
 	"io"
@@ -63,7 +51,7 @@ import (
 	"sync"
 )
 
-const version = "0.7.1"
+const version = "0.7.2"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -82,8 +70,8 @@ var hashes = []*struct {
 	file    string
 	digest  string
 	cDigest string
+	size    int
 	hash.Hash
-	size int
 }{
 	{name: "BLAKE2b256",
 		hash: BLAKE2b256,
@@ -212,22 +200,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	var macKey []byte
-	if opts.key.value != nil {
-		var err error
-		if strings.HasPrefix(*opts.key.value, "/") {
-			if macKey, err = ioutil.ReadFile(*opts.key.value); err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, *opts.key.value)
-				os.Exit(1)
-			}
-		} else {
-			if macKey, err = hex.DecodeString(*opts.key.value); err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: %s: Invalid hexadecimal key: %v\n", progname, *opts.key.value)
-				os.Exit(1)
-			}
-		}
-	}
-
 	if opts.all || choices() == 0 {
 		if choices() == 0 {
 			for h := range hashes {
@@ -236,6 +208,22 @@ func main() {
 		} else {
 			for h := range hashes {
 				hashes[h].check = !hashes[h].check
+			}
+		}
+	}
+
+	var macKey []byte
+	if opts.key.string != nil {
+		var err error
+		if strings.HasPrefix(*opts.key.string, "/") {
+			if macKey, err = ioutil.ReadFile(*opts.key.string); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, *opts.key.string)
+				os.Exit(1)
+			}
+		} else {
+			if macKey, err = hex.DecodeString(*opts.key.string); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: %s: Invalid hexadecimal key: %v\n", progname, *opts.key.string)
+				os.Exit(1)
 			}
 		}
 	}
@@ -264,9 +252,9 @@ func main() {
 	done = make(chan error, choices())
 	defer close(done)
 
-	if opts.iFile.value != nil {
+	if opts.iFile.string != nil {
 		func(file string) {
-			var f *os.File = os.Stdin
+			f := os.Stdin
 			var err error
 			if file != "" {
 				if f, err = os.Open(file); err != nil {
@@ -276,10 +264,10 @@ func main() {
 				defer f.Close()
 			}
 			errs = hashFromFile(f)
-		}(*opts.iFile.value)
-	} else if opts.cFile.value != nil {
+		}(*opts.iFile.string)
+	} else if opts.cFile.string != nil {
 		func(file string) {
-			var f *os.File = os.Stdin
+			f := os.Stdin
 			var err error
 			if file != "" {
 				if f, err = os.Open(file); err != nil {
@@ -289,7 +277,7 @@ func main() {
 				defer f.Close()
 			}
 			errs = checkFromFile(f)
-		}(*opts.cFile.value)
+		}(*opts.cFile.string)
 	} else if flag.NArg() == 0 {
 		hashStdin()
 		os.Exit(0)
@@ -311,17 +299,17 @@ func main() {
 }
 
 type strFlag struct {
-	value *string
+	*string
 }
 
-func (f *strFlag) Set(value string) error {
-	f.value = &value
+func (f *strFlag) Set(s string) error {
+	f.string = &s
 	return nil
 }
 
 func (f *strFlag) String() string {
-	if f.value != nil {
-		return *f.value
+	if f.string != nil {
+		return *f.string
 	}
 	return ""
 }
@@ -398,8 +386,8 @@ func unescapeFilename(filename string) (result string) {
 }
 
 func display(file string) {
-	if opts.cFile.value == nil {
-		var terminator string = "\n"
+	if opts.cFile.string == nil {
+		terminator := "\n"
 		if opts.zero {
 			terminator += "\x00"
 		}
@@ -421,7 +409,7 @@ func display(file string) {
 		for h := range hashes {
 			if hashes[h].file == file {
 				if hashes[h].digest != hashes[h].cDigest {
-					status = "FAILED"
+					status = "FAILED" // TODO exit 1
 				} else {
 					status = "OK"
 				}
@@ -452,7 +440,7 @@ func hashString(str string) {
 }
 
 func hashFromFile(f *os.File) (errs bool) {
-	var terminator string = "\n"
+	terminator := "\n"
 	if opts.zero {
 		terminator = "\x00"
 	}
@@ -586,22 +574,22 @@ func hashDir(dir string) bool {
 }
 
 func checkFromFile(f *os.File) (errs bool) {
-	var terminator string = "\n"
+	terminator := "\n"
 	if opts.zero {
 		terminator += "\x00"
 	}
+	z := len(terminator) - 1
 
 	// Format used by OpenSSL dgst and *BSD md5, et al
 	bsd := regexp.MustCompile("\\) ?= [0-9a-fA-F]{16,}$")
 	// Format used by md5sum, et al
 	gnu := regexp.MustCompile("^[\\\\]?[0-9a-fA-F]{16,} [ \\*]")
 
-	var hash, file, digest string
-	var current string
+	var hash, current, file, digest string
 
 	inputReader := bufio.NewReader(f)
 	for {
-		line, err := inputReader.ReadString(terminator[0])
+		line, err := inputReader.ReadString(terminator[z])
 		if err != nil && err != io.EOF {
 			panic(err) // XXX
 		}
@@ -633,24 +621,26 @@ func checkFromFile(f *os.File) (errs bool) {
 			}
 			digest = strings.ToLower(line[:i])
 			file = line[i+2:]
-			switch len(digest) / 2 {
-			case 64:
-				hash = "SHA512"
-			case 48:
-				hash = "SHA384"
-			case 32:
-				hash = "SHA256"
-			case 28:
-				hash = "SHA224"
-			case 20:
-				hash = "SHA1"
-			case 16:
-				hash = "MD5"
-			}
-			h := chosen()
-			if h != -1 && len(digest)/2 == hashes[h].size {
+			if h := chosen(); h != -1 && len(digest)/2 == hashes[h].size {
 				hash = hashes[h].name
+			} else {
+				switch len(digest) / 2 {
+				case 64:
+					hash = "SHA512"
+				case 48:
+					hash = "SHA384"
+				case 32:
+					hash = "SHA256"
+				case 28:
+					hash = "SHA224"
+				case 20:
+					hash = "SHA1"
+				case 16:
+					hash = "MD5"
+				}
 			}
+		} else if err != io.EOF {
+			continue // XXX
 		}
 
 		if current == "" {
@@ -658,9 +648,8 @@ func checkFromFile(f *os.File) (errs bool) {
 		}
 
 		h := getIndex(hash)
-		if h == -1 {
-			// XXX
-			continue
+		if h == -1 && err != io.EOF {
+			continue // XXX
 		}
 
 		hashes[h].cDigest = digest
