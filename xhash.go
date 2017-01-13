@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.7.4
+// v0.7.5
 
 package main
 
@@ -51,7 +51,7 @@ import (
 	"sync"
 )
 
-const version = "0.7.4"
+const version = "0.7.5"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -61,13 +61,12 @@ const (
 )
 
 // Used with -c option
-var checkHashes = make(map[int]bool)
+var checkHashes map[int]bool
 
 var hashes = []*struct {
 	check   bool
 	hash    crypto.Hash
 	name    string
-	file    string
 	digest  string
 	cDigest string
 	size    int
@@ -165,9 +164,11 @@ func init() {
 	flag.BoolVar(&opts.str, "s", false, "treat arguments as strings")
 	flag.BoolVar(&opts.version, "version", false, "show version and exit")
 	flag.BoolVar(&opts.zero, "0", false, "lines are terminated by a null character")
-	flag.Var(&opts.cFile, "c", "read checksums from file and check them")
+	flag.Var(&opts.cFile, "c", "read checksums from file (use '-c \"\"' to read from standard input)")
 	flag.Var(&opts.iFile, "i", "read pathnames from file (use '-i \"\"' to read from standard input)")
 	flag.Var(&opts.key, "key", "key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname")
+
+	checkHashes = make(map[int]bool, len(hashes))
 }
 
 func main() {
@@ -407,7 +408,7 @@ func display(file string) {
 	} else if file != "" {
 		var status string
 		for h := range hashes {
-			if hashes[h].file == file {
+			if checkHash(h) {
 				if hashes[h].digest != hashes[h].cDigest {
 					status = "FAILED" // TODO exit 1
 				} else {
@@ -430,7 +431,6 @@ func hashString(str string) {
 		go func(h int) {
 			defer wg.Done()
 			hashes[h].Write([]byte(str))
-			hashes[h].file = "" + str + ""
 			hashes[h].digest = hex.EncodeToString(hashes[h].Sum(nil))
 			hashes[h].Reset()
 		}(h)
@@ -470,7 +470,7 @@ func hashPathname(pathname string) (errs bool) {
 
 func checkHash(h int) bool {
 	if hashes[h].check {
-		if _, ok := checkHashes[h]; ok || len(checkHashes) == 0 {
+		if checkHashes[h] || len(checkHashes) == 0 {
 			return true
 		} else {
 			return false
@@ -518,7 +518,6 @@ func hashF(f *os.File, filename string) (errs bool) {
 				done <- err
 				return
 			}
-			hashes[h].file = filename
 			hashes[h].digest = hex.EncodeToString(hashes[h].Sum(nil))
 			hashes[h].Reset()
 			done <- nil
@@ -650,16 +649,21 @@ func checkFromFile(f *os.File) (errs bool) {
 			continue // XXX
 		}
 
-		hashes[h].cDigest = digest
-
 		if current != file || err == io.EOF {
-			hashFile(current)
+			for k := range checkHashes {
+				if hashes[k].check && checkHashes[k] {
+					hashFile(current)
+					break
+				}
+			}
 			current = file
 			for k := range checkHashes {
-				delete(checkHashes, k)
+				checkHashes[k] = false
 			}
 		}
+
 		checkHashes[h] = true
+		hashes[h].cDigest = digest
 
 		if err == io.EOF {
 			break
