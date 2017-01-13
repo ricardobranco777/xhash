@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.7.7
+// v0.7.8
 
 package main
 
@@ -51,7 +51,7 @@ import (
 	"sync"
 )
 
-const version = "0.7.7"
+const version = "0.7.8"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -391,21 +391,21 @@ func unescapeFilename(filename string) (result string) {
 
 func display(file string) {
 	if opts.cFile.string == nil {
-		terminator := "\n"
+		zero := ""
 		if opts.zero {
-			terminator += "\x00"
+			zero = "\x00"
 		}
 		for h := range hashes {
 			if !hashes[h].check {
 				continue
 			}
 			if opts.bsd {
-				fmt.Printf("%s (%s) = %s%s", hashes[h].name, file, hashes[h].digest, terminator)
+				fmt.Printf("%s (%s) = %s%s\n", hashes[h].name, file, hashes[h].digest, zero)
 			} else if opts.gnu {
-				prefix, filename := escapeFilename(file)
-				fmt.Printf("%s%s  %s%s", prefix, hashes[h].digest, filename, terminator)
+				prefix, file := escapeFilename(file)
+				fmt.Printf("%s%s  %s%s\n", prefix, hashes[h].digest, file, zero)
 			} else {
-				fmt.Printf("%s(%s)= %s%s", hashes[h].name, file, hashes[h].digest, terminator)
+				fmt.Printf("%s(%s)= %s%s\n", hashes[h].name, file, hashes[h].digest, zero)
 			}
 		}
 	} else if file != "" {
@@ -454,7 +454,7 @@ func hashFromFile(f *os.File) (errs bool) {
 		if err == io.EOF {
 			return
 		}
-		pathname = strings.TrimRight(pathname, terminator)
+		pathname = strings.TrimSuffix(pathname, terminator)
 		errs = hashPathname(pathname)
 	}
 }
@@ -584,15 +584,24 @@ func checkFromFile(f *os.File) (errs bool) {
 	// Format used by md5sum, et al
 	gnu := regexp.MustCompile("^[\\\\]?[0-9a-fA-F]{16,} [ \\*]")
 
+	terminator := "\n"
+	if opts.zero {
+		terminator = "\x00"
+	}
+
 	inputReader := bufio.NewReader(f)
 	for {
 		lineno++
-		line, err := inputReader.ReadString('\n')
+
+		line, err := inputReader.ReadString(terminator[0])
 		if err != nil && err != io.EOF {
 			panic(err) // XXX
 		}
-		line = strings.TrimLeft(line, "\x00")
-		line = strings.TrimRight(line, "\n")
+		// Auto detect whether -0 was used
+		line = strings.TrimPrefix(line, "\n")
+		line = strings.TrimSuffix(line, "\n")
+		line = strings.TrimSuffix(line, "\x00")
+
 		if bsd.MatchString(line) {
 			i := strings.Index(line, "(")
 			if i < 0 {
