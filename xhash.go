@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.7.5
+// v0.7.6
 
 package main
 
@@ -51,7 +51,7 @@ import (
 	"sync"
 )
 
-const version = "0.7.5"
+const version = "0.7.6"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -140,6 +140,9 @@ var opts struct {
 
 func init() {
 	for i := 0; i < len(hashes); i++ {
+		if strings.HasPrefix(hashes[i].name, "BLAKE2") {
+			continue
+		}
 		if !hashes[i].hash.Available() {
 			removeHash(hashes[i].hash)
 			i--
@@ -607,6 +610,19 @@ func checkFromFile(f *os.File) (errs bool) {
 				continue
 			}
 			digest = strings.ToLower(line[i+j+k+2:])
+			// Support b2sum & bt2sum
+			if strings.HasPrefix(hash, "BLAKE2") {
+				switch hash {
+				case "BLAKE2b", "BLAKE2b-64":
+					hash = "BLAKE2b512"
+				case "BLAKE2b-384, BLAKE2b-48":
+					hash = "BLAKE2b384"
+				case "BLAKE2b-256", "BLAKE2b-32":
+					hash = "BLAKE2b256"
+				case "BLAKE2s", "BLAKE2s-32":
+					hash = "BLAKE2s256"
+				}
+			}
 		} else if gnu.MatchString(line) {
 			if strings.HasPrefix(line, "\\") {
 				line = unescapeFilename(line[1:])
@@ -645,7 +661,7 @@ func checkFromFile(f *os.File) (errs bool) {
 		}
 
 		h := getIndex(hash)
-		if h == -1 {
+		if h == -1 && err != io.EOF {
 			continue // XXX
 		}
 
@@ -662,12 +678,12 @@ func checkFromFile(f *os.File) (errs bool) {
 			}
 		}
 
-		checkHashes[h] = true
-		hashes[h].cDigest = digest
-
 		if err == io.EOF {
 			break
 		}
+
+		checkHashes[h] = true
+		hashes[h].cDigest = digest
 	}
 
 	return
