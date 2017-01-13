@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.7.3
+// v0.7.4
 
 package main
 
@@ -51,7 +51,7 @@ import (
 	"sync"
 )
 
-const version = "0.7.3"
+const version = "0.7.4"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -574,29 +574,23 @@ func hashDir(dir string) bool {
 }
 
 func checkFromFile(f *os.File) (errs bool) {
+	var hash, current, file, digest string
 	var lineno uint64
-
-	terminator := "\n"
-	if opts.zero {
-		terminator += "\x00"
-	}
-	z := len(terminator) - 1
 
 	// Format used by OpenSSL dgst and *BSD md5, et al
 	bsd := regexp.MustCompile("\\) ?= [0-9a-fA-F]{16,}$")
 	// Format used by md5sum, et al
 	gnu := regexp.MustCompile("^[\\\\]?[0-9a-fA-F]{16,} [ \\*]")
 
-	var hash, current, file, digest string
-
 	inputReader := bufio.NewReader(f)
 	for {
 		lineno++
-		line, err := inputReader.ReadString(terminator[z])
+		line, err := inputReader.ReadString('\n')
 		if err != nil && err != io.EOF {
 			panic(err) // XXX
 		}
-		line = strings.TrimRight(line, terminator)
+		line = strings.TrimLeft(line, "\x00")
+		line = strings.TrimRight(line, "\n")
 		if bsd.MatchString(line) {
 			i := strings.Index(line, "(")
 			if i < 0 {
