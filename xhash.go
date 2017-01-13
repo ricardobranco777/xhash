@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.7.2
+// v0.7.3
 
 package main
 
@@ -51,7 +51,7 @@ import (
 	"sync"
 )
 
-const version = "0.7.2"
+const version = "0.7.3"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -574,6 +574,8 @@ func hashDir(dir string) bool {
 }
 
 func checkFromFile(f *os.File) (errs bool) {
+	var lineno uint64
+
 	terminator := "\n"
 	if opts.zero {
 		terminator += "\x00"
@@ -589,6 +591,7 @@ func checkFromFile(f *os.File) (errs bool) {
 
 	inputReader := bufio.NewReader(f)
 	for {
+		lineno++
 		line, err := inputReader.ReadString(terminator[z])
 		if err != nil && err != io.EOF {
 			panic(err) // XXX
@@ -640,7 +643,8 @@ func checkFromFile(f *os.File) (errs bool) {
 				}
 			}
 		} else if err != io.EOF {
-			continue // XXX
+			fmt.Fprintf(os.Stderr, "ERROR: %s: Unrecognized format at line %d\n", progname, lineno)
+			os.Exit(1)
 		}
 
 		if current == "" {
@@ -648,7 +652,7 @@ func checkFromFile(f *os.File) (errs bool) {
 		}
 
 		h := getIndex(hash)
-		if h == -1 && err != io.EOF {
+		if h == -1 {
 			continue // XXX
 		}
 
