@@ -2,7 +2,7 @@
 //
 // MIT License
 //
-// v0.7.8
+// v0.7.9
 
 package main
 
@@ -51,7 +51,7 @@ import (
 	"sync"
 )
 
-const version = "0.7.8"
+const version = "0.7.9"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -389,7 +389,7 @@ func unescapeFilename(filename string) (result string) {
 	return
 }
 
-func display(file string) {
+func display(file string) (errs int) {
 	if opts.cFile.string == nil {
 		zero := ""
 		if opts.zero {
@@ -414,6 +414,7 @@ func display(file string) {
 			if checkHash(h) {
 				if hashes[h].digest != hashes[h].cDigest {
 					status = "FAILED" // TODO exit 1
+					errs++
 				} else {
 					status = "OK"
 				}
@@ -422,6 +423,7 @@ func display(file string) {
 			}
 		}
 	}
+	return
 }
 
 func hashString(str string) {
@@ -462,11 +464,11 @@ func hashFromFile(f *os.File) (errs bool) {
 func hashPathname(pathname string) (errs bool) {
 	if info, err := os.Stat(pathname); err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
-		errs = true
+		errs = true // visit() would fail if we return false
 	} else if info.IsDir() {
 		errs = hashDir(pathname)
 	} else {
-		errs = hashFile(pathname)
+		errs = hashFile(pathname) != 0
 	}
 	return
 }
@@ -483,16 +485,16 @@ func checkHash(h int) bool {
 	}
 }
 
-func hashFile(filename string) (errs bool) {
+func hashFile(filename string) (errs int) {
 	f, err := os.Open(filename)
 	defer f.Close()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
-		return true
+		return -1
 	}
 
-	if errs = hashF(f, filename); !errs {
-		display(filename)
+	if err := hashF(f, filename); !err {
+		return display(filename)
 	}
 	return
 }
@@ -578,6 +580,11 @@ func hashDir(dir string) bool {
 func checkFromFile(f *os.File) (errs bool) {
 	var hash, current, file, digest string
 	var lineno uint64
+
+	var stats struct {
+		unmatched  uint64
+		unreadable uint64
+	}
 
 	// Format used by OpenSSL dgst and *BSD md5, et al
 	bsd := regexp.MustCompile("\\) ?= [0-9a-fA-F]{16,}$")
@@ -697,7 +704,12 @@ func checkFromFile(f *os.File) (errs bool) {
 		if current != file || err == io.EOF {
 			for k := range checkHashes {
 				if hashes[k].check && checkHashes[k] {
-					hashFile(current)
+					n := hashFile(current)
+					if n < 0 {
+						stats.unreadable++
+					} else if n > 0 {
+						stats.unmatched += uint64(n)
+					}
 					break
 				}
 			}
@@ -715,6 +727,21 @@ func checkFromFile(f *os.File) (errs bool) {
 		hashes[h].cDigest = digest
 	}
 
+	plural := ""
+	if stats.unreadable > 0 {
+		errs = true
+		if stats.unreadable > 1 {
+			plural = "s"
+		}
+		fmt.Fprintf(os.Stderr, "%s: WARNING: %d listed file%s could not be read\n", progname, stats.unreadable, plural)
+	}
+	if stats.unmatched > 0 {
+		errs = true
+		if stats.unmatched > 1 {
+			plural = "s"
+		}
+		fmt.Fprintf(os.Stderr, "%s: WARNING: %d computed checksum%s did NOT match\n", progname, stats.unmatched, plural)
+	}
 	return
 }
 
