@@ -1,8 +1,6 @@
 // (C) 2016, 2017 by Ricardo Branco
 //
 // MIT License
-//
-// v0.8
 
 package main
 
@@ -52,7 +50,7 @@ import (
 	"sync"
 )
 
-const version = "0.8"
+const version = "0.8.1"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -135,6 +133,8 @@ var opts struct {
 	all     bool
 	bsd     bool
 	gnu     bool
+	quiet   bool
+	status  bool
 	cFile   strFlag
 	iFile   strFlag
 	key     strFlag
@@ -170,6 +170,8 @@ func init() {
 	flag.BoolVar(&opts.bsd, "bsd", false, "output hashes in the format used by *BSD")
 	flag.BoolVar(&opts.gnu, "gnu", false, "output hashes in the format used by *sum")
 	flag.BoolVar(&opts.str, "s", false, "treat arguments as strings")
+	flag.BoolVar(&opts.quiet, "quiet", false, "don't print OK for each successfully verified file")
+	flag.BoolVar(&opts.status, "status", false, "don't output anything, status code shows success")
 	flag.BoolVar(&opts.version, "version", false, "show version and exit")
 	flag.BoolVar(&opts.zero, "0", false, "lines are terminated by a null character")
 	flag.Var(&opts.cFile, "c", "read checksums from file (use '-c \"\"' to read from standard input)")
@@ -420,17 +422,21 @@ func display(file string) (errs int) {
 			}
 		}
 	} else if file != "" {
-		var status string
 		for h := range hashes {
+			status := ""
 			if checkHash(h) {
 				if hashes[h].digest != hashes[h].cDigest {
 					status = "FAILED"
 					errs++
 				} else {
-					status = "OK"
+					if !opts.quiet {
+						status = "OK"
+					}
 				}
-				prefix, filename := escapeFilename(file)
-				fmt.Printf("%s%s: %s %s\n", prefix, filename, hashes[h].name, status)
+				if !opts.status && status != "" {
+					prefix, filename := escapeFilename(file)
+					fmt.Printf("%s%s: %s %s\n", prefix, filename, hashes[h].name, status)
+				}
 			}
 		}
 	}
@@ -739,14 +745,14 @@ func checkFromFile(f *os.File) (errs bool) {
 	}
 
 	plural := ""
-	if stats.unreadable > 0 {
+	if !opts.status && stats.unreadable > 0 {
 		errs = true
 		if stats.unreadable > 1 {
 			plural = "s"
 		}
 		fmt.Fprintf(os.Stderr, "%s: WARNING: %d listed file%s could not be read\n", progname, stats.unreadable, plural)
 	}
-	if stats.unmatched > 0 {
+	if !opts.status && stats.unmatched > 0 {
 		errs = true
 		if stats.unmatched > 1 {
 			plural = "s"
