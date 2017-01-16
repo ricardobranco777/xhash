@@ -1,8 +1,8 @@
-// (C) 2016 by Ricardo Branco
+// (C) 2016, 2017 by Ricardo Branco
 //
 // MIT License
 //
-// v0.7.9
+// v0.8
 
 package main
 
@@ -37,6 +37,7 @@ import (
 	_ "github.com/ricardobranco777/dgst/sha1"
 	_ "github.com/ricardobranco777/dgst/sha256"
 	_ "github.com/ricardobranco777/dgst/sha512"
+	"github.com/ricardobranco777/dgst/whirlpool"
 	_ "golang.org/x/crypto/sha3"
 	"hash"
 	"io"
@@ -51,13 +52,14 @@ import (
 	"sync"
 )
 
-const version = "0.7.9"
+const version = "0.8"
 
 const (
 	BLAKE2b256 = 100 + iota
 	BLAKE2b384
 	BLAKE2b512
 	BLAKE2s256
+	WHIRLPOOL
 )
 
 // Used with -c option
@@ -120,6 +122,9 @@ var hashes = []*struct {
 	{name: "SHA3-512",
 		hash: crypto.SHA3_512,
 		size: 64},
+	{name: "WHIRLPOOL",
+		hash: WHIRLPOOL,
+		size: 64},
 }
 
 var progname string
@@ -140,7 +145,7 @@ var opts struct {
 
 func init() {
 	for i := 0; i < len(hashes); i++ {
-		if strings.HasPrefix(hashes[i].name, "BLAKE2") {
+		if hashes[i].hash > 99 {
 			continue
 		}
 		if !hashes[i].hash.Available() {
@@ -242,6 +247,12 @@ func main() {
 			hashes[i].Hash = blake2_(blake2b.New512, macKey)
 		case BLAKE2s256:
 			hashes[i].Hash = blake2_(blake2s.New256, macKey)
+		case WHIRLPOOL:
+			if macKey != nil {
+				hashes[i].Hash = hmac.New(whirlpool.New, macKey)
+			} else {
+				hashes[i].Hash = whirlpool.New()
+			}
 		default:
 			if macKey != nil {
 				hashes[i].Hash = hmac.New(hashes[i].hash.New, macKey)
@@ -413,7 +424,6 @@ func display(file string) (errs int) {
 		for h := range hashes {
 			if checkHash(h) {
 				if hashes[h].digest != hashes[h].cDigest {
-					status = "FAILED" // TODO exit 1
 					errs++
 				} else {
 					status = "OK"
@@ -602,7 +612,7 @@ func checkFromFile(f *os.File) (errs bool) {
 
 		line, err := inputReader.ReadString(terminator[0])
 		if err != nil && err != io.EOF {
-			panic(err) // XXX
+			panic(err)
 		}
 		// Auto detect whether -0 was used
 		line = strings.TrimPrefix(line, "\n")
@@ -698,7 +708,7 @@ func checkFromFile(f *os.File) (errs bool) {
 
 		h := getIndex(hash)
 		if h == -1 && err != io.EOF {
-			continue // XXX
+			continue
 		}
 
 		if current != file || err == io.EOF {
