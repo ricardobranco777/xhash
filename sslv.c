@@ -11,11 +11,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
-#include <limits.h>
 #include <dlfcn.h>
-#include <sys/param.h>
 
 #define SSLEAY_VERSION	0
 
@@ -35,10 +32,8 @@ static const char *trylibs[] = {
 	NULL
 };
 
-static char pathname[PATH_MAX+1];
-
 static void scan_libs(void);
-static int print_info(const char *sopath);
+static void print_info(const char *path);
 
 #define file_exists(file)	!access((file), F_OK)
 
@@ -51,43 +46,35 @@ static void scan_libs(void)
 		print_info(trylibs[i]);
 }
 
-static int print_info(const char *sopath)
+static void print_info(const char *path)
 {
 	const char *(*sslv)(int);	/* const char *SSLeay_version(int); */
 	const char *error;
-	char *path;
 	void *dlh;
 
-	dlh = dlopen(sopath, RTLD_LAZY | RTLD_LOCAL);
+	dlh = dlopen(path, RTLD_LAZY | RTLD_LOCAL);
 	if (dlh == NULL) {
-		fprintf(stderr, "sslv: dlopen(%s): %s\n", sopath, dlerror());
-		return -1;
+		/*fprintf(stderr, "sslv: dlopen(%s): %s\n", path, dlerror());*/
+		return;
 	}
 
 	(void) dlerror();
 	sslv = dlsym(dlh, "SSLeay_version");
 	if (sslv == NULL) {
+		/* SSLeay_version() was renamed to OpenSSL_version() on OpenSSL 1.1.0 */
 		sslv = dlsym(dlh, "OpenSSL_version");
 	}
 	if ((error = dlerror()) != NULL) {
-		fprintf(stderr, "sslv: dlsym(%s, \"SSLeay_version\"): %s\n", sopath, error);
-		goto bad;
+		/*fprintf(stderr, "sslv: dlsym(%s, \"SSLeay_version\"): %s\n", path, error);*/
+		goto go;
 	}
 
-	path = realpath(sopath, pathname);
-	if (path != NULL && strcmp(path, sopath) && file_exists(path))
-		printf("%s [%s]:\n", sopath, path);
-	else
-		printf("%s:\n", sopath);
+	printf("%s ", path);
 
-	printf("\tVersion:\t%s\n", sslv(SSLEAY_VERSION));
+	printf("%s\n", sslv(SSLEAY_VERSION));
 
+go:
 	(void) dlclose(dlh);
-	return 0;
-
-bad:
-	(void) dlclose(dlh);
-	return -1;
 }
 
 int main(int argc, char *argv[])
