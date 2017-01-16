@@ -424,6 +424,7 @@ func display(file string) (errs int) {
 		for h := range hashes {
 			if checkHash(h) {
 				if hashes[h].digest != hashes[h].cDigest {
+					status = "FAILED"
 					errs++
 				} else {
 					status = "OK"

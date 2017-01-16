@@ -93,4 +93,5 @@ The output format is the same as OpenSSL's *dgst* command.  It may be changed wi
     	SHA512 algorithm
 * `-version`
     	show version and exit
-
+* `-whirlpool`
+    	whirlpool algorithm
