@@ -13,11 +13,11 @@ fi
 get_files()
 {
 	if [ $(id -u) -eq 0 ] ; then
-		GOROOT=${GOROOT:-"/go"}
+		GOPATH=${GOROOT:-"/go"}
 	else
-		GOROOT=${GOROOT:-${HOME}/go}
+		GOPATH=${GOROOT:-${HOME}/go}
 	fi
-	echo xhash.go $(find ${GOROOT}/src/github.com/ricardobranco777/dgst -name \*.go ! -name \*_test.go)
+	echo xhash.go $(find ${GOPATH}/src/github.com/ricardobranco777/dgst -name \*.go ! -name \*_test.go)
 }
 
 sed -ri "s%(^#cgo CFLAGS:) -I/usr/include%\1 -I${includedir}%" $(get_files)
