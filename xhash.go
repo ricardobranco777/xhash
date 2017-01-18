@@ -12,10 +12,10 @@ package main
 #if OPENSSL_VERSION_NUMBER >> 20 & 0xff
 // This function was renamed in OpenSSL 1.1.0
 #undef SSLeay_version
-char * SSLeay_version(int t) {
+const char * SSLeay_version(int t) {
 	return OpenSSL_version(t);
 }
-char * SSLeay_version(int t);
+const char * SSLeay_version(int t);
 #endif
 */
 import "C"
