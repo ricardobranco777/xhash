@@ -12,7 +12,11 @@ fi
 
 get_files()
 {
-	GOROOT=${GOROOT:-${HOME}/go}
+	if [ $(id -u) -eq 0 ] ; then
+		GOROOT=${GOROOT:-"/go"}
+	else
+		GOROOT=${GOROOT:-${HOME}/go}
+	fi
 	echo xhash.go $(find ${GOROOT}/src/github.com/ricardobranco777/dgst -name \*.go ! -name \*_test.go)
 }
 
