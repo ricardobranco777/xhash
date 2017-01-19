@@ -143,6 +143,8 @@ var opts struct {
 	zero    bool
 }
 
+var sizeHashes map[int]*bool
+
 func init() {
 	for i := 0; i < len(hashes); i++ {
 		if hashes[i].hash > 99 {
@@ -178,11 +180,7 @@ func init() {
 	flag.Var(&opts.iFile, "i", "read pathnames from file (use '-i \"\"' to read from standard input)")
 	flag.Var(&opts.key, "key", "key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname")
 
-	checkHashes = make(map[int]bool, len(hashes))
-}
-
-func main() {
-	sizeHashes := map[int]*bool{
+	sizeHashes = map[int]*bool{
 		128: nil, 160: nil, 224: nil, 256: nil, 384: nil, 512: nil,
 	}
 	for size := range sizeHashes {
@@ -190,12 +188,14 @@ func main() {
 		sizeHashes[size] = flag.Bool(sizeStr, false, "all "+sizeStr+" bits algorithms")
 	}
 
+	checkHashes = make(map[int]bool, len(hashes))
+}
+
+func main() {
 	flag.Parse()
 
 	for h := range hashes {
-		if !*sizeHashes[hashes[h].size*8] {
-			continue
-		} else {
+		if *sizeHashes[hashes[h].size*8] {
 			hashes[h].check = true
 		}
 	}
@@ -239,27 +239,27 @@ func main() {
 		}
 	}
 
-	for i := range hashes {
-		switch hashes[i].hash {
+	for h := range hashes {
+		switch hashes[h].hash {
 		case BLAKE2b256:
-			hashes[i].Hash = blake2_(blake2b.New256, macKey)
+			hashes[h].Hash = blake2_(blake2b.New256, macKey)
 		case BLAKE2b384:
-			hashes[i].Hash = blake2_(blake2b.New384, macKey)
+			hashes[h].Hash = blake2_(blake2b.New384, macKey)
 		case BLAKE2b512:
-			hashes[i].Hash = blake2_(blake2b.New512, macKey)
+			hashes[h].Hash = blake2_(blake2b.New512, macKey)
 		case BLAKE2s256:
-			hashes[i].Hash = blake2_(blake2s.New256, macKey)
+			hashes[h].Hash = blake2_(blake2s.New256, macKey)
 		case WHIRLPOOL:
 			if macKey != nil {
-				hashes[i].Hash = hmac.New(whirlpool.New, macKey)
+				hashes[h].Hash = hmac.New(whirlpool.New, macKey)
 			} else {
-				hashes[i].Hash = whirlpool.New()
+				hashes[h].Hash = whirlpool.New()
 			}
 		default:
 			if macKey != nil {
-				hashes[i].Hash = hmac.New(hashes[i].hash.New, macKey)
+				hashes[h].Hash = hmac.New(hashes[h].hash.New, macKey)
 			} else {
-				hashes[i].Hash = hashes[i].hash.New()
+				hashes[h].Hash = hashes[h].hash.New()
 			}
 		}
 	}
