@@ -1,8 +1,8 @@
 #!/bin/bash -e
 
-gcc -o sslv sslv.c -ldl
+gcc -o tools/sslv tools/sslv.c -ldl
 
-libdir=$(dirname $(./sslv | sort -k3 -n | awk 'END { print $1 }'))
+libdir=$(dirname $(tools/sslv | sort -k3 -n | awk 'END { print $1 }'))
 
 if [[ $libdir =~ /usr/local/ssl ]] ; then	
 	includedir="/usr/local/ssl/include"
