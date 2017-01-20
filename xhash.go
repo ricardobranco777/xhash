@@ -50,7 +50,7 @@ import (
 	"sync"
 )
 
-const version = "0.8.1"
+const version = "0.8.2"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -470,8 +470,11 @@ func hashFromFile(f *os.File) (errs bool) {
 	inputReader := bufio.NewReader(f)
 	for {
 		pathname, err := inputReader.ReadString(terminator[0])
-		if err == io.EOF {
-			return
+		if err != nil {
+			if err == io.EOF {
+				return
+			}
+			panic(err)
 		}
 		pathname = strings.TrimSuffix(pathname, terminator)
 		errs = hashPathname(pathname)
@@ -604,9 +607,10 @@ func checkFromFile(f *os.File) (errs bool) {
 	}
 
 	// Format used by OpenSSL dgst and *BSD md5, et al
-	bsd := regexp.MustCompile("\\) ?= [0-9a-fA-F]{16,}$")
+	bsd_begin := regexp.MustCompile(`^[A-Za-z0-9-]+ ?\(`)
+	bsd := regexp.MustCompile(`(?ms:^[A-Za-z0-9-]+ ?\(.*?\) ?= [0-9a-fA-F]{16,}$)`)
 	// Format used by md5sum, et al
-	gnu := regexp.MustCompile("^[\\\\]?[0-9a-fA-F]{16,} [ \\*]")
+	gnu := regexp.MustCompile(`^[\\]?[0-9a-fA-F]{16,} [ \*]`)
 
 	terminator := "\n"
 	if opts.zero {
@@ -615,12 +619,28 @@ func checkFromFile(f *os.File) (errs bool) {
 
 	inputReader := bufio.NewReader(f)
 	for {
+		var xline string
 		lineno++
+		line := ""
 
-		line, err := inputReader.ReadString(terminator[0])
-		if err != nil && err != io.EOF {
-			panic(err)
+		var err error
+
+		for {
+			xline, err = inputReader.ReadString(terminator[0])
+			if err != nil && err != io.EOF {
+				panic(err)
+			}
+
+			line += xline
+
+			if bsd_begin.MatchString(line) {
+				if !bsd.MatchString(line) && err == nil {
+					continue
+				}
+			}
+			break
 		}
+
 		// Auto detect whether -0 was used
 		line = strings.TrimPrefix(line, "\n")
 		line = strings.TrimSuffix(line, "\n")
@@ -704,7 +724,7 @@ func checkFromFile(f *os.File) (errs bool) {
 					hash = "MD5"
 				}
 			}
-		} else if err != io.EOF {
+		} else if err == nil {
 			fmt.Fprintf(os.Stderr, "ERROR: %s: Unrecognized format at line %d\n", progname, lineno)
 			os.Exit(1)
 		}
@@ -714,7 +734,7 @@ func checkFromFile(f *os.File) (errs bool) {
 		}
 
 		h := getIndex(hash)
-		if h == -1 && err != io.EOF {
+		if h == -1 && err == nil {
 			continue
 		}
 
