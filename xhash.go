@@ -151,7 +151,9 @@ func init() {
 			continue
 		}
 		if !hashes[i].hash.Available() {
-			removeHash(hashes[i].hash)
+			copy(hashes[i:], hashes[i+1:])
+			hashes[len(hashes)-1] = nil // item will be garbage-collected
+			hashes = hashes[:len(hashes)-1]
 			i--
 		}
 	}
@@ -329,18 +331,6 @@ func (f *strFlag) String() string {
 		return *f.string
 	}
 	return ""
-}
-
-func removeHash(h crypto.Hash) {
-	i := -1
-	for i = range hashes {
-		if hashes[i].hash == h {
-			break
-		}
-	}
-	copy(hashes[i:], hashes[i+1:])
-	hashes[len(hashes)-1] = nil // item will be garbage-collected
-	hashes = hashes[:len(hashes)-1]
 }
 
 // Wrapper for the Blake2 New() methods that needs an optional for MAC
