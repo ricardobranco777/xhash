@@ -98,4 +98,4 @@ The output format is the same as OpenSSL's *dgst* command.  It may be changed wi
 * `-version`
     	show version and exit
 * `-whirlpool`
-    	whirlpool algorithm
+    	WHIRLPOOL algorithm
