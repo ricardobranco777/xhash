@@ -165,7 +165,7 @@ func init() {
 
 	for h := range hashes {
 		name := strings.ToLower(hashes[h].name)
-		flag.BoolVar(&hashes[h].check, name, false, fmt.Sprintf("%s algorithm", name))
+		flag.BoolVar(&hashes[h].check, name, false, fmt.Sprintf("%s algorithm", hashes[h].name))
 	}
 
 	flag.BoolVar(&opts.all, "all", false, "all algorithms")
