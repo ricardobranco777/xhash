@@ -12,10 +12,10 @@ package main
 #if OPENSSL_VERSION_NUMBER >> 20 & 0xff
 // This function was renamed in OpenSSL 1.1.0
 #undef SSLeay_version
-const char * SSLeay_version(int t) {
+const char *SSLeay_version(int t) {
 	return OpenSSL_version(t);
 }
-const char * SSLeay_version(int t);
+const char *SSLeay_version(int t);
 #endif
 */
 import "C"
@@ -344,36 +344,45 @@ func blake2_(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
 }
 
 // Returns the number of algorithms chosen
-func choices() (n int) {
-	for h := range hashes {
-		if hashes[h].check {
-			n++
+func _choices() func() int {
+	n := 0
+	return func() int {
+		if n > 0 {
+			return n
 		}
+		for h := range hashes {
+			if hashes[h].check {
+				n++
+			}
+		}
+		return n
 	}
-	return
 }
 
-// Returns an index for the chosen algorithm when choices() == 0
-func chosen() int {
+// We simulate static variables with closures
+var choices = _choices()
+
+// Returns an index for the chosen algorithm when choices() == 1, else return -1
+func _chosen() func() int {
 	i := -1
-	for h := range hashes {
-		if hashes[h].check {
-			if i != -1 {
-				return -1
+	return func() int {
+		if i == -1 && choices() == 1 {
+			for h := range hashes {
+				if hashes[h].check {
+					i = h
+					break
+				}
 			}
-			i = h
 		}
+		return i
 	}
-	return i
 }
+
+var chosen = _chosen()
 
 func escapeFilename(filename string) (prefix string, result string) {
 	if strings.ContainsAny(filename, "\n\\") {
 		prefix = "\\"
-		/* NOTE: Only on pathological cases is this code faster
-		r := strings.NewReplacer("\\", "\\\\", "\n", "\\n")
-		result = r.Replace(filename)
-		*/
 		result = strings.Replace(filename, "\\", "\\\\", -1)
 		result = strings.Replace(result, "\n", "\\n", -1)
 		return
@@ -383,10 +392,6 @@ func escapeFilename(filename string) (prefix string, result string) {
 }
 
 func unescapeFilename(filename string) (result string) {
-	/* NOTE: Only on pathological cases is this code faster
-	r := strings.NewReplacer("\\\\", "\\", "\\n", "\n")
-	result = r.Replace(filename)
-	*/
 	result = strings.Replace(filename, "\\\\", "\\", -1)
 	result = strings.Replace(result, "\\n", "\n", -1)
 	return
