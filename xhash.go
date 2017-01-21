@@ -727,7 +727,7 @@ func checkFromFile(f *os.File) (errs bool) {
 			current = file
 		}
 
-		h := getIndex(hash)
+		h := getHashIndex(hash, len(digest)/2)
 		if h == -1 && err == nil {
 			continue
 		}
@@ -776,9 +776,9 @@ func checkFromFile(f *os.File) (errs bool) {
 	return
 }
 
-func getIndex(name string) int {
+func getHashIndex(name string, size int) int {
 	for i := range hashes {
-		if hashes[i].name == name {
+		if hashes[i].size == size && hashes[i].name == name {
 			return i
 		}
 	}
