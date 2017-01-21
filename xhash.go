@@ -50,7 +50,7 @@ import (
 	"sync"
 )
 
-const version = "0.8.2"
+const version = "0.8.3"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -467,6 +467,9 @@ func hashFromFile(f *os.File) (errs bool) {
 			panic(err)
 		}
 		pathname = strings.TrimSuffix(pathname, terminator)
+		if !opts.zero {
+			pathname = strings.TrimSuffix(pathname, "\r")
+		}
 		errs = hashPathname(pathname)
 	}
 }
@@ -634,6 +637,7 @@ func checkFromFile(f *os.File) (errs bool) {
 		// Auto detect whether -0 was used
 		line = strings.TrimPrefix(line, "\n")
 		line = strings.TrimSuffix(line, "\n")
+		line = strings.TrimSuffix(line, "\r")
 		line = strings.TrimSuffix(line, "\x00")
 
 		if bsd.MatchString(line) {
