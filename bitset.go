@@ -11,10 +11,10 @@ type Bitset struct {
 	count int
 }
 
-func New() Bitset {
+func New() *Bitset {
 	bs := new(Bitset)
 	bs.word = make([]word, 1)
-	return *bs
+	return bs
 }
 
 func (bs *Bitset) Add(i int) {
