@@ -239,8 +239,11 @@ func main() {
 		}
 	}
 
-	// XXX All are initialized
+	// XXX All are initialized with the -c option
 	for h := range hashes {
+		if opts.cFile.string == nil && !algorithms.Test(h) {
+			continue
+		}
 		switch hashes[h].hash {
 		case BLAKE2b256:
 			hashes[h].Hash = blake2_(blake2b.New256, macKey)
