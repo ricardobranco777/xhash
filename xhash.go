@@ -49,7 +49,7 @@ import (
 	"sync"
 )
 
-const version = "0.8.5"
+const version = "0.8.6"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -59,8 +59,10 @@ const (
 	WHIRLPOOL
 )
 
-// Used with -c option
-var checkHashes *Bitset
+var (
+	algorithms  *Bitset // Algorithms chosen in the command line
+	checkHashes *Bitset // Algorithms read with the -c option
+)
 
 var hashes = []*struct {
 	check   bool
@@ -178,7 +180,8 @@ func init() {
 	flag.Var(&opts.iFile, "i", "read pathnames from file (use '-i \"\"' to read from standard input)")
 	flag.Var(&opts.key, "key", "key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname")
 
-	checkHashes = NewBitset()
+	algorithms = NewBitset(len(hashes) - 1)
+	checkHashes = NewBitset(len(hashes) - 1)
 }
 
 func main() {
@@ -195,14 +198,22 @@ func main() {
 		os.Exit(0)
 	}
 
-	if opts.all || choices() == 0 {
-		if choices() == 0 {
-			for h := range hashes {
-				hashes[h].check = true
-			}
+	for h := range hashes {
+		if hashes[h].check {
+			algorithms.Add(h)
+		}
+	}
+
+	if opts.all || algorithms.GetCount() == 0 {
+		if algorithms.GetCount() == 0 {
+			algorithms.SetAll()
 		} else {
 			for h := range hashes {
-				hashes[h].check = !hashes[h].check
+				if algorithms.Test(h) {
+					algorithms.Del(h)
+				} else {
+					algorithms.Add(h)
+				}
 			}
 		}
 	}
@@ -223,6 +234,7 @@ func main() {
 		}
 	}
 
+	// XXX All are initialized
 	for h := range hashes {
 		switch hashes[h].hash {
 		case BLAKE2b256:
@@ -250,7 +262,7 @@ func main() {
 
 	var errs bool
 
-	done = make(chan error, choices())
+	done = make(chan error, algorithms.GetCount())
 	defer close(done)
 
 	if opts.iFile.string != nil {
@@ -309,36 +321,13 @@ func blake2_(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
 	return h
 }
 
-// Returns the number of algorithms chosen
-func _choices() func() int {
-	n := 0
-	return func() int {
-		if n > 0 {
-			return n
-		}
-		for h := range hashes {
-			if hashes[h].check {
-				n++
-			}
-		}
-		return n
-	}
-}
-
-// We simulate static variables with closures
-var choices = _choices()
-
-// Returns an index for the chosen algorithm when choices() == 1, else return -1
+// Returns an index for the chosen algorithm if only once was specified, else return -1
 func _chosen() func() int {
 	i := -1
 	return func() int {
-		if i == -1 && choices() == 1 {
-			for h := range hashes {
-				if hashes[h].check {
-					i = h
-					break
-				}
-			}
+		if i == -1 && algorithms.GetCount() == 1 {
+			h := algorithms.GetAll()
+			i = h[0]
 		}
 		return i
 	}
@@ -369,10 +358,7 @@ func display(file string) (errs int) {
 		if opts.zero {
 			zero = "\x00"
 		}
-		for h := range hashes {
-			if !hashes[h].check {
-				continue
-			}
+		for _, h := range algorithms.GetAll() {
 			if opts.bsd {
 				fmt.Printf("%s (%s) = %s%s\n", hashes[h].name, file, hashes[h].digest, zero)
 			} else if opts.gnu {
@@ -383,11 +369,11 @@ func display(file string) (errs int) {
 			}
 		}
 	} else if file != "" {
-		for h := range hashes {
+		for _, h := range algorithms.GetAll() {
 			status := ""
-			if checkHash(h) {
+			if checkHashes.Test(h) || checkHashes.GetCount() == 0 {
 				if hashes[h].digest != hashes[h].cDigest {
-					status = "FAILED"
+					status = "FAILED" // TODO: opts.verbose should display hashes[h].digest
 					errs++
 				} else {
 					if !opts.quiet {
@@ -406,11 +392,8 @@ func display(file string) (errs int) {
 
 func hashString(str string) {
 	var wg sync.WaitGroup
-	wg.Add(choices())
-	for h := range hashes {
-		if !hashes[h].check {
-			continue
-		}
+	wg.Add(algorithms.GetCount())
+	for _, h := range algorithms.GetAll() {
 		go func(h int) {
 			defer wg.Done()
 			hashes[h].Write([]byte(str))
@@ -457,18 +440,6 @@ func hashPathname(pathname string) (errs bool) {
 	return
 }
 
-func checkHash(h int) bool {
-	if hashes[h].check {
-		if checkHashes.Test(h) || checkHashes.GetCount() == 0 {
-			return true
-		} else {
-			return false
-		}
-	} else {
-		return false
-	}
-}
-
 func hashFile(filename string) (errs int) {
 	f, err := os.Open(filename)
 	defer f.Close()
@@ -495,10 +466,7 @@ func hashF(f *os.File, filename string) (errs bool) {
 	var Writers []io.Writer
 	var pipeWriters []*io.PipeWriter
 
-	for h := range hashes {
-		if !checkHash(h) {
-			continue
-		}
+	for _, h := range algorithms.GetAll() {
 		pr, pw := io.Pipe()
 		Writers = append(Writers, pw)
 		pipeWriters = append(pipeWriters, pw)
@@ -529,10 +497,7 @@ func hashF(f *os.File, filename string) (errs bool) {
 		}
 	}()
 
-	for h := range hashes {
-		if !checkHash(h) {
-			continue
-		}
+	for range algorithms.GetAll() {
 		if err := <-done; err != nil {
 			if !errs {
 				fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
@@ -705,7 +670,7 @@ func checkFromFile(f *os.File) (errs bool) {
 
 		if current != file || err == io.EOF {
 			for _, k := range checkHashes.GetAll() {
-				if hashes[k].check && checkHashes.Test(k) {
+				if algorithms.Test(k) && checkHashes.Test(k) {
 					n := hashFile(current)
 					if n < 0 {
 						stats.unreadable++
