@@ -49,7 +49,7 @@ import (
 	"sync"
 )
 
-const version = "0.8.6"
+const version = "0.8.7"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -140,6 +140,7 @@ var opts struct {
 	iFile   strFlag
 	key     strFlag
 	str     bool
+	verbose bool
 	version bool
 	zero    bool
 }
@@ -174,6 +175,7 @@ func init() {
 	flag.BoolVar(&opts.str, "s", false, "treat arguments as strings")
 	flag.BoolVar(&opts.quiet, "quiet", false, "don't print OK for each successfully verified file")
 	flag.BoolVar(&opts.status, "status", false, "don't output anything, status code shows success")
+	flag.BoolVar(&opts.verbose, "v", false, "verbose operation (currently useful with the -c option)")
 	flag.BoolVar(&opts.version, "version", false, "show version and exit")
 	flag.BoolVar(&opts.zero, "0", false, "lines are terminated by a null character")
 	flag.Var(&opts.cFile, "c", "read checksums from file (use '-c \"\"' to read from standard input)")
@@ -374,6 +376,9 @@ func display(file string) (errs int) {
 			if checkHashes.Test(h) || checkHashes.GetCount() == 0 {
 				if hashes[h].digest != hashes[h].cDigest {
 					status = "FAILED" // TODO: opts.verbose should display hashes[h].digest
+					if opts.verbose {
+						status += " with " + hashes[h].digest
+					}
 					errs++
 				} else {
 					if !opts.quiet {
