@@ -23,10 +23,6 @@ Install OpenSSL for faster hashing for multiple algorithms.
 
 `xhash -sha512 -sha256 $HOME`
 
-* To hash /etc/password with all algorithms except those of 128 & 160 bits
-
-`xhash -all -128 -160 /etc/passwd`
-
 # Output format
 
 The output format is the same as OpenSSL's *dgst* command.  It may be changed with the _*-bsd*_ option to support the format used by FreeBSD's *md5*, *sha1*, et al; NetBSD's *digest*, or the _*-gnu*_ option to support the format used by *md5sum* and friends.
@@ -35,18 +31,6 @@ The output format is the same as OpenSSL's *dgst* command.  It may be changed wi
 
 * `-0`
     	lines are terminated by a null character (with the -i option)
-* `-128`
-    	all 128 bits algorithms
-* `-160`
-    	all 160 bits algorithms
-* `-224`
-    	all 224 bits algorithms
-* `-256`
-    	all 256 bits algorithms
-* `-384`
-    	all 384 bits algorithms
-* `-512`
-    	all 512 bits algorithms
 * `-all`
     	all algorithms
 * `-bsd`
