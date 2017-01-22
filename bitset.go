@@ -1,4 +1,4 @@
-package bitset
+package main
 
 type word uint64
 
@@ -11,7 +11,7 @@ type Bitset struct {
 	count int
 }
 
-func New() *Bitset {
+func NewBitset() *Bitset {
 	bs := new(Bitset)
 	bs.word = make([]word, 1)
 	return bs
@@ -54,7 +54,7 @@ func (bs *Bitset) GetCount() int {
 	return bs.count
 }
 
-func (bs *Bitset) GetAll(s []int) {
+func (bs *Bitset) GetAll() (s []int) {
 	for i, w := range bs.word {
 		if w == 0 {
 			continue
