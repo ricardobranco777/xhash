@@ -148,18 +148,6 @@ var opts struct {
 }
 
 func init() {
-	for i := 0; i < len(hashes); i++ {
-		if hashes[i].hash > 99 {
-			continue
-		}
-		if !hashes[i].hash.Available() {
-			copy(hashes[i:], hashes[i+1:])
-			hashes[len(hashes)-1] = nil // item will be garbage-collected
-			hashes = hashes[:len(hashes)-1]
-			i--
-		}
-	}
-
 	progname = path.Base(os.Args[0])
 
 	flag.Usage = func() {
