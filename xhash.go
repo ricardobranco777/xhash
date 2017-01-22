@@ -326,19 +326,6 @@ func blake2_(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
 	return h
 }
 
-// Returns an index for the chosen algorithm if only once was specified, else return -1
-func _chosenOne() func() int {
-	i := -1
-	return func() int {
-		if i == -1 && algorithms.GetCount() == 1 {
-			i = chosen[0]
-		}
-		return i
-	}
-}
-
-var chosenOne = _chosenOne()
-
 func escapeFilename(filename string) (prefix string, result string) {
 	if strings.ContainsAny(filename, "\n\\") {
 		prefix = "\\"
@@ -643,8 +630,8 @@ func checkFromFile(f *os.File) (errs bool) {
 			}
 			digest = strings.ToLower(line[:i])
 			file = line[i+2:]
-			if h := chosenOne(); h != -1 && len(digest)/2 == hashes[h].size {
-				hash = hashes[h].name
+			if len(chosen) == 1 && len(digest)/2 == hashes[chosen[0]].size {
+				hash = hashes[chosen[0]].name
 			} else {
 				switch len(digest) / 2 {
 				case 64:
