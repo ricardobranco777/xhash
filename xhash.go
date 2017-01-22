@@ -50,7 +50,7 @@ import (
 	"sync"
 )
 
-const version = "0.8.3"
+const version = "0.8.4"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -61,7 +61,7 @@ const (
 )
 
 // Used with -c option
-var checkHashes map[int]bool
+var checkHashes *Bitset
 
 var hashes = []*struct {
 	check   bool
@@ -189,7 +189,7 @@ func init() {
 		sizeHashes[size] = flag.Bool(sizeStr, false, "all "+sizeStr+" bits algorithms")
 	}
 
-	checkHashes = make(map[int]bool, len(hashes))
+	checkHashes = NewBitset()
 }
 
 func main() {
@@ -492,7 +492,7 @@ func hashPathname(pathname string) (errs bool) {
 
 func checkHash(h int) bool {
 	if hashes[h].check {
-		if checkHashes[h] || len(checkHashes) == 0 {
+		if checkHashes.Test(h) || checkHashes.GetCount() == 0 {
 			return true
 		} else {
 			return false
@@ -737,8 +737,8 @@ func checkFromFile(f *os.File) (errs bool) {
 		}
 
 		if current != file || err == io.EOF {
-			for k := range checkHashes {
-				if hashes[k].check && checkHashes[k] {
+			for _, k := range checkHashes.GetAll() {
+				if hashes[k].check && checkHashes.Test(k) {
 					n := hashFile(current)
 					if n < 0 {
 						stats.unreadable++
@@ -749,16 +749,14 @@ func checkFromFile(f *os.File) (errs bool) {
 				}
 			}
 			current = file
-			for k := range checkHashes {
-				checkHashes[k] = false
-			}
+			checkHashes.ClearAll()
 		}
 
 		if err == io.EOF {
 			break
 		}
 
-		checkHashes[h] = true
+		checkHashes.Add(h)
 		hashes[h].cDigest = digest
 	}
 
