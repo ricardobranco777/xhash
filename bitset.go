@@ -76,6 +76,10 @@ func (bs *Bitset) GetCount() int {
 
 // Returns a slice of all numbers in the set
 func (bs *Bitset) GetAll() (s []int) {
+	if bs.count == 0 {
+		return
+	}
+	s = make([]int, 0, bs.count)
 	for i, w := range bs.words {
 		if w == 0 {
 			continue
