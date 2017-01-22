@@ -45,12 +45,11 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 )
 
-const version = "0.8.4"
+const version = "0.8.5"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -143,8 +142,6 @@ var opts struct {
 	zero    bool
 }
 
-var sizeHashes map[int]*bool
-
 func init() {
 	for i := 0; i < len(hashes); i++ {
 		if hashes[i].hash > 99 {
@@ -181,25 +178,11 @@ func init() {
 	flag.Var(&opts.iFile, "i", "read pathnames from file (use '-i \"\"' to read from standard input)")
 	flag.Var(&opts.key, "key", "key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname")
 
-	sizeHashes = map[int]*bool{
-		128: nil, 160: nil, 224: nil, 256: nil, 384: nil, 512: nil,
-	}
-	for size := range sizeHashes {
-		sizeStr := strconv.Itoa(size)
-		sizeHashes[size] = flag.Bool(sizeStr, false, "all "+sizeStr+" bits algorithms")
-	}
-
 	checkHashes = NewBitset()
 }
 
 func main() {
 	flag.Parse()
-
-	for h := range hashes {
-		if *sizeHashes[hashes[h].size*8] {
-			hashes[h].check = true
-		}
-	}
 
 	if opts.version {
 		fmt.Printf("%s v%s %s %s %s\n", progname, version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
