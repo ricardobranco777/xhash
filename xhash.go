@@ -316,22 +316,6 @@ func main() {
 	}
 }
 
-type strFlag struct {
-	*string
-}
-
-func (f *strFlag) Set(s string) error {
-	f.string = &s
-	return nil
-}
-
-func (f *strFlag) String() string {
-	if f.string != nil {
-		return *f.string
-	}
-	return ""
-}
-
 // Wrapper for the Blake2 New() methods that needs an optional for MAC
 func blake2_(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
 	h, err := f(key)
