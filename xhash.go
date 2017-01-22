@@ -128,6 +128,8 @@ var hashes = []*struct {
 
 var progname string
 
+var chosen []int
+
 var done chan error
 
 var opts struct {
@@ -219,6 +221,7 @@ func main() {
 			}
 		}
 	}
+	chosen = algorithms.GetAll()
 
 	var macKey []byte
 	if opts.key.string != nil {
@@ -324,18 +327,17 @@ func blake2_(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
 }
 
 // Returns an index for the chosen algorithm if only once was specified, else return -1
-func _chosen() func() int {
+func _chosenOne() func() int {
 	i := -1
 	return func() int {
 		if i == -1 && algorithms.GetCount() == 1 {
-			h := algorithms.GetAll()
-			i = h[0]
+			i = chosen[0]
 		}
 		return i
 	}
 }
 
-var chosen = _chosen()
+var chosenOne = _chosenOne()
 
 func escapeFilename(filename string) (prefix string, result string) {
 	if strings.ContainsAny(filename, "\n\\") {
@@ -360,7 +362,7 @@ func display(file string) (errs int) {
 		if opts.zero {
 			zero = "\x00"
 		}
-		for _, h := range algorithms.GetAll() {
+		for _, h := range chosen {
 			if opts.bsd {
 				fmt.Printf("%s (%s) = %s%s\n", hashes[h].name, file, hashes[h].digest, zero)
 			} else if opts.gnu {
@@ -371,7 +373,7 @@ func display(file string) (errs int) {
 			}
 		}
 	} else if file != "" {
-		for _, h := range algorithms.GetAll() {
+		for _, h := range chosen {
 			status := ""
 			if checkHashes.Test(h) || checkHashes.GetCount() == 0 {
 				if hashes[h].digest != hashes[h].cDigest {
@@ -398,7 +400,7 @@ func display(file string) (errs int) {
 func hashString(str string) {
 	var wg sync.WaitGroup
 	wg.Add(algorithms.GetCount())
-	for _, h := range algorithms.GetAll() {
+	for _, h := range chosen {
 		go func(h int) {
 			defer wg.Done()
 			hashes[h].Write([]byte(str))
@@ -471,7 +473,7 @@ func hashF(f *os.File, filename string) (errs bool) {
 	var Writers []io.Writer
 	var pipeWriters []*io.PipeWriter
 
-	for _, h := range algorithms.GetAll() {
+	for _, h := range chosen {
 		pr, pw := io.Pipe()
 		Writers = append(Writers, pw)
 		pipeWriters = append(pipeWriters, pw)
@@ -502,7 +504,7 @@ func hashF(f *os.File, filename string) (errs bool) {
 		}
 	}()
 
-	for range algorithms.GetAll() {
+	for range chosen {
 		if err := <-done; err != nil {
 			if !errs {
 				fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
@@ -641,7 +643,7 @@ func checkFromFile(f *os.File) (errs bool) {
 			}
 			digest = strings.ToLower(line[:i])
 			file = line[i+2:]
-			if h := chosen(); h != -1 && len(digest)/2 == hashes[h].size {
+			if h := chosenOne(); h != -1 && len(digest)/2 == hashes[h].size {
 				hash = hashes[h].name
 			} else {
 				switch len(digest) / 2 {
