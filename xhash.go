@@ -49,7 +49,7 @@ import (
 	"sync"
 )
 
-const version = "0.8.7"
+const version = "0.8.8"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -409,7 +409,7 @@ func hashString(str string) {
 		}(h)
 	}
 	wg.Wait()
-	display("" + str + "")
+	display(`"` + str + `"`)
 }
 
 func hashFromFile(f *os.File) (errs bool) {
