@@ -7,46 +7,45 @@ const (
 )
 
 type Bitset struct {
-	set   []word
+	word  []word
 	count int
 }
 
 func New() Bitset {
 	bs := new(Bitset)
-	bs.set = make([]word, 1)
+	bs.word = make([]word, 1)
 	return *bs
 }
 
 func (bs *Bitset) Add(i int) {
-	setlen := len(bs.set)
-	if i >= setlen*bitsPerWord {
-		var newSet = make([]word, setlen+i/bitsPerWord+1)
-		copy(newSet, bs.set)
-		bs.set = newSet
+	if i >= len(bs.word)*bitsPerWord {
+		var newSet = make([]word, len(bs.word)+i/bitsPerWord+1)
+		copy(newSet, bs.word)
+		bs.word = newSet
 	}
-	bs.set[i/bitsPerWord] |= 1 << uint(i%bitsPerWord)
+	bs.word[i/bitsPerWord] |= 1 << uint(i%bitsPerWord)
 	bs.count++
 }
 
 func (bs *Bitset) Del(i int) {
-	bs.set[i/bitsPerWord] &= ^(1 << uint(i%bitsPerWord))
+	bs.word[i/bitsPerWord] &= ^(1 << uint(i%bitsPerWord))
 	bs.count--
 }
 
 func (bs *Bitset) Test(i int) bool {
-	return (bs.set[i/bitsPerWord] & (1 << uint(i%bitsPerWord))) != 0
+	return (bs.word[i/bitsPerWord] & (1 << uint(i%bitsPerWord))) != 0
 }
 
 func (bs *Bitset) SetAll() {
-	for i := range bs.set {
-		bs.set[i] = ^word(0)
+	for i := range bs.word {
+		bs.word[i] = ^word(0)
 	}
-	bs.count = len(bs.set) * bitsPerWord
+	bs.count = len(bs.word) * bitsPerWord
 }
 
 func (bs *Bitset) ClearAll() {
-	for i := range bs.set {
-		bs.set[i] = 0
+	for i := range bs.word {
+		bs.word[i] = 0
 	}
 	bs.count = 0
 }
@@ -56,12 +55,12 @@ func (bs *Bitset) GetCount() int {
 }
 
 func (bs *Bitset) GetAll(s []int) {
-	for i, set := range bs.set {
-		if set == 0 {
+	for i, w := range bs.word {
+		if w == 0 {
 			continue
 		}
 		for bit := 0; bit < bitsPerWord; bit++ {
-			if set&(1<<uint(bit)) != 0 {
+			if w&(1<<uint(bit)) != 0 {
 				s = append(s, i*bitsPerWord+bit)
 			}
 		}
