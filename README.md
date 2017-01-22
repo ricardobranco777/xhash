@@ -79,6 +79,8 @@ The output format is the same as OpenSSL's *dgst* command.  It may be changed wi
     	SHA512 algorithm
 * `-status`
     	don't output anything, status code shows success
+* `-v`
+	verbose operation (currently useful with the -c option)
 * `-version`
     	show version and exit
 * `-whirlpool`
