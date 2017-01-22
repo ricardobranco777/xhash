@@ -1,3 +1,7 @@
+// (C) 2017 by Ricardo Branco
+//
+// MIT License
+
 package main
 
 type word uint64
