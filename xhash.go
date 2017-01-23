@@ -523,9 +523,9 @@ func checkFromFile(f *os.File) (errs bool) {
 
 	// Format used by OpenSSL dgst and *BSD md5, et al
 	bsd_begin := regexp.MustCompile(`^[A-Za-z0-9-]+ ?\(`)
-	bsd := regexp.MustCompile(`(?ms:^[A-Za-z0-9-]+ ?\(.*?\) ?= [0-9a-fA-F]{16,}$)`)
+	bsd := regexp.MustCompile(`(?ms:^([A-Za-z0-9-]+) ?\((.*?)\) ?= ([0-9a-fA-F]{16,})$)`)
 	// Format used by md5sum, et al
-	gnu := regexp.MustCompile(`^[\\]?[0-9a-fA-F]{16,} [ \*]`)
+	gnu := regexp.MustCompile(`^[\\]?([0-9a-fA-F]{16,}) [ \*](.*)`)
 
 	terminator := "\n"
 	if opts.zero {
@@ -565,14 +565,12 @@ func checkFromFile(f *os.File) (errs bool) {
 		line = strings.TrimSuffix(line, "\r")
 		line = strings.TrimSuffix(line, "\x00")
 
-		if !gnuFormat && bsd.MatchString(line) {
-			i := strings.Index(line, "(")
-			hash = line[:i]
-			hash = strings.TrimRight(hash, " ")
-			j := strings.LastIndex(line[i:], ")")
-			file = line[i+1 : i+j]
-			k := strings.Index(line[i+j:], "= ")
-			digest = strings.ToLower(line[i+j+k+2:])
+		if bsdFormat && err == nil {
+			res := bsd.FindStringSubmatch(line)
+			if res == nil {
+				badFormat(lineno)
+			}
+			hash, file, digest = res[1], res[2], strings.ToLower(res[3])
 			// b2sum specifies the size in bits & bt2sum in bytes
 			if strings.HasPrefix(hash, "BLAKE2") {
 				switch hash {
@@ -606,13 +604,15 @@ func checkFromFile(f *os.File) (errs bool) {
 					hash = "BLAKE2s256"
 				}
 			}
-		} else if !bsdFormat && gnu.MatchString(line) {
-			if strings.HasPrefix(line, "\\") {
-				line = unescapeFilename(line[1:])
+		} else if gnuFormat && err == nil {
+			res := gnu.FindStringSubmatch(line)
+			if res == nil {
+				badFormat(lineno)
 			}
-			i := strings.Index(line, " ")
-			digest = strings.ToLower(line[:i])
-			file = line[i+2:]
+			digest, file = strings.ToLower(res[1]), res[2]
+			if strings.HasPrefix(line, "\\") {
+				file = unescapeFilename(file)
+			}
 			if len(chosen) == 1 && len(digest)/2 == hashes[chosen[0]].size {
 				hash = hashes[chosen[0]].name
 			} else {
@@ -632,8 +632,7 @@ func checkFromFile(f *os.File) (errs bool) {
 				}
 			}
 		} else if err == nil {
-			fmt.Fprintf(os.Stderr, "ERROR: %s: Unrecognized format at line %d\n", progname, lineno)
-			os.Exit(1)
+			badFormat(lineno)
 		}
 
 		if current == "" {
@@ -694,4 +693,9 @@ func getHashIndex(name string, size int) int {
 		}
 	}
 	return -1
+}
+
+func badFormat(lineno uint64) {
+	fmt.Fprintf(os.Stderr, "ERROR: %s: Unrecognized format at line %d\n", progname, lineno)
+	os.Exit(1)
 }
