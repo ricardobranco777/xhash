@@ -522,10 +522,10 @@ func checkFromFile(f *os.File) (errs bool) {
 	}
 
 	// Format used by OpenSSL dgst and *BSD md5, et al
-	bsd_begin := regexp.MustCompile(`^[A-Za-z0-9-]+ ?\(`)
-	bsd := regexp.MustCompile(`(?ms:^([A-Za-z0-9-]+) ?\((.*?)\) ?= ([0-9a-fA-F]{16,})$)`)
+	bsd_begin := regexp.MustCompile(`^[A-Z]+[a-z0-9-]* ?\(`)
+	bsd := regexp.MustCompile(`(?ms:^([A-Z]+[a-z0-9-]*) ?\((.*?)\) ?= ([0-9a-f]{16,})$)`)
 	// Format used by md5sum, et al
-	gnu := regexp.MustCompile(`^[\\]?([0-9a-fA-F]{16,}) [ \*](.*)`)
+	gnu := regexp.MustCompile(`^[\\]?([0-9a-f]{16,}) [ \*](.*)$`)
 
 	terminator := "\n"
 	if opts.zero {
