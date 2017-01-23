@@ -513,6 +513,7 @@ func hashDir(dir string) bool {
 
 func checkFromFile(f *os.File) (errs bool) {
 	var hash, current, file, digest string
+	var bsdFormat, gnuFormat bool
 	var lineno uint64
 
 	var stats struct {
@@ -547,10 +548,13 @@ func checkFromFile(f *os.File) (errs bool) {
 
 			line += xline
 
-			if bsd_begin.MatchString(line) {
+			if !gnuFormat && bsd_begin.MatchString(line) {
+				bsdFormat = true
 				if !bsd.MatchString(line) && err == nil {
 					continue
 				}
+			} else {
+				gnuFormat = true
 			}
 			break
 		}
@@ -561,22 +565,13 @@ func checkFromFile(f *os.File) (errs bool) {
 		line = strings.TrimSuffix(line, "\r")
 		line = strings.TrimSuffix(line, "\x00")
 
-		if bsd.MatchString(line) {
+		if !gnuFormat && bsd.MatchString(line) {
 			i := strings.Index(line, "(")
-			if i < 0 {
-				continue
-			}
 			hash = line[:i]
 			hash = strings.TrimRight(hash, " ")
 			j := strings.LastIndex(line[i:], ")")
-			if j < 0 {
-				continue
-			}
 			file = line[i+1 : i+j]
 			k := strings.Index(line[i+j:], "= ")
-			if k < 0 {
-				continue
-			}
 			digest = strings.ToLower(line[i+j+k+2:])
 			// b2sum specifies the size in bits & bt2sum in bytes
 			if strings.HasPrefix(hash, "BLAKE2") {
@@ -611,14 +606,11 @@ func checkFromFile(f *os.File) (errs bool) {
 					hash = "BLAKE2s256"
 				}
 			}
-		} else if gnu.MatchString(line) {
+		} else if !bsdFormat && gnu.MatchString(line) {
 			if strings.HasPrefix(line, "\\") {
 				line = unescapeFilename(line[1:])
 			}
 			i := strings.Index(line, " ")
-			if i < 0 {
-				continue
-			}
 			digest = strings.ToLower(line[:i])
 			file = line[i+2:]
 			if len(chosen) == 1 && len(digest)/2 == hashes[chosen[0]].size {
