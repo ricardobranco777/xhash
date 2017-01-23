@@ -186,7 +186,7 @@ func main() {
 			fmt.Printf(" %s", hashes[h].name)
 		}
 		fmt.Println()
-		fmt.Printf("%s %s\n", C.GoString(C.SSLeay_version(0)), C.GoString(C.SSLeay_version(2)))
+		fmt.Printf("%s\n", C.GoString(C.SSLeay_version(0)))
 		os.Exit(0)
 	}
 
