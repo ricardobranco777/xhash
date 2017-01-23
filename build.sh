@@ -13,9 +13,9 @@ fi
 get_files()
 {
 	if [ $(id -u) -eq 0 ] ; then
-		GOPATH=${GOROOT:-"/go"}
+		GOPATH=${GOPATH:-"/go"}
 	else
-		GOPATH=${GOROOT:-${HOME}/go}
+		GOPATH=${GOPATH:-${HOME}/go}
 	fi
 	echo xhash.go $(find ${GOPATH}/src/github.com/ricardobranco777/dgst -name \*.go ! -name \*_test.go)
 }
