@@ -40,6 +40,7 @@ import (
 	"hash"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -47,6 +48,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 )
 
 const version = "0.8.9"
@@ -63,6 +65,7 @@ var (
 	algorithms  *Bitset // Algorithms chosen in the command line
 	checkHashes *Bitset // Algorithms read with the -c option
 	chosen      []int
+	debug       bool
 	macKey      []byte
 	progname    string
 )
@@ -171,6 +174,8 @@ func init() {
 
 	algorithms = NewBitset(len(hashes) - 1)
 	checkHashes = NewBitset(len(hashes) - 1)
+
+	debug = os.Getenv("DEBUG") != ""
 }
 
 func main() {
@@ -460,6 +465,9 @@ func hashF(f *os.File, filename string) (errs bool) {
 		pipeWriters = append(pipeWriters, pw)
 		go func(h int, r io.Reader) {
 			defer wg.Done()
+			if debug {
+				defer timeTrack(time.Now(), hashes[h].name)
+			}
 			if _, err := io.Copy(hashes[h], r); err != nil {
 				errs = true
 				return
@@ -698,4 +706,9 @@ func getHashIndex(name string, size int) int {
 func badFormat(lineno uint64) {
 	fmt.Fprintf(os.Stderr, "ERROR: %s: Unrecognized format at line %d\n", progname, lineno)
 	os.Exit(1)
+}
+
+func timeTrack(start time.Time, name string) {
+	elapsed := time.Since(start)
+	log.Printf("%s took %s", name, elapsed)
 }
