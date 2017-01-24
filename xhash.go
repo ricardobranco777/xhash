@@ -355,7 +355,7 @@ func display(file string) (errs int) {
 			status := ""
 			if checkHashes.Test(h) || checkHashes.GetCount() == 0 {
 				if hashes[h].digest != hashes[h].cDigest {
-					status = "FAILED" // TODO: opts.verbose should display hashes[h].digest
+					status = "FAILED"
 					if opts.verbose {
 						status += " with " + hashes[h].digest
 					}
