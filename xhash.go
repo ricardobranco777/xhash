@@ -27,8 +27,6 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"github.com/ricardobranco777/dgst/blake2b"
-	"github.com/ricardobranco777/dgst/blake2s"
 	_ "github.com/ricardobranco777/dgst/md4"
 	_ "github.com/ricardobranco777/dgst/md5"
 	_ "github.com/ricardobranco777/dgst/ripemd160"
@@ -36,6 +34,8 @@ import (
 	_ "github.com/ricardobranco777/dgst/sha256"
 	_ "github.com/ricardobranco777/dgst/sha512"
 	"github.com/ricardobranco777/dgst/whirlpool"
+	"golang.org/x/crypto/blake2b"
+	"golang.org/x/crypto/blake2s"
 	_ "golang.org/x/crypto/sha3"
 	"hash"
 	"io"
@@ -51,7 +51,7 @@ import (
 	"time"
 )
 
-const version = "0.8.9"
+const version = "0.9"
 
 const (
 	BLAKE2b256 = 100 + iota
