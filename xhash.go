@@ -63,7 +63,6 @@ var (
 	algorithms  *Bitset // Algorithms chosen in the command line
 	checkHashes *Bitset // Algorithms read with the -c option
 	chosen      []int
-	done        chan error
 	macKey      []byte
 	progname    string
 )
@@ -232,9 +231,6 @@ func main() {
 	}
 
 	var errs bool
-
-	done = make(chan error, algorithms.GetCount())
-	defer close(done)
 
 	if opts.iFile.string != nil {
 		func(file string) {
@@ -455,22 +451,27 @@ func hashF(f *os.File, filename string) (errs bool) {
 	var Writers []io.Writer
 	var pipeWriters []*io.PipeWriter
 
+	var wg sync.WaitGroup
+	wg.Add(algorithms.GetCount())
+
 	for _, h := range chosen {
 		pr, pw := io.Pipe()
 		Writers = append(Writers, pw)
 		pipeWriters = append(pipeWriters, pw)
 		go func(h int, r io.Reader) {
+			defer wg.Done()
 			if _, err := io.Copy(hashes[h], r); err != nil {
-				done <- err
+				errs = true
 				return
 			}
 			hashes[h].digest = hex.EncodeToString(hashes[h].Sum(nil))
 			hashes[h].Reset()
-			done <- nil
 		}(h, pr)
 	}
 
 	go func() {
+		wg.Add(1)
+		defer wg.Done()
 		defer func() {
 			for _, pw := range pipeWriters {
 				pw.Close()
@@ -483,17 +484,11 @@ func hashF(f *os.File, filename string) (errs bool) {
 		// copy the data into the multiwriter
 		if _, err := io.Copy(mw, f); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, err)
+			errs = true
 		}
 	}()
 
-	for range chosen {
-		if err := <-done; err != nil {
-			if !errs {
-				fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
-				errs = true
-			}
-		}
-	}
+	wg.Wait()
 	return
 }
 
