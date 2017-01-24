@@ -51,7 +51,7 @@ import (
 	"time"
 )
 
-const version = "0.9.1"
+const version = "0.9.2"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -460,9 +460,16 @@ func hashF(f *os.File, filename string) (errs bool) {
 	var pipeWriters []*io.PipeWriter
 
 	var wg sync.WaitGroup
-	wg.Add(algorithms.GetCount())
+	if opts.cFile.string == nil {
+		wg.Add(algorithms.GetCount())
+	} else {
+		wg.Add(checkHashes.GetCount())
+	}
 
 	for _, h := range chosen {
+		if opts.cFile.string != nil && !checkHashes.Test(h) {
+			continue
+		}
 		pr, pw := io.Pipe()
 		Writers = append(Writers, pw)
 		pipeWriters = append(pipeWriters, pw)
