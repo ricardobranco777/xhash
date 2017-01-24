@@ -49,7 +49,7 @@ import (
 	"sync"
 )
 
-const version = "0.8.8"
+const version = "0.8.9"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -132,6 +132,8 @@ var chosen []int
 
 var done chan error
 
+var macKey []byte
+
 var opts struct {
 	all     bool
 	bsd     bool
@@ -211,7 +213,6 @@ func main() {
 	}
 	chosen = algorithms.GetAll()
 
-	var macKey []byte
 	if opts.key.string != nil {
 		var err error
 		if strings.HasPrefix(*opts.key.string, "/") {
@@ -227,33 +228,11 @@ func main() {
 		}
 	}
 
-	// XXX All are initialized with the -c option
 	for h := range hashes {
 		if opts.cFile.string == nil && !algorithms.Test(h) {
 			continue
 		}
-		switch hashes[h].hash {
-		case BLAKE2b256:
-			hashes[h].Hash = blake2_(blake2b.New256, macKey)
-		case BLAKE2b384:
-			hashes[h].Hash = blake2_(blake2b.New384, macKey)
-		case BLAKE2b512:
-			hashes[h].Hash = blake2_(blake2b.New512, macKey)
-		case BLAKE2s256:
-			hashes[h].Hash = blake2_(blake2s.New256, macKey)
-		case WHIRLPOOL:
-			if macKey != nil {
-				hashes[h].Hash = hmac.New(whirlpool.New, macKey)
-			} else {
-				hashes[h].Hash = whirlpool.New()
-			}
-		default:
-			if macKey != nil {
-				hashes[h].Hash = hmac.New(hashes[h].hash.New, macKey)
-			} else {
-				hashes[h].Hash = hashes[h].hash.New()
-			}
-		}
+		initHash(h)
 	}
 
 	var errs bool
@@ -315,6 +294,35 @@ func blake2_(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
 		os.Exit(1)
 	}
 	return h
+}
+
+func initHash(h int) {
+	if hashes[h].Hash != nil {
+		return
+	}
+
+	switch hashes[h].hash {
+	case BLAKE2b256:
+		hashes[h].Hash = blake2_(blake2b.New256, macKey)
+	case BLAKE2b384:
+		hashes[h].Hash = blake2_(blake2b.New384, macKey)
+	case BLAKE2b512:
+		hashes[h].Hash = blake2_(blake2b.New512, macKey)
+	case BLAKE2s256:
+		hashes[h].Hash = blake2_(blake2s.New256, macKey)
+	case WHIRLPOOL:
+		if macKey != nil {
+			hashes[h].Hash = hmac.New(whirlpool.New, macKey)
+		} else {
+			hashes[h].Hash = whirlpool.New()
+		}
+	default:
+		if macKey != nil {
+			hashes[h].Hash = hmac.New(hashes[h].hash.New, macKey)
+		} else {
+			hashes[h].Hash = hashes[h].hash.New()
+		}
+	}
 }
 
 func escapeFilename(filename string) (prefix string, result string) {
@@ -664,6 +672,7 @@ func checkFromFile(f *os.File) (errs bool) {
 			break
 		}
 
+		initHash(h)
 		checkHashes.Add(h)
 		hashes[h].cDigest = digest
 	}
