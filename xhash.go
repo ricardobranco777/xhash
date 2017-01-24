@@ -62,6 +62,10 @@ const (
 var (
 	algorithms  *Bitset // Algorithms chosen in the command line
 	checkHashes *Bitset // Algorithms read with the -c option
+	chosen      []int
+	done        chan error
+	macKey      []byte
+	progname    string
 )
 
 var hashes = []*struct {
@@ -126,27 +130,19 @@ var hashes = []*struct {
 		size: 64},
 }
 
-var progname string
-
-var chosen []int
-
-var done chan error
-
-var macKey []byte
-
 var opts struct {
 	all     bool
 	bsd     bool
 	gnu     bool
 	quiet   bool
 	status  bool
-	cFile   strFlag
-	iFile   strFlag
-	key     strFlag
 	str     bool
 	verbose bool
 	version bool
 	zero    bool
+	cFile   strFlag
+	iFile   strFlag
+	key     strFlag
 }
 
 func init() {
