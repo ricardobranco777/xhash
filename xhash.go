@@ -51,7 +51,7 @@ import (
 	"time"
 )
 
-const version = "0.9"
+const version = "0.9.1"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -340,22 +340,26 @@ func unescapeFilename(filename string) (result string) {
 }
 
 func display(file string) (errs int) {
+	var prefix string
 	if opts.cFile.string == nil {
 		zero := ""
 		if opts.zero {
 			zero = "\x00"
 		}
+		if opts.gnu {
+			prefix, file = escapeFilename(file)
+		}
 		for _, h := range chosen {
 			if opts.bsd {
 				fmt.Printf("%s (%s) = %s%s\n", hashes[h].name, file, hashes[h].digest, zero)
 			} else if opts.gnu {
-				prefix, file := escapeFilename(file)
 				fmt.Printf("%s%s  %s%s\n", prefix, hashes[h].digest, file, zero)
 			} else {
 				fmt.Printf("%s(%s)= %s%s\n", hashes[h].name, file, hashes[h].digest, zero)
 			}
 		}
 	} else if file != "" {
+		prefix, file := escapeFilename(file)
 		for _, h := range chosen {
 			status := ""
 			if checkHashes.Test(h) || checkHashes.GetCount() == 0 {
@@ -371,8 +375,7 @@ func display(file string) (errs int) {
 					}
 				}
 				if !opts.status && status != "" {
-					prefix, filename := escapeFilename(file)
-					fmt.Printf("%s%s: %s %s\n", prefix, filename, hashes[h].name, status)
+					fmt.Printf("%s%s: %s %s\n", prefix, file, hashes[h].name, status)
 				}
 			}
 		}
@@ -555,7 +558,7 @@ func checkFromFile(f *os.File) (errs bool) {
 
 			line += xline
 
-			if !gnuFormat && bsd_begin.MatchString(line) {
+			if (bsdFormat || !gnuFormat) && bsd_begin.MatchString(line) {
 				bsdFormat = true
 				if !bsd.MatchString(line) && err == nil {
 					continue
@@ -653,7 +656,7 @@ func checkFromFile(f *os.File) (errs bool) {
 
 		if current != file || err == io.EOF {
 			for _, k := range checkHashes.GetAll() {
-				if algorithms.Test(k) && checkHashes.Test(k) {
+				if algorithms.Test(k) {
 					n := hashFile(current)
 					if n < 0 {
 						stats.unreadable++
