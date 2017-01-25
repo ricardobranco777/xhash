@@ -460,16 +460,12 @@ func hashF(f *os.File, filename string) (errs bool) {
 	var pipeWriters []*io.PipeWriter
 
 	var wg sync.WaitGroup
-	if opts.cFile.string == nil {
-		wg.Add(algorithms.GetCount())
-	} else {
-		wg.Add(checkHashes.GetCount())
-	}
 
 	for _, h := range chosen {
 		if opts.cFile.string != nil && !checkHashes.Test(h) {
 			continue
 		}
+		wg.Add(1)
 		pr, pw := io.Pipe()
 		Writers = append(Writers, pw)
 		pipeWriters = append(pipeWriters, pw)
