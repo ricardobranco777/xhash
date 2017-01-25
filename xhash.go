@@ -29,11 +29,9 @@ import (
 	"fmt"
 	_ "github.com/ricardobranco777/dgst/md4"
 	_ "github.com/ricardobranco777/dgst/md5"
-	_ "github.com/ricardobranco777/dgst/ripemd160"
 	_ "github.com/ricardobranco777/dgst/sha1"
 	_ "github.com/ricardobranco777/dgst/sha256"
 	_ "github.com/ricardobranco777/dgst/sha512"
-	"github.com/ricardobranco777/dgst/whirlpool"
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/blake2s"
 	_ "golang.org/x/crypto/sha3"
@@ -58,7 +56,6 @@ const (
 	BLAKE2b384
 	BLAKE2b512
 	BLAKE2s256
-	WHIRLPOOL
 )
 
 var (
@@ -97,9 +94,6 @@ var hashes = []*struct {
 	{name: "MD5",
 		hash: crypto.MD5,
 		size: 16},
-	{name: "RIPEMD160",
-		hash: crypto.RIPEMD160,
-		size: 20},
 	{name: "SHA1",
 		hash: crypto.SHA1,
 		size: 20},
@@ -126,9 +120,6 @@ var hashes = []*struct {
 		size: 48},
 	{name: "SHA3-512",
 		hash: crypto.SHA3_512,
-		size: 64},
-	{name: "WHIRLPOOL",
-		hash: WHIRLPOOL,
 		size: 64},
 }
 
@@ -307,12 +298,6 @@ func initHash(h int) {
 		hashes[h].Hash = blake2_(blake2b.New512, macKey)
 	case BLAKE2s256:
 		hashes[h].Hash = blake2_(blake2s.New256, macKey)
-	case WHIRLPOOL:
-		if macKey != nil {
-			hashes[h].Hash = hmac.New(whirlpool.New, macKey)
-		} else {
-			hashes[h].Hash = whirlpool.New()
-		}
 	default:
 		if macKey != nil {
 			hashes[h].Hash = hmac.New(hashes[h].hash.New, macKey)
