@@ -76,51 +76,21 @@ var hashes = []*struct {
 	size    int
 	hash.Hash
 }{
-	{name: "BLAKE2b256",
-		hash: BLAKE2b256,
-		size: 32},
-	{name: "BLAKE2b384",
-		hash: BLAKE2b384,
-		size: 48},
-	{name: "BLAKE2b512",
-		hash: BLAKE2b512,
-		size: 64},
-	{name: "BLAKE2s256",
-		hash: BLAKE2s256,
-		size: 32},
-	{name: "MD4",
-		hash: crypto.MD4,
-		size: 16},
-	{name: "MD5",
-		hash: crypto.MD5,
-		size: 16},
-	{name: "SHA1",
-		hash: crypto.SHA1,
-		size: 20},
-	{name: "SHA224",
-		hash: crypto.SHA224,
-		size: 28},
-	{name: "SHA256",
-		hash: crypto.SHA256,
-		size: 32},
-	{name: "SHA384",
-		hash: crypto.SHA384,
-		size: 48},
-	{name: "SHA512",
-		hash: crypto.SHA512,
-		size: 64},
-	{name: "SHA3-224",
-		hash: crypto.SHA3_224,
-		size: 28},
-	{name: "SHA3-256",
-		hash: crypto.SHA3_256,
-		size: 32},
-	{name: "SHA3-384",
-		hash: crypto.SHA3_384,
-		size: 48},
-	{name: "SHA3-512",
-		hash: crypto.SHA3_512,
-		size: 64},
+	{name: "BLAKE2b256", hash: BLAKE2b256, size: 32},
+	{name: "BLAKE2b384", hash: BLAKE2b384, size: 48},
+	{name: "BLAKE2b512", hash: BLAKE2b512, size: 64},
+	{name: "BLAKE2s256", hash: BLAKE2s256, size: 32},
+	{name: "MD4", hash: crypto.MD4, size: 16},
+	{name: "MD5", hash: crypto.MD5, size: 16},
+	{name: "SHA1", hash: crypto.SHA1, size: 20},
+	{name: "SHA224", hash: crypto.SHA224, size: 28},
+	{name: "SHA256", hash: crypto.SHA256, size: 32},
+	{name: "SHA384", hash: crypto.SHA384, size: 48},
+	{name: "SHA512", hash: crypto.SHA512, size: 64},
+	{name: "SHA3-224", hash: crypto.SHA3_224, size: 28},
+	{name: "SHA3-256", hash: crypto.SHA3_256, size: 32},
+	{name: "SHA3-384", hash: crypto.SHA3_384, size: 48},
+	{name: "SHA3-512", hash: crypto.SHA3_512, size: 64},
 }
 
 var opts struct {
@@ -370,7 +340,7 @@ func display(file string) (errs int) {
 
 func hashString(str string) {
 	var wg sync.WaitGroup
-	wg.Add(algorithms.GetCount())
+	wg.Add(len(chosen))
 	for _, h := range chosen {
 		go func(h int) {
 			defer wg.Done()
