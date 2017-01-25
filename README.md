@@ -53,8 +53,6 @@ The output format is the same as OpenSSL's *dgst* command.  It may be changed wi
     	MD5 algorithm
 * `-quiet`
     	don't print OK for each successfully verified file
-* `-ripemd160`
-    	RIPEMD160 algorithm
 * `-sha1`
     	SHA1 algorithm
 * `-sha224`
@@ -79,5 +77,3 @@ The output format is the same as OpenSSL's *dgst* command.  It may be changed wi
 	verbose operation (currently useful with the -c option)
 * `-version`
     	show version and exit
-* `-whirlpool`
-    	WHIRLPOOL algorithm
