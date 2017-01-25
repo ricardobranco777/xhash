@@ -49,7 +49,7 @@ import (
 	"time"
 )
 
-const version = "0.9.2"
+const version = "0.9.3"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -390,14 +390,16 @@ func hashPathname(pathname string) (errs bool) {
 
 func hashFile(filename string) (errs int) {
 	f, err := os.Open(filename)
-	defer f.Close()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
 		return -1
 	}
+	defer f.Close()
 
 	if err := hashF(f, filename); !err {
 		return display(filename)
+	} else {
+		errs++
 	}
 	return
 }
