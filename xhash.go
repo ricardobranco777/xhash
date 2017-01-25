@@ -569,35 +569,14 @@ func checkFromFile(f *os.File) (errs bool) {
 				badFormat(lineno)
 			}
 			hash, file, digest = res[1], res[2], strings.ToLower(res[3])
-			// b2sum specifies the size in bits & bt2sum in bytes
 			if strings.HasPrefix(hash, "BLAKE2") {
 				switch hash {
-				case "BLAKE2b-64":
-					if len(digest)/2 != 64 {
-						break
-					}
-					fallthrough
 				case "BLAKE2b":
 					hash = "BLAKE2b512"
-				case "BLAKE2b-48":
-					if len(digest)/2 != 48 {
-						break
-					}
-					fallthrough
 				case "BLAKE2b-384":
 					hash = "BLAKE2b384"
-				case "BLAKE2b-32":
-					if len(digest)/2 != 32 {
-						break
-					}
-					fallthrough
 				case "BLAKE2b-256":
 					hash = "BLAKE2b256"
-				case "BLAKE2s-32":
-					if len(digest)/2 != 32 {
-						break
-					}
-					fallthrough
 				case "BLAKE2s":
 					hash = "BLAKE2s256"
 				}
