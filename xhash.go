@@ -198,20 +198,7 @@ func main() {
 
 	var errs bool
 
-	if opts.iFile.string != nil {
-		func(file string) {
-			f := os.Stdin
-			var err error
-			if file != "" {
-				if f, err = os.Open(file); err != nil {
-					fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
-					os.Exit(1)
-				}
-				defer f.Close()
-			}
-			errs = hashFromFile(f)
-		}(*opts.iFile.string)
-	} else if opts.cFile.string != nil {
+	if opts.cFile.string != nil {
 		func(file string) {
 			f := os.Stdin
 			var err error
@@ -224,6 +211,19 @@ func main() {
 			}
 			errs = checkFromFile(f)
 		}(*opts.cFile.string)
+	} else if opts.iFile.string != nil {
+		func(file string) {
+			f := os.Stdin
+			var err error
+			if file != "" {
+				if f, err = os.Open(file); err != nil {
+					fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
+					os.Exit(1)
+				}
+				defer f.Close()
+			}
+			errs = hashFromFile(f)
+		}(*opts.iFile.string)
 	} else if flag.NArg() == 0 {
 		hashStdin()
 		os.Exit(0)
@@ -353,27 +353,54 @@ func hashString(str string) {
 	display(`"` + str + `"`)
 }
 
-func hashFromFile(f *os.File) (errs bool) {
-	terminator := "\n"
-	if opts.zero {
-		terminator = "\x00"
-	}
+func hashF(f *os.File, filename string) (errs bool) {
+	var wg sync.WaitGroup
+	var writers []io.Writer
+	var pipeWriters []*io.PipeWriter
 
-	inputReader := bufio.NewReader(f)
-	for {
-		pathname, err := inputReader.ReadString(terminator[0])
-		if err != nil {
-			if err == io.EOF {
+	for _, h := range chosen {
+		if opts.cFile.string != nil && !checkHashes.Test(h) {
+			continue
+		}
+		wg.Add(1)
+		pr, pw := io.Pipe()
+		writers = append(writers, pw)
+		pipeWriters = append(pipeWriters, pw)
+		go func(h int, r io.Reader) {
+			defer wg.Done()
+			if debug {
+				defer timeTrack(time.Now(), hashes[h].name)
+			}
+			if _, err := io.Copy(hashes[h], r); err != nil {
+				errs = true
 				return
 			}
-			panic(err)
-		}
-		pathname = strings.TrimSuffix(pathname, terminator)
-		if !opts.zero {
-			pathname = strings.TrimSuffix(pathname, "\r")
-		}
-		errs = hashPathname(pathname)
+			hashes[h].digest = hex.EncodeToString(hashes[h].Sum(nil))
+			hashes[h].Reset()
+		}(h, pr)
 	}
+
+	go func() {
+		wg.Add(1)
+		defer wg.Done()
+		defer func() {
+			for _, pw := range pipeWriters {
+				pw.Close()
+			}
+		}()
+
+		// build the multiwriter for all the pipes
+		mw := io.MultiWriter(writers...)
+
+		// copy the data into the multiwriter
+		if _, err := io.Copy(mw, f); err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, err)
+			errs = true
+		}
+	}()
+
+	wg.Wait()
+	return
 }
 
 func hashPathname(pathname string) (errs bool) {
@@ -405,61 +432,9 @@ func hashFile(filename string) (errs int) {
 }
 
 func hashStdin() (errs bool) {
-	errs = hashF(os.Stdin, "")
-	if !errs {
+	if errs = hashF(os.Stdin, ""); !errs {
 		display("")
 	}
-	return
-}
-
-func hashF(f *os.File, filename string) (errs bool) {
-	var Writers []io.Writer
-	var pipeWriters []*io.PipeWriter
-
-	var wg sync.WaitGroup
-
-	for _, h := range chosen {
-		if opts.cFile.string != nil && !checkHashes.Test(h) {
-			continue
-		}
-		wg.Add(1)
-		pr, pw := io.Pipe()
-		Writers = append(Writers, pw)
-		pipeWriters = append(pipeWriters, pw)
-		go func(h int, r io.Reader) {
-			defer wg.Done()
-			if debug {
-				defer timeTrack(time.Now(), hashes[h].name)
-			}
-			if _, err := io.Copy(hashes[h], r); err != nil {
-				errs = true
-				return
-			}
-			hashes[h].digest = hex.EncodeToString(hashes[h].Sum(nil))
-			hashes[h].Reset()
-		}(h, pr)
-	}
-
-	go func() {
-		wg.Add(1)
-		defer wg.Done()
-		defer func() {
-			for _, pw := range pipeWriters {
-				pw.Close()
-			}
-		}()
-
-		// build the multiwriter for all the pipes
-		mw := io.MultiWriter(Writers...)
-
-		// copy the data into the multiwriter
-		if _, err := io.Copy(mw, f); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, err)
-			errs = true
-		}
-	}()
-
-	wg.Wait()
 	return
 }
 
@@ -479,6 +454,29 @@ func hashDir(dir string) bool {
 		return false
 	}
 	return true
+}
+
+func hashFromFile(f *os.File) (errs bool) {
+	terminator := "\n"
+	if opts.zero {
+		terminator = "\x00"
+	}
+
+	inputReader := bufio.NewReader(f)
+	for {
+		pathname, err := inputReader.ReadString(terminator[0])
+		if err != nil {
+			if err == io.EOF {
+				return
+			}
+			panic(err)
+		}
+		pathname = strings.TrimSuffix(pathname, terminator)
+		if !opts.zero {
+			pathname = strings.TrimSuffix(pathname, "\r")
+		}
+		errs = hashPathname(pathname)
+	}
 }
 
 func checkFromFile(f *os.File) (errs bool) {
