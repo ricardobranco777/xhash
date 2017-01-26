@@ -51,7 +51,7 @@ import (
 	"time"
 )
 
-const version = "0.9.6"
+const version = "0.9.7"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -100,6 +100,7 @@ var opts struct {
 	bsd     bool
 	gnu     bool
 	quiet   bool
+	recurse bool
 	status  bool
 	str     bool
 	verbose bool
@@ -125,6 +126,7 @@ func init() {
 	flag.BoolVar(&opts.all, "all", false, "all algorithms")
 	flag.BoolVar(&opts.bsd, "bsd", false, "output hashes in the format used by *BSD")
 	flag.BoolVar(&opts.gnu, "gnu", false, "output hashes in the format used by *sum")
+	flag.BoolVar(&opts.recurse, "r", false, "recurse into directories")
 	flag.BoolVar(&opts.str, "s", false, "treat arguments as strings")
 	flag.BoolVar(&opts.quiet, "quiet", false, "don't print OK for each successfully verified file")
 	flag.BoolVar(&opts.status, "status", false, "don't output anything, status code shows success")
@@ -415,11 +417,15 @@ func hashF(f *os.File, filename string) (errs bool) {
 }
 
 func hashPathname(pathname string) (errs bool) {
-	if info, err := os.Stat(pathname); err != nil {
+	if info, err := os.Lstat(pathname); err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
 		errs = true // visit() would fail if we return false
 	} else if info.IsDir() {
-		errs = hashDir(pathname)
+		if opts.recurse {
+			return hashDir(pathname)
+		}
+		fmt.Fprintf(os.Stderr, "ERROR: %s: %s is a directory and the -r option was not specified\n", progname, pathname)
+		errs = true
 	} else {
 		errs = hashFile(pathname) != 0
 	}
