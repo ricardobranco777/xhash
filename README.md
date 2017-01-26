@@ -57,6 +57,8 @@ The output format is the same as OpenSSL's *dgst* command.  It may be changed wi
     	MD5 algorithm
 * `-quiet`
     	don't print OK for each successfully verified file
+* `-r`
+	recurse into directories
 * `-sha1`
     	SHA1 algorithm
 * `-sha224`
