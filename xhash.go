@@ -22,6 +22,7 @@ import "C"
 
 import (
 	"bufio"
+	"bytes"
 	"crypto"
 	"crypto/hmac"
 	"encoding/hex"
@@ -49,7 +50,7 @@ import (
 	"time"
 )
 
-const version = "0.9.4"
+const version = "0.9.5"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -71,8 +72,8 @@ var hashes = []*struct {
 	check   bool
 	hash    crypto.Hash
 	name    string
-	digest  string
-	cDigest string
+	digest  []byte
+	cDigest []byte
 	size    int
 	hash.Hash
 }{
@@ -305,12 +306,13 @@ func display(file string) (errs int) {
 			prefix, file = escapeFilename(file)
 		}
 		for _, h := range chosen {
+			digest := hex.EncodeToString(hashes[h].digest)
 			if opts.bsd {
-				fmt.Printf("%s (%s) = %s%s\n", hashes[h].name, file, hashes[h].digest, zero)
+				fmt.Printf("%s (%s) = %s%s\n", hashes[h].name, file, digest, zero)
 			} else if opts.gnu {
-				fmt.Printf("%s%s  %s%s\n", prefix, hashes[h].digest, file, zero)
+				fmt.Printf("%s%s  %s%s\n", prefix, digest, file, zero)
 			} else {
-				fmt.Printf("%s(%s)= %s%s\n", hashes[h].name, file, hashes[h].digest, zero)
+				fmt.Printf("%s(%s)= %s%s\n", hashes[h].name, file, digest, zero)
 			}
 		}
 	} else if file != "" {
@@ -318,16 +320,16 @@ func display(file string) (errs int) {
 		for _, h := range chosen {
 			status := ""
 			if checkHashes.Test(h) || checkHashes.GetCount() == 0 {
-				if hashes[h].digest != hashes[h].cDigest {
-					status = "FAILED"
-					if opts.verbose {
-						status += " with " + hashes[h].digest
-					}
-					errs++
-				} else {
+				if bytes.Equal(hashes[h].digest, hashes[h].cDigest) {
 					if !opts.quiet {
 						status = "OK"
 					}
+				} else {
+					status = "FAILED"
+					if opts.verbose {
+						status += " with " + hex.EncodeToString(hashes[h].digest)
+					}
+					errs++
 				}
 				if !opts.status && status != "" {
 					fmt.Printf("%s%s: %s %s\n", prefix, file, hashes[h].name, status)
@@ -345,7 +347,7 @@ func hashString(str string) {
 		go func(h int) {
 			defer wg.Done()
 			hashes[h].Write([]byte(str))
-			hashes[h].digest = hex.EncodeToString(hashes[h].Sum(nil))
+			hashes[h].digest = hashes[h].Sum(nil)
 			hashes[h].Reset()
 		}(h)
 	}
@@ -375,7 +377,7 @@ func hashF(f *os.File, filename string) (errs bool) {
 				errs = true
 				return
 			}
-			hashes[h].digest = hex.EncodeToString(hashes[h].Sum(nil))
+			hashes[h].digest = hashes[h].Sum(nil)
 			hashes[h].Reset()
 		}(h, pr)
 	}
@@ -612,9 +614,12 @@ func checkFromFile(f *os.File) (errs bool) {
 			break
 		}
 
+		if hashes[h].cDigest, err = hex.DecodeString(digest); err != nil {
+			badFormat(lineno)
+		}
+
 		initHash(h)
 		checkHashes.Add(h)
-		hashes[h].cDigest = digest
 	}
 
 	plural := ""
