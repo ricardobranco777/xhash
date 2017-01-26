@@ -49,7 +49,7 @@ import (
 	"time"
 )
 
-const version = "0.9.3"
+const version = "0.9.4"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -481,13 +481,14 @@ func hashFromFile(f *os.File) (errs bool) {
 
 func checkFromFile(f *os.File) (errs bool) {
 	var hash, current, file, digest string
-	var bsdFormat, gnuFormat bool
 	var lineno uint64
 
 	var stats struct {
 		unmatched  uint64
 		unreadable uint64
 	}
+
+	bsdFormat, gnuFormat := opts.bsd, opts.gnu
 
 	// Format used by OpenSSL dgst and *BSD md5, et al
 	bsd_begin := regexp.MustCompile(`^[A-Z]+[a-z0-9-]* ?\(`)
