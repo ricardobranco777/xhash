@@ -25,6 +25,7 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/hmac"
+	"crypto/subtle"
 	"encoding/hex"
 	"flag"
 	"fmt"
@@ -50,7 +51,7 @@ import (
 	"time"
 )
 
-const version = "0.9.5"
+const version = "0.9.6"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -295,6 +296,14 @@ func unescapeFilename(filename string) (result string) {
 	return
 }
 
+func equalDigests(h int) bool {
+	if macKey != nil {
+		return subtle.ConstantTimeCompare(hashes[h].digest, hashes[h].cDigest) == 1
+	} else {
+		return bytes.Equal(hashes[h].digest, hashes[h].cDigest)
+	}
+}
+
 func display(file string) (errs int) {
 	var prefix string
 	if opts.cFile.string == nil {
@@ -320,7 +329,7 @@ func display(file string) (errs int) {
 		for _, h := range chosen {
 			status := ""
 			if checkHashes.Test(h) || checkHashes.GetCount() == 0 {
-				if bytes.Equal(hashes[h].digest, hashes[h].cDigest) {
+				if equalDigests(h) {
 					if !opts.quiet {
 						status = "OK"
 					}
