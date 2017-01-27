@@ -15,13 +15,25 @@ Install OpenSSL for faster hashing for multiple algorithms.
 
 # Examples:
 
-* To hash the string "abc" with all algorithms
-
-`xhash -s "abc" -all`
-
 * To hash every file in your home directory using both SHA-512 and SHA-256
 
-`xhash -sha512 -sha256 $HOME`
+`xhash -r -sha512 -sha256 $HOME`
+
+* To hash the /etc/passwd file with all algorithms except MD4 and MD5
+
+`xhash -all -md4 -md5 /etc/passwd`
+
+* To hash the string "abc" with all algorithms
+
+`xhash -all -s "abc"`
+
+* To check the hashes in /tmp/hashes.md5
+
+`xhash -c /tmp/hashes.md5`
+
+* To hash all files specified in /tmp/files.list
+
+`xhash -i /tmp/files.list`
 
 # Output format
 
