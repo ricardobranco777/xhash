@@ -51,7 +51,7 @@ import (
 	"time"
 )
 
-const version = "0.9.7"
+const version = "0.9.8"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -417,12 +417,16 @@ func hashF(f *os.File, filename string) (errs bool) {
 }
 
 func hashPathname(pathname string) (errs bool) {
-	if info, err := os.Lstat(pathname); err != nil {
+	if info, err := os.Stat(pathname); err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
-		errs = true // visit() would fail if we return false
+		errs = true
 	} else if info.IsDir() {
 		if opts.recurse {
-			return hashDir(pathname)
+			pathSeparator := string(os.PathSeparator)
+			if !strings.HasSuffix(pathname, pathSeparator) {
+				pathname += pathSeparator
+			}
+			return hashDir(pathname + pathSeparator)
 		}
 		fmt.Fprintf(os.Stderr, "ERROR: %s: %s is a directory and the -r option was not specified\n", progname, pathname)
 		errs = true
