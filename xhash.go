@@ -123,7 +123,7 @@ func init() {
 		flag.BoolVar(&hashes[h].check, strings.ToLower(hashes[h].name), false, fmt.Sprintf("%s algorithm", hashes[h].name))
 	}
 
-	flag.BoolVar(&opts.all, "all", false, "all algorithms")
+	flag.BoolVar(&opts.all, "all", false, "all algorithms (except others specified, if any)")
 	flag.BoolVar(&opts.bsd, "bsd", false, "output hashes in the format used by *BSD")
 	flag.BoolVar(&opts.gnu, "gnu", false, "output hashes in the format used by *sum")
 	flag.BoolVar(&opts.recurse, "r", false, "recurse into directories")
