@@ -44,7 +44,7 @@ The output format is the same as OpenSSL's *dgst* command.  It may be changed wi
 * `-0`
     	lines are terminated by a null character (with the -i option)
 * `-all`
-    	all algorithms
+    	all algorithms (except others specified, if any)
 * `-bsd`
     	output hashes in the format used by \*BSD
 * `-blake2b256`
