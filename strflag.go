@@ -4,6 +4,11 @@
 
 package main
 
+/*
+ * The Set() and String() methods satisfy the Value interface of the flag package.
+ * We use it to determine whether a string option was specified.
+ */
+
 type strFlag struct {
 	*string
 }
