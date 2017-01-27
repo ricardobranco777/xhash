@@ -426,7 +426,7 @@ func hashPathname(pathname string) (errs bool) {
 			if !strings.HasSuffix(pathname, pathSeparator) {
 				pathname += pathSeparator
 			}
-			return hashDir(pathname + pathSeparator)
+			return hashDir(pathname)
 		}
 		fmt.Fprintf(os.Stderr, "ERROR: %s: %s is a directory and the -r option was not specified\n", progname, pathname)
 		errs = true
