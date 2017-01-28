@@ -182,12 +182,12 @@ func main() {
 		var err error
 		if strings.HasPrefix(*opts.key.string, "/") {
 			if macKey, err = ioutil.ReadFile(*opts.key.string); err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, *opts.key.string)
+				perror("%v", *opts.key.string)
 				os.Exit(1)
 			}
 		} else {
 			if macKey, err = hex.DecodeString(*opts.key.string); err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: %s: Invalid hexadecimal key: %v\n", progname, *opts.key.string)
+				perror("Invalid hexadecimal key: %v", *opts.key.string)
 				os.Exit(1)
 			}
 		}
@@ -208,7 +208,7 @@ func main() {
 			var err error
 			if file != "" {
 				if f, err = os.Open(file); err != nil {
-					fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
+					perror("%v", err)
 					os.Exit(1)
 				}
 				defer f.Close()
@@ -221,7 +221,7 @@ func main() {
 			var err error
 			if file != "" {
 				if f, err = os.Open(file); err != nil {
-					fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
+					perror("%v", err)
 					os.Exit(1)
 				}
 				defer f.Close()
@@ -248,11 +248,16 @@ func main() {
 	}
 }
 
+func perror(format string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, "%s: ", progname)
+	fmt.Fprintf(os.Stderr, format + "\n", args...)
+}
+
 // Wrapper for the Blake2 New() methods that needs an optional for MAC
 func blake2_(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
 	h, err := f(key)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, err)
+		perror("%v", err)
 		os.Exit(1)
 	}
 	return h
@@ -407,7 +412,7 @@ func hashF(f *os.File, filename string) (errs bool) {
 
 		// copy the data into the multiwriter
 		if _, err := io.Copy(mw, f); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: %s: %v\n", progname, err)
+			perror("%v", err)
 			errs = true
 		}
 	}()
@@ -418,7 +423,7 @@ func hashF(f *os.File, filename string) (errs bool) {
 
 func hashPathname(pathname string) (errs bool) {
 	if info, err := os.Stat(pathname); err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
+		perror("%v", err)
 		errs = true
 	} else if info.IsDir() {
 		if opts.recurse {
@@ -428,7 +433,7 @@ func hashPathname(pathname string) (errs bool) {
 			}
 			return hashDir(pathname)
 		}
-		fmt.Fprintf(os.Stderr, "ERROR: %s: %s is a directory and the -r option was not specified\n", progname, pathname)
+		perror("%s is a directory and the -r option was not specified", pathname)
 		errs = true
 	} else {
 		errs = hashFile(pathname) != 0
@@ -439,7 +444,7 @@ func hashPathname(pathname string) (errs bool) {
 func hashFile(filename string) (errs int) {
 	f, err := os.Open(filename)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
+		perror("%v", err)
 		return -1
 	}
 	defer f.Close()
@@ -471,7 +476,7 @@ func visit(path string, f os.FileInfo, err error) error {
 
 func hashDir(dir string) bool {
 	if err := filepath.Walk(dir, visit); err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", progname, err)
+		perror("%v", err)
 		return false
 	}
 	return true
@@ -647,14 +652,14 @@ func checkFromFile(f *os.File) (errs bool) {
 		if stats.unreadable > 1 {
 			plural = "s"
 		}
-		fmt.Fprintf(os.Stderr, "%s: WARNING: %d listed file%s could not be read\n", progname, stats.unreadable, plural)
+		perror("WARNING: %d listed file%s could not be read", stats.unreadable, plural)
 	}
 	if !opts.status && stats.unmatched > 0 {
 		errs = true
 		if stats.unmatched > 1 {
 			plural = "s"
 		}
-		fmt.Fprintf(os.Stderr, "%s: WARNING: %d computed checksum%s did NOT match\n", progname, stats.unmatched, plural)
+		perror("WARNING: %d computed checksum%s did NOT match", stats.unmatched, plural)
 	}
 	return
 }
@@ -669,7 +674,7 @@ func getHashIndex(name string, size int) int {
 }
 
 func badFormat(lineno uint64) {
-	fmt.Fprintf(os.Stderr, "ERROR: %s: Unrecognized format at line %d\n", progname, lineno)
+	perror("Unrecognized format at line %d", lineno)
 	os.Exit(1)
 }
 
