@@ -250,7 +250,7 @@ func main() {
 
 func perror(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, "%s: ", progname)
-	fmt.Fprintf(os.Stderr, format + "\n", args...)
+	fmt.Fprintf(os.Stderr, format+"\n", args...)
 }
 
 // Wrapper for the Blake2 New() methods that needs an optional for MAC
