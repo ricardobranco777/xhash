@@ -464,22 +464,21 @@ func hashStdin() (errs bool) {
 	return
 }
 
-func visit(path string, f os.FileInfo, err error) error {
-	if err != nil {
-		perror("%v", err)
-		if !os.IsPermission(err) {
-			return err
-		}
-	} else {
-		if f.Mode().IsRegular() {
-			hashFile(path)
-		}
-	}
-	return nil
-}
-
 func hashDir(dir string) bool {
-	if err := filepath.Walk(dir, visit); err != nil {
+	err := filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
+		if err != nil {
+			perror("%v", err)
+			if !os.IsPermission(err) {
+				return err
+			}
+		} else {
+			if f.Mode().IsRegular() {
+				hashFile(path)
+			}
+		}
+		return nil
+	})
+	if err != nil {
 		perror("%v", err)
 		return false
 	}
