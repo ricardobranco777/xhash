@@ -465,11 +465,15 @@ func hashStdin() (errs bool) {
 }
 
 func visit(path string, f os.FileInfo, err error) error {
-	if err != nil && !os.IsPermission(err) {
-		return err
-	}
-	if f.Mode().IsRegular() {
-		hashFile(path)
+	if err != nil {
+		perror("%v", err)
+		if !os.IsPermission(err) {
+			return err
+		}
+	} else {
+		if f.Mode().IsRegular() {
+			hashFile(path)
+		}
 	}
 	return nil
 }
