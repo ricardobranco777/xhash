@@ -380,8 +380,8 @@ func hashSmallF(f *os.File) (errs bool) {
 		if opts.cFile.isSet() && !checkHashes.Test(h) {
 			continue
 		}
-		wg.Add(1)
 		go func(h int) {
+			wg.Add(1)
 			defer wg.Done()
 			if debug {
 				defer timeTrack(time.Now(), hashes[h].name)
@@ -405,11 +405,11 @@ func hashF(f *os.File) (errs bool) {
 		if opts.cFile.isSet() && !checkHashes.Test(h) {
 			continue
 		}
-		wg.Add(1)
 		pr, pw := io.Pipe()
 		writers = append(writers, pw)
 		pipeWriters = append(pipeWriters, pw)
 		go func(h int, r io.Reader) {
+			wg.Add(1)
 			defer wg.Done()
 			if debug {
 				defer timeTrack(time.Now(), hashes[h].name)
