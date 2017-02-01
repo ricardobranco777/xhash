@@ -515,6 +515,15 @@ func checkFromFile(f *os.File) (errs bool) {
 
 	bsdFormat, gnuFormat := opts.bsd, opts.gnu
 
+	defaultHashes := map[int]string{
+		64: "SHA512",
+		48: "SHA384",
+		32: "SHA256",
+		28: "SHA224",
+		20: "SHA1",
+		16: "MD5",
+	}
+
 	// Format used by OpenSSL dgst and *BSD md5, et al
 	bsd_begin := regexp.MustCompile(`^[A-Z]+[a-z0-9-]* ?\(`)
 	bsd := regexp.MustCompile(`(?ms:^([A-Z]+[a-z0-9-]*) ?\((.*?)\) ?= ([0-9a-f]{16,})$)`)
@@ -581,20 +590,7 @@ func checkFromFile(f *os.File) (errs bool) {
 			if len(chosen) == 1 && len(digest)/2 == hashes[chosen[0]].size {
 				hash = hashes[chosen[0]].name
 			} else {
-				switch len(digest) / 2 {
-				case 64:
-					hash = "SHA512"
-				case 48:
-					hash = "SHA384"
-				case 32:
-					hash = "SHA256"
-				case 28:
-					hash = "SHA224"
-				case 20:
-					hash = "SHA1"
-				case 16:
-					hash = "MD5"
-				}
+				hash = defaultHashes[len(digest)/2]
 			}
 		} else if err == nil {
 			badFormat(lineno)
