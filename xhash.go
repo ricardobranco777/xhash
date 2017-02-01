@@ -51,7 +51,7 @@ import (
 	"time"
 )
 
-const version = "0.9.9"
+const version = "1.0"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -367,6 +367,35 @@ func hashString(str string) {
 	display(`"` + str + `"`)
 }
 
+func hashSmallF(f *os.File) (errs bool) {
+	var wg sync.WaitGroup
+
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		perror("%v", err)
+		return true
+	}
+
+	for _, h := range chosen {
+		if opts.cFile.isSet() && !checkHashes.Test(h) {
+			continue
+		}
+		wg.Add(1)
+		go func(h int) {
+			defer wg.Done()
+			if debug {
+				defer timeTrack(time.Now(), hashes[h].name)
+			}
+			hashes[h].Write(data)
+			hashes[h].digest = hashes[h].Sum(nil)
+			hashes[h].Reset()
+		}(h)
+	}
+
+	wg.Wait()
+	return
+}
+
 func hashF(f *os.File) (errs bool) {
 	var wg sync.WaitGroup
 	var writers []io.Writer
@@ -445,12 +474,26 @@ func hashFile(filename string) (errs int) {
 	}
 	defer f.Close()
 
-	if err := hashF(f); !err {
+	info, err := f.Stat()
+	if err != nil {
+		perror("%v", err)
+		return -1
+	}
+
+	if info.Size() < 1e6 {
+		if hashSmallF(f) {
+			errs++
+		}
+	} else {
+		if hashF(f) {
+			errs++
+		}
+	}
+	if errs == 0 {
 		return display(filename)
 	} else {
-		errs++
+		return -1
 	}
-	return
 }
 
 func hashStdin() (errs bool) {
