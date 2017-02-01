@@ -24,3 +24,7 @@ func (f *strFlag) String() string {
 	}
 	return ""
 }
+
+func (f *strFlag) isSet() bool {
+	return f.string != nil
+}

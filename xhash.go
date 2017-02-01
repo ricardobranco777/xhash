@@ -178,23 +178,23 @@ func main() {
 	}
 	chosen = algorithms.GetAll()
 
-	if opts.key.string != nil {
+	if opts.key.isSet() {
 		var err error
-		if strings.HasPrefix(*opts.key.string, "/") {
-			if macKey, err = ioutil.ReadFile(*opts.key.string); err != nil {
-				perror("%v", *opts.key.string)
+		if strings.HasPrefix(opts.key.String(), "/") {
+			if macKey, err = ioutil.ReadFile(opts.key.String()); err != nil {
+				perror("%v", opts.key.String())
 				os.Exit(1)
 			}
 		} else {
-			if macKey, err = hex.DecodeString(*opts.key.string); err != nil {
-				perror("Invalid hexadecimal key: %v", *opts.key.string)
+			if macKey, err = hex.DecodeString(opts.key.String()); err != nil {
+				perror("Invalid hexadecimal key: %v", opts.key.String())
 				os.Exit(1)
 			}
 		}
 	}
 
 	for h := range hashes {
-		if opts.cFile.string == nil && !algorithms.Test(h) {
+		if !opts.cFile.isSet() && !algorithms.Test(h) {
 			continue
 		}
 		initHash(h)
@@ -202,7 +202,7 @@ func main() {
 
 	var errs bool
 
-	if opts.cFile.string != nil {
+	if opts.cFile.isSet() {
 		func(file string) {
 			f := os.Stdin
 			var err error
@@ -214,8 +214,8 @@ func main() {
 				defer f.Close()
 			}
 			errs = checkFromFile(f)
-		}(*opts.cFile.string)
-	} else if opts.iFile.string != nil {
+		}(opts.cFile.String())
+	} else if opts.iFile.isSet() {
 		func(file string) {
 			f := os.Stdin
 			var err error
@@ -227,7 +227,7 @@ func main() {
 				defer f.Close()
 			}
 			errs = hashFromFile(f)
-		}(*opts.iFile.string)
+		}(opts.iFile.String())
 	} else if flag.NArg() == 0 {
 		hashStdin()
 		os.Exit(0)
@@ -313,7 +313,7 @@ func equalDigests(h int) bool {
 
 func display(file string) (errs int) {
 	var prefix string
-	if opts.cFile.string == nil {
+	if !opts.cFile.isSet() {
 		if opts.gnu {
 			prefix, file = escapeFilename(file)
 		}
@@ -373,7 +373,7 @@ func hashF(f *os.File, filename string) (errs bool) {
 	var pipeWriters []*io.PipeWriter
 
 	for _, h := range chosen {
-		if opts.cFile.string != nil && !checkHashes.Test(h) {
+		if opts.cFile.isSet() && !checkHashes.Test(h) {
 			continue
 		}
 		wg.Add(1)
