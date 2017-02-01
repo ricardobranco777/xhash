@@ -367,7 +367,7 @@ func hashString(str string) {
 	display(`"` + str + `"`)
 }
 
-func hashF(f *os.File, filename string) (errs bool) {
+func hashF(f *os.File) (errs bool) {
 	var wg sync.WaitGroup
 	var writers []io.Writer
 	var pipeWriters []*io.PipeWriter
@@ -445,7 +445,7 @@ func hashFile(filename string) (errs int) {
 	}
 	defer f.Close()
 
-	if err := hashF(f, filename); !err {
+	if err := hashF(f); !err {
 		return display(filename)
 	} else {
 		errs++
@@ -454,7 +454,7 @@ func hashFile(filename string) (errs int) {
 }
 
 func hashStdin() (errs bool) {
-	if errs = hashF(os.Stdin, ""); !errs {
+	if errs = hashF(os.Stdin); !errs {
 		display("")
 	}
 	return
