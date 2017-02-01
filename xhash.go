@@ -51,7 +51,7 @@ import (
 	"time"
 )
 
-const version = "0.9.9"
+const version = "1.0"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -448,9 +448,8 @@ func hashFile(filename string) (errs int) {
 	if err := hashF(f); !err {
 		return display(filename)
 	} else {
-		errs++
+		return -1
 	}
-	return
 }
 
 func hashStdin() (errs bool) {
