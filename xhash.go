@@ -51,7 +51,7 @@ import (
 	"time"
 )
 
-const version = "0.9.8"
+const version = "0.9.9"
 
 const (
 	BLAKE2b256 = 100 + iota
@@ -132,7 +132,7 @@ func init() {
 	flag.BoolVar(&opts.status, "status", false, "don't output anything, status code shows success")
 	flag.BoolVar(&opts.verbose, "v", false, "verbose operation (currently useful with the -c option)")
 	flag.BoolVar(&opts.version, "version", false, "show version and exit")
-	flag.BoolVar(&opts.zero, "0", false, "lines are terminated by a null character")
+	flag.BoolVar(&opts.zero, "0", false, "lines are terminated by a null character (with the -i option)")
 	flag.Var(&opts.cFile, "c", "read checksums from file (use '-c \"\"' to read from standard input)")
 	flag.Var(&opts.iFile, "i", "read pathnames from file (use '-i \"\"' to read from standard input)")
 	flag.Var(&opts.key, "key", "key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname")
@@ -314,21 +314,17 @@ func equalDigests(h int) bool {
 func display(file string) (errs int) {
 	var prefix string
 	if opts.cFile.string == nil {
-		zero := ""
-		if opts.zero {
-			zero = "\x00"
-		}
 		if opts.gnu {
 			prefix, file = escapeFilename(file)
 		}
 		for _, h := range chosen {
 			digest := hex.EncodeToString(hashes[h].digest)
 			if opts.bsd {
-				fmt.Printf("%s (%s) = %s%s\n", hashes[h].name, file, digest, zero)
+				fmt.Printf("%s (%s) = %s\n", hashes[h].name, file, digest)
 			} else if opts.gnu {
-				fmt.Printf("%s%s  %s%s\n", prefix, digest, file, zero)
+				fmt.Printf("%s%s  %s\n", prefix, digest, file)
 			} else {
-				fmt.Printf("%s(%s)= %s%s\n", hashes[h].name, file, digest, zero)
+				fmt.Printf("%s(%s)= %s\n", hashes[h].name, file, digest)
 			}
 		}
 	} else if file != "" {
@@ -525,11 +521,6 @@ func checkFromFile(f *os.File) (errs bool) {
 	// Format used by md5sum, et al
 	gnu := regexp.MustCompile(`^[\\]?([0-9a-f]{16,}) [ \*](.*)$`)
 
-	terminator := "\n"
-	if opts.zero {
-		terminator = "\x00"
-	}
-
 	inputReader := bufio.NewReader(f)
 	for {
 		var xline string
@@ -539,7 +530,7 @@ func checkFromFile(f *os.File) (errs bool) {
 		var err error
 
 		for {
-			xline, err = inputReader.ReadString(terminator[0])
+			xline, err = inputReader.ReadString('\n')
 			if err != nil && err != io.EOF {
 				panic(err)
 			}
@@ -557,11 +548,8 @@ func checkFromFile(f *os.File) (errs bool) {
 			break
 		}
 
-		// Auto detect whether -0 was used
-		line = strings.TrimPrefix(line, "\n")
 		line = strings.TrimSuffix(line, "\n")
 		line = strings.TrimSuffix(line, "\r")
-		line = strings.TrimSuffix(line, "\x00")
 
 		if bsdFormat && err == nil {
 			res := bsd.FindStringSubmatch(line)
