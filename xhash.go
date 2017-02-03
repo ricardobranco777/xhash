@@ -204,31 +204,9 @@ func main() {
 	var errs bool
 
 	if opts.cFile.isSet() {
-		func(file string) {
-			f := os.Stdin
-			var err error
-			if file != "" {
-				if f, err = os.Open(file); err != nil {
-					perror("%v", err)
-					os.Exit(1)
-				}
-				defer f.Close()
-			}
-			errs = checkFromFile(f)
-		}(opts.cFile.String())
+		errs = checkFromFile(opts.cFile.String())
 	} else if opts.iFile.isSet() {
-		func(file string) {
-			f := os.Stdin
-			var err error
-			if file != "" {
-				if f, err = os.Open(file); err != nil {
-					perror("%v", err)
-					os.Exit(1)
-				}
-				defer f.Close()
-			}
-			errs = hashFromFile(f)
-		}(opts.iFile.String())
+		errs = hashFromFile(opts.cFile.String())
 	} else if flag.NArg() == 0 {
 		hashStdin()
 		os.Exit(0)
@@ -525,10 +503,20 @@ func hashDir(dir string) bool {
 	return true
 }
 
-func hashFromFile(f *os.File) (errs bool) {
+func hashFromFile(filename string) (errs bool) {
 	terminator := "\n"
 	if opts.zero {
 		terminator = "\x00"
+	}
+
+	f := os.Stdin
+	var err error
+	if filename != "" {
+		if f, err = os.Open(filename); err != nil {
+			perror("%v", err)
+			os.Exit(1)
+		}
+		defer f.Close()
 	}
 
 	inputReader := bufio.NewReader(f)
@@ -548,7 +536,7 @@ func hashFromFile(f *os.File) (errs bool) {
 	}
 }
 
-func checkFromFile(f *os.File) (errs bool) {
+func checkFromFile(filename string) (errs bool) {
 	var hash, current, file, digest string
 	var lineno uint64
 
@@ -574,13 +562,21 @@ func checkFromFile(f *os.File) (errs bool) {
 	// Format used by md5sum, et al
 	gnu := regexp.MustCompile(`^[\\]?([0-9a-f]{16,}) [ \*](.*)$`)
 
+	f := os.Stdin
+	var err error
+	if filename != "" {
+		if f, err = os.Open(filename); err != nil {
+			perror("%v", err)
+			os.Exit(1)
+		}
+		defer f.Close()
+	}
+
 	inputReader := bufio.NewReader(f)
 	for {
 		var xline string
 		lineno++
 		line := ""
-
-		var err error
 
 		for {
 			xline, err = inputReader.ReadString('\n')
