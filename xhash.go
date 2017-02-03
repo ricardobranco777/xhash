@@ -561,6 +561,9 @@ func checkFromFile(filename string) (errs bool) {
 	bsd := regexp.MustCompile(`(?ms:^([A-Z]+[a-z0-9-]*) ?\((.*?)\) ?= ([0-9a-f]{16,})$)`)
 	// Format used by md5sum, et al
 	gnu := regexp.MustCompile(`^[\\]?([0-9a-f]{16,}) [ \*](.*)$`)
+	// Get hint from filename for the algorithm to use
+	re := regexp.MustCompile(`(?i:(md4|md5|sha1|sha224|sha256|sha384|sha512))`)
+	hint := strings.ToUpper(re.FindString(filepath.Base(filename)))
 
 	f := os.Stdin
 	var err error
@@ -629,6 +632,8 @@ func checkFromFile(filename string) (errs bool) {
 			}
 			if len(chosen) == 1 && len(digest)/2 == hashes[chosen[0]].size {
 				hash = hashes[chosen[0]].name
+			} else if hint != "" {
+				hash = hint
 			} else {
 				hash = defaultHashes[len(digest)/2]
 			}
