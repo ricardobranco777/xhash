@@ -180,14 +180,15 @@ func main() {
 
 	if opts.key.isSet() {
 		var err error
-		if strings.HasPrefix(opts.key.String(), "/") {
-			if macKey, err = ioutil.ReadFile(opts.key.String()); err != nil {
-				perror("%v", opts.key.String())
+		key := opts.key.String()
+		if strings.HasPrefix(key, string(os.PathSeparator)) {
+			if macKey, err = ioutil.ReadFile(key); err != nil {
+				perror("%v", err)
 				os.Exit(1)
 			}
 		} else {
-			if macKey, err = hex.DecodeString(opts.key.String()); err != nil {
-				perror("Invalid hexadecimal key: %v", opts.key.String())
+			if macKey, err = hex.DecodeString(key); err != nil {
+				perror("%v", err)
 				os.Exit(1)
 			}
 		}
