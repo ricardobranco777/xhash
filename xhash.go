@@ -646,6 +646,9 @@ func checkFromFile(f *os.File) (errs bool) {
 
 		h := getHashIndex(hash, len(digest)/2)
 		if h == -1 && err == nil {
+			if opts.verbose {
+				perror("Skipping unsupported algorithm %s for file %s (line %d)", hash, file, lineno)
+			}
 			continue
 		}
 
