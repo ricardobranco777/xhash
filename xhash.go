@@ -120,7 +120,7 @@ func init() {
 	}
 
 	for h := range hashes {
-		flag.BoolVar(&hashes[h].check, strings.ToLower(hashes[h].name), false, hashes[h].name + " algorithm")
+		flag.BoolVar(&hashes[h].check, strings.ToLower(hashes[h].name), false, hashes[h].name+" algorithm")
 	}
 
 	flag.BoolVar(&opts.all, "all", false, "all algorithms (except others specified, if any)")
@@ -135,7 +135,7 @@ func init() {
 	flag.BoolVar(&opts.zero, "0", false, "lines are terminated by a null character (with the -i option)")
 	flag.Var(&opts.cFile, "c", "read checksums from file (use '-c \"\"' to read from standard input)")
 	flag.Var(&opts.iFile, "i", "read pathnames from file (use '-i \"\"' to read from standard input)")
-	flag.Var(&opts.key, "key", "key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname")
+	flag.Var(&opts.key, "key", "key for HMAC (in hexadecimal). If key starts with '"+string(os.PathSeparator)+"' read key from specified pathname")
 
 	algorithms = NewBitset(len(hashes) - 1)
 	checkHashes = NewBitset(len(hashes) - 1)
