@@ -53,8 +53,6 @@ The output format is the same as OpenSSL's *dgst* command.  It may be changed wi
     	BLAKE2b384 algorithm
 * `-blake2b512`
     	BLAKE2b512 algorithm
-* `-blake2s256`
-    	BLAKE2s256 algorithm
 * `-c value`
     	read checksums from file (use _*-c ""*_ to read from standard input)
 * `-gnu`
