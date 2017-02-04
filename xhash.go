@@ -30,7 +30,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/ricardobranco777/dgst/blake2b"
-	"github.com/ricardobranco777/dgst/blake2s"
 	_ "github.com/ricardobranco777/dgst/md4"
 	_ "github.com/ricardobranco777/dgst/md5"
 	_ "github.com/ricardobranco777/dgst/sha1"
@@ -57,7 +56,6 @@ const (
 	BLAKE2b256 = 100 + iota
 	BLAKE2b384
 	BLAKE2b512
-	BLAKE2s256
 )
 
 var (
@@ -81,7 +79,6 @@ var hashes = []*struct {
 	{name: "BLAKE2b256", hash: BLAKE2b256, size: 32},
 	{name: "BLAKE2b384", hash: BLAKE2b384, size: 48},
 	{name: "BLAKE2b512", hash: BLAKE2b512, size: 64},
-	{name: "BLAKE2s256", hash: BLAKE2s256, size: 32},
 	{name: "MD4", hash: crypto.MD4, size: 16},
 	{name: "MD5", hash: crypto.MD5, size: 16},
 	{name: "SHA1", hash: crypto.SHA1, size: 20},
@@ -254,8 +251,6 @@ func initHash(h int) {
 		hashes[h].Hash = blake2_(blake2b.New384, macKey)
 	case BLAKE2b512:
 		hashes[h].Hash = blake2_(blake2b.New512, macKey)
-	case BLAKE2s256:
-		hashes[h].Hash = blake2_(blake2s.New256, macKey)
 	default:
 		if macKey != nil {
 			hashes[h].Hash = hmac.New(hashes[h].hash.New, macKey)
@@ -609,17 +604,9 @@ func checkFromFile(filename string) (errs bool) {
 				badFormat(lineno)
 			}
 			hash, file, digest = res[1], res[2], strings.ToLower(res[3])
-			if strings.HasPrefix(hash, "BLAKE2") {
-				switch hash {
-				case "BLAKE2b":
-					hash = "BLAKE2b512"
-				case "BLAKE2b-384":
-					hash = "BLAKE2b384"
-				case "BLAKE2b-256":
-					hash = "BLAKE2b256"
-				case "BLAKE2s":
-					hash = "BLAKE2s256"
-				}
+			hash = strings.Replace(hash, "BLAKE2b-", "BLAKE2b", 1)
+			if hash == "BLAKE2b" {
+				hash = "BLAKE2b512"
 			}
 		} else if gnuFormat && err == nil {
 			res := gnu.FindStringSubmatch(line)
