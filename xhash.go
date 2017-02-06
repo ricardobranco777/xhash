@@ -229,7 +229,7 @@ func perror(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)
 }
 
-// Wrapper for the Blake2 New() methods that needs an optional for MAC
+// Wrapper for the Blake2 New() methods that need an optional key for MAC
 func blake2_(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
 	h, err := f(key)
 	if err != nil {
@@ -543,12 +543,7 @@ func checkFromFile(filename string) (errs bool) {
 	bsdFormat, gnuFormat := opts.bsd, opts.gnu
 
 	defaultHashes := map[int]string{
-		64: "SHA512",
-		48: "SHA384",
-		32: "SHA256",
-		28: "SHA224",
-		20: "SHA1",
-		16: "MD5",
+		64: "SHA512", 48: "SHA384", 32: "SHA256", 28: "SHA224", 20: "SHA1", 16: "MD5",
 	}
 
 	// Format used by OpenSSL dgst and *BSD md5, et al
