@@ -201,12 +201,11 @@ func main() {
 	var errs bool
 
 	if opts.cFile.isSet() {
-		errs = checkFromFile(opts.cFile.String())
+		errs = checkFromFile(opts.cFile.String()) != 0
 	} else if opts.iFile.isSet() {
-		errs = hashFromFile(opts.cFile.String())
+		errs = hashFromFile(opts.cFile.String()) != 0
 	} else if flag.NArg() == 0 {
-		hashStdin()
-		os.Exit(0)
+		errs = hashStdin()
 	}
 
 	if opts.str {
@@ -215,7 +214,7 @@ func main() {
 		}
 	} else {
 		for _, pathname := range flag.Args() {
-			errs = hashPathname(pathname)
+			errs = hashPathname(pathname) != 0
 		}
 	}
 
@@ -420,11 +419,21 @@ func hashF(f *os.File) (errs bool) {
 	return
 }
 
-func hashPathname(pathname string) (errs bool) {
-	if info, err := os.Stat(pathname); err != nil {
+func hashPathname(pathname string) (errs int) {
+	f, err := os.Open(pathname)
+	if err != nil {
 		perror("%v", err)
-		errs = true
-	} else if info.IsDir() {
+		return -1
+	}
+	defer f.Close()
+
+	fi, err := f.Stat()
+	if err != nil {
+		perror("%v", err)
+		return -1
+	}
+
+	if fi.IsDir() {
 		if opts.recurse {
 			pathSeparator := string(os.PathSeparator)
 			if !strings.HasSuffix(pathname, pathSeparator) {
@@ -433,28 +442,10 @@ func hashPathname(pathname string) (errs bool) {
 			return hashDir(pathname)
 		}
 		perror("%s is a directory and the -r option was not specified", pathname)
-		errs = true
-	} else {
-		errs = hashFile(pathname) != 0
-	}
-	return
-}
-
-func hashFile(filename string) (errs int) {
-	f, err := os.Open(filename)
-	if err != nil {
-		perror("%v", err)
-		return -1
-	}
-	defer f.Close()
-
-	info, err := f.Stat()
-	if err != nil {
-		perror("%v", err)
 		return -1
 	}
 
-	if info.Size() < 1e6 {
+	if fi.Size() < 1e6 {
 		if hashSmallF(f) {
 			errs++
 		}
@@ -464,7 +455,7 @@ func hashFile(filename string) (errs int) {
 		}
 	}
 	if errs == 0 {
-		return display(filename)
+		return display(pathname)
 	} else {
 		return -1
 	}
@@ -477,28 +468,28 @@ func hashStdin() (errs bool) {
 	return
 }
 
-func hashDir(dir string) bool {
-	err := filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
+func hashDir(dir string) int {
+	err := filepath.Walk(dir, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			perror("%v", err)
 			if !os.IsPermission(err) {
 				return err
 			}
 		} else {
-			if f.Mode().IsRegular() {
-				hashFile(path)
+			if fi.Mode().IsRegular() {
+				hashPathname(path)
 			}
 		}
 		return nil
 	})
 	if err != nil {
 		perror("%v", err)
-		return false
+		return -1
 	}
-	return true
+	return 0
 }
 
-func hashFromFile(filename string) (errs bool) {
+func hashFromFile(filename string) (errs int) {
 	terminator := "\n"
 	if opts.zero {
 		terminator = "\x00"
@@ -527,11 +518,14 @@ func hashFromFile(filename string) (errs bool) {
 		if !opts.zero {
 			pathname = strings.TrimSuffix(pathname, "\r")
 		}
-		errs = hashPathname(pathname)
+		if hashPathname(pathname) != 0 {
+			errs++
+		}
 	}
+	return
 }
 
-func checkFromFile(filename string) (errs bool) {
+func checkFromFile(filename string) int {
 	var hash, current, file, digest string
 	var lineno uint64
 
@@ -638,7 +632,7 @@ func checkFromFile(filename string) (errs bool) {
 		if current != file || err == io.EOF {
 			for _, k := range checkHashes.GetAll() {
 				if algorithms.Test(k) {
-					n := hashFile(current)
+					n := hashPathname(current)
 					if n < 0 {
 						stats.unreadable++
 					} else if n > 0 {
@@ -665,20 +659,21 @@ func checkFromFile(filename string) (errs bool) {
 
 	plural := ""
 	if !opts.status && stats.unreadable > 0 {
-		errs = true
 		if stats.unreadable > 1 {
 			plural = "s"
 		}
 		perror("WARNING: %d listed file%s could not be read", stats.unreadable, plural)
 	}
 	if !opts.status && stats.unmatched > 0 {
-		errs = true
 		if stats.unmatched > 1 {
 			plural = "s"
 		}
 		perror("WARNING: %d computed checksum%s did NOT match", stats.unmatched, plural)
 	}
-	return
+	if stats.unreadable > 0 || stats.unmatched > 0 {
+		return -1
+	}
+	return 0
 }
 
 func getHashIndex(name string, size int) int {
