@@ -29,6 +29,7 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"github.com/ricardobranco777/bitset"
 	"github.com/ricardobranco777/dgst/blake2b"
 	_ "github.com/ricardobranco777/dgst/md4"
 	_ "github.com/ricardobranco777/dgst/md5"
@@ -59,8 +60,8 @@ const (
 )
 
 var (
-	algorithms  *Bitset // Algorithms chosen in the command line
-	checkHashes *Bitset // Algorithms read with the -c option
+	algorithms  *bitset.Bitset // Algorithms chosen in the command line
+	checkHashes *bitset.Bitset // Algorithms read with the -c option
 	chosen      []int
 	debug       bool
 	macKey      []byte
@@ -134,8 +135,8 @@ func init() {
 	flag.Var(&opts.iFile, "i", "read pathnames from file (use '-i \"\"' to read from standard input)")
 	flag.Var(&opts.key, "key", "key for HMAC (in hexadecimal). If key starts with '"+string(os.PathSeparator)+"' read key from specified pathname")
 
-	algorithms = NewBitset(len(hashes) - 1)
-	checkHashes = NewBitset(len(hashes) - 1)
+	algorithms = bitset.New(len(hashes) - 1)
+	checkHashes = bitset.New(len(hashes) - 1)
 
 	debug = os.Getenv("DEBUG") != ""
 }
