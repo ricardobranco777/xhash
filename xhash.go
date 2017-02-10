@@ -675,11 +675,18 @@ func checkFromFile(filename string) int {
 	return 0
 }
 
+var hashIndex = make(map[string]int)
+
 func getHashIndex(name string, size int) int {
-	for i := range hashes {
-		if hashes[i].size == size && hashes[i].name == name {
-			return i
+	if h, ok := hashIndex[name]; !ok {
+		for i := range hashes {
+			if hashes[i].size == size && hashes[i].name == name {
+				hashIndex[name] = i
+				return hashIndex[name]
+			}
 		}
+	} else {
+		return h
 	}
 	return -1
 }
