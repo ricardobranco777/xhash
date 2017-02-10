@@ -522,7 +522,6 @@ func hashFromFile(filename string) (errs int) {
 			errs++
 		}
 	}
-	return
 }
 
 func checkFromFile(filename string) int {
