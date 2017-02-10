@@ -1,5 +1,5 @@
 # xhash
-This Go program uses goroutines to calculate multiple hashes on strings, files and directories.  By default it reads from standard input.  You may select algorithms by groups of digest size, digest family or specific algorithms.  Use the _*-all*_ option to (de)select all algorithms.
+This Go program uses goroutines to calculate multiple hashes on strings, files and directories.  By default it reads from standard input.
 
 # Usage
 
@@ -19,7 +19,7 @@ Install OpenSSL for faster hashing for multiple algorithms.
 
 `xhash -r -sha512 -sha256 $HOME`
 
-* To hash the /etc/passwd file with all algorithms except MD4 and MD5
+* To hash the /etc/passwd file with all algorithms _except_ MD4 and MD5
 
 `xhash -all -md4 -md5 /etc/passwd`
 
