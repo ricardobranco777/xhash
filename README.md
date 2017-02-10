@@ -37,7 +37,7 @@ Install OpenSSL for faster hashing for multiple algorithms.
 
 # Output format
 
-The output format is the same as OpenSSL's *dgst* command.  It may be changed with the _*-bsd*_ option to support the format used by FreeBSD's *md5*, *sha1*, et al; NetBSD's *digest*, or the _*-gnu*_ option to support the format used by *md5sum* and friends.
+The output format is the same as OpenSSL's **dgst** command.  It may be changed with the **-bsd** option to support the format used by FreeBSD's **md5**, **sha1**, _et al_; NetBSD's **digest**, or the **-gnu** option to support the format used by **md5sum** and friends.
 
 # Options
 
@@ -54,11 +54,11 @@ The output format is the same as OpenSSL's *dgst* command.  It may be changed wi
 * `-blake2b512`
     	BLAKE2b512 algorithm
 * `-c value`
-    	read checksums from file (use _*-c ""*_ to read from standard input)
+    	read checksums from file (use **-c ""** to read from standard input)
 * `-gnu`
     	output hashes in the format used by \*sum
 * `-i value`
-    	read pathnames from file (use _*-i ""*_ to read from standard input)
+    	read pathnames from file (use **-i ""** to read from standard input)
 * `-key value`
     	key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname
 * `-md4`
