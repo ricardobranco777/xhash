@@ -41,7 +41,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -109,7 +108,7 @@ var opts struct {
 }
 
 func init() {
-	progname = path.Base(os.Args[0])
+	progname = filepath.Base(os.Args[0])
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] [-s STRING...]|[FILE... DIRECTORY...]\n\n", progname)
