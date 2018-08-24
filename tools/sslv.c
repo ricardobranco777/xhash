@@ -18,17 +18,18 @@
 
 static const char *trylibs[] = {
 	"/lib/libcrypto.so",
+	"/lib64/libcrypto.so",
 	"/usr/lib/libcrypto.so",
+	"/usr/lib64/libcrypto.so",
 	"/usr/pkg/lib/libcrypto.so",
+	"/usr/pkg/lib64/libcrypto.so",
 	"/usr/sfw/lib/libcrypto.so",
+	"/usr/sfw/lib64/libcrypto.so",
 	"/usr/local/lib/libcrypto.so",
+	"/usr/local/lib64/libcrypto.so",
 	"/usr/local/ssl/lib/libcrypto.so",
-	"/usr/lib/x86_64-linux-gnu/libcrypto.so",
-	"/usr/lib/i686-linux-gnu/libcrypto.so",
-	"/usr/lib/i386-linux-gnu/libcrypto.so",
 	"/lib/x86_64-linux-gnu/libcrypto.so",
-	"/lib/i686-linux-gnu/libcrypto.so",
-	"/lib/i386-linux-gnu/libcrypto.so",
+	"/usr/lib/x86_64-linux-gnu/libcrypto.so",
 	NULL
 };
 
