@@ -5,10 +5,6 @@ This Go program uses goroutines to calculate multiple hashes on strings, files a
 
 Usage: xhash [OPTIONS] [-s STRING...]|[FILE... DIRECTORY...]
 
-# OpenSSL
-
-Install OpenSSL 1.1.0 for faster hashing for multiple algorithms.
-
 # Examples:
 
 * To hash every file in your home directory using both SHA-512 and SHA-256
@@ -33,7 +29,7 @@ Install OpenSSL 1.1.0 for faster hashing for multiple algorithms.
 
 # Output format
 
-The output format is the same as OpenSSL's **dgst** command.  It may be changed with the **-bsd** option to support the format used by FreeBSD's **md5**, **sha1**, _et al_; NetBSD's **digest**, or the **-gnu** option to support the format used by **md5sum** and friends.
+The output format is the same as OpenSSL's **dgst** command.  It may be changed with the **-bsd** option to support the format used by \*BSD tools (**md5**, **sha1**, **digest**, et.), or the **-gnu** option to support the format used by **md5sum**, *et al*
 
 # Options
 

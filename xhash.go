@@ -1,40 +1,24 @@
-// (C) 2016, 2017 by Ricardo Branco
+// (C) 2016, 2017, 2018 by Ricardo Branco
 //
 // MIT License
 
 package main
-
-/*
-#cgo CFLAGS: -I/usr/include
-#cgo LDFLAGS: -lcrypto -L/usr/lib
-#include <openssl/crypto.h>
-
-#if OPENSSL_VERSION_NUMBER >> 20 & 0xff
-// This function was renamed in OpenSSL 1.1.0
-#undef SSLeay_version
-const char *SSLeay_version(int t) {
-	return OpenSSL_version(t);
-}
-const char *SSLeay_version(int t);
-#endif
-*/
-import "C"
 
 import (
 	"bufio"
 	"bytes"
 	"crypto"
 	"crypto/hmac"
+	_ "crypto/md5"
+	_ "crypto/sha1"
+	_ "crypto/sha256"
+	_ "crypto/sha512"
 	"crypto/subtle"
 	"encoding/hex"
 	"flag"
 	"fmt"
-	_ "github.com/ricardobranco777/dgst/md4"
-	_ "github.com/ricardobranco777/dgst/md5"
-	_ "github.com/ricardobranco777/dgst/sha1"
-	_ "github.com/ricardobranco777/dgst/sha256"
-	_ "github.com/ricardobranco777/dgst/sha512"
 	"golang.org/x/crypto/blake2b"
+	_ "golang.org/x/crypto/md4"
 	_ "golang.org/x/crypto/sha3"
 	"hash"
 	"io"
@@ -149,7 +133,6 @@ func main() {
 			fmt.Printf(" %s", hashes[h].name)
 		}
 		fmt.Println()
-		fmt.Printf("%s\n", C.GoString(C.SSLeay_version(0)))
 		os.Exit(0)
 	}
 
@@ -368,7 +351,7 @@ func hashSmallF(f *os.File) (errs bool) {
 	return
 }
 
-func hashF(f *os.File) (errs bool) {
+func hashF(f *os.File) bool {
 	var wg sync.WaitGroup
 	var writers []io.Writer
 	var pipeWriters []*io.PipeWriter
@@ -377,26 +360,25 @@ func hashF(f *os.File) (errs bool) {
 		if opts.cFile.isSet() && !checkHashes.Test(h) {
 			continue
 		}
-		wg.Add(1)
 		pr, pw := io.Pipe()
 		writers = append(writers, pw)
 		pipeWriters = append(pipeWriters, pw)
-		go func(h int, r io.Reader) {
+		wg.Add(1)
+		go func(h int) {
 			defer wg.Done()
 			if debug {
 				defer timeTrack(time.Now(), hashes[h].name)
 			}
-			if _, err := io.Copy(hashes[h], r); err != nil {
-				errs = true
-				return
+			if _, err := io.Copy(hashes[h], pr); err != nil {
+				panic(err)
 			}
 			hashes[h].digest = hashes[h].Sum(nil)
 			hashes[h].Reset()
-		}(h, pr)
+		}(h)
 	}
 
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		defer func() {
 			for _, pw := range pipeWriters {
@@ -409,13 +391,12 @@ func hashF(f *os.File) (errs bool) {
 
 		// copy the data into the multiwriter
 		if _, err := io.Copy(mw, f); err != nil {
-			perror("%v", err)
-			errs = true
+			panic(err)
 		}
 	}()
 
 	wg.Wait()
-	return
+	return false
 }
 
 func hashPathname(pathname string) (errs int) {
