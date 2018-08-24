@@ -21,6 +21,6 @@ get_files()
 }
 
 sed -ri "s%(^#cgo CFLAGS:) -I/usr/include%\1 -I${includedir}%" $(get_files)
-sed -ri "s%(^#cgo LDFLAGS: -lcrypto) -L/usr/lib%\1 -L${libdir}%" $(get_files)
+sed -ri "s%(^#cgo LDFLAGS: -lcrypto) -L/usr/lib.*$%\1 -L${libdir}%" $(get_files)
 
 go build
