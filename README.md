@@ -7,7 +7,7 @@ Usage: xhash [OPTIONS] [-s STRING...]|[FILE... DIRECTORY...]
 
 # OpenSSL
 
-Install OpenSSL 1.1.0 for faster hashing for multiple algorithms.
+Install OpenSSL 1.1.X for faster hashing for multiple algorithms.
 
 # Examples:
 
