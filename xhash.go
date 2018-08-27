@@ -4,19 +4,35 @@
 
 package main
 
+/*
+#cgo pkg-config: libcrypto
+#include <openssl/crypto.h>
+
+#if OPENSSL_VERSION_NUMBER >> 20 & 0xff
+// This function was renamed in OpenSSL 1.1.0
+#undef SSLeay_version
+const char *SSLeay_version(int t) {
+       return OpenSSL_version(t);
+}
+const char *SSLeay_version(int t);
+#endif
+*/
+import "C"
+
 import (
 	"bufio"
 	"bytes"
 	"crypto"
 	"crypto/hmac"
-	_ "crypto/md5"
-	_ "crypto/sha1"
-	_ "crypto/sha256"
-	_ "crypto/sha512"
 	"crypto/subtle"
 	"encoding/hex"
 	"flag"
 	"fmt"
+	_ "github.com/ricardobranco777/dgst/md4"
+	_ "github.com/ricardobranco777/dgst/md5"
+	_ "github.com/ricardobranco777/dgst/sha1"
+	_ "github.com/ricardobranco777/dgst/sha256"
+	_ "github.com/ricardobranco777/dgst/sha512"
 	"golang.org/x/crypto/blake2b"
 	_ "golang.org/x/crypto/md4"
 	_ "golang.org/x/crypto/sha3"
@@ -133,6 +149,7 @@ func main() {
 			fmt.Printf(" %s", hashes[h].name)
 		}
 		fmt.Println()
+		fmt.Printf("%s\n", C.GoString(C.SSLeay_version(0)))
 		os.Exit(0)
 	}
 
