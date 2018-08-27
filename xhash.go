@@ -34,7 +34,6 @@ import (
 	_ "github.com/ricardobranco777/dgst/sha256"
 	_ "github.com/ricardobranco777/dgst/sha512"
 	"golang.org/x/crypto/blake2b"
-	_ "golang.org/x/crypto/md4"
 	_ "golang.org/x/crypto/sha3"
 	"hash"
 	"io"
