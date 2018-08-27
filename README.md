@@ -15,9 +15,9 @@ Install OpenSSL 1.1.X for faster hashing for multiple algorithms.
 
 `xhash -r -sha512 -sha256 $HOME`
 
-* To hash the /etc/passwd file with all algorithms _except_ MD4 and MD5
+* To hash the /etc/passwd file with all algorithms _except_ MD5 and SHA-1
 
-`xhash -all -md4 -md5 /etc/passwd`
+`xhash -all -md5 -sha1 /etc/passwd`
 
 * To hash the string "abc" with all algorithms
 
@@ -57,8 +57,6 @@ The output format is the same as OpenSSL's **dgst** command.  It may be changed 
     	read pathnames from file (use **-i ""** to read from standard input)
 * `-key value`
     	key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname
-* `-md4`
-    	MD4 algorithm
 * `-md5`
     	MD5 algorithm
 * `-quiet`
