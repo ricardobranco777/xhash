@@ -31,9 +31,9 @@ import (
 	_ "github.com/ricardobranco777/dgst/md5"
 	_ "github.com/ricardobranco777/dgst/sha1"
 	_ "github.com/ricardobranco777/dgst/sha256"
+	_ "github.com/ricardobranco777/dgst/sha3"
 	_ "github.com/ricardobranco777/dgst/sha512"
 	"golang.org/x/crypto/blake2b"
-	_ "golang.org/x/crypto/sha3"
 	"hash"
 	"io"
 	"io/ioutil"
@@ -82,6 +82,8 @@ var hashes = []*struct {
 	{name: "SHA256", hash: crypto.SHA256, size: 32},
 	{name: "SHA384", hash: crypto.SHA384, size: 48},
 	{name: "SHA512", hash: crypto.SHA512, size: 64},
+	{name: "SHA512-224", hash: crypto.SHA512_224, size: 28},
+	{name: "SHA512-256", hash: crypto.SHA512_256, size: 32},
 	{name: "SHA3-224", hash: crypto.SHA3_224, size: 28},
 	{name: "SHA3-256", hash: crypto.SHA3_256, size: 32},
 	{name: "SHA3-384", hash: crypto.SHA3_384, size: 48},
