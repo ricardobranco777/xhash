@@ -28,7 +28,6 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	_ "github.com/ricardobranco777/dgst/md4"
 	_ "github.com/ricardobranco777/dgst/md5"
 	_ "github.com/ricardobranco777/dgst/sha1"
 	_ "github.com/ricardobranco777/dgst/sha256"
@@ -77,7 +76,6 @@ var hashes = []*struct {
 	{name: "BLAKE2b256", hash: BLAKE2b256, size: 32},
 	{name: "BLAKE2b384", hash: BLAKE2b384, size: 48},
 	{name: "BLAKE2b512", hash: BLAKE2b512, size: 64},
-	{name: "MD4", hash: crypto.MD4, size: 16},
 	{name: "MD5", hash: crypto.MD5, size: 16},
 	{name: "SHA1", hash: crypto.SHA1, size: 20},
 	{name: "SHA224", hash: crypto.SHA224, size: 28},
@@ -541,7 +539,7 @@ func checkFromFile(filename string) int {
 	// Format used by md5sum, et al
 	gnu := regexp.MustCompile(`^[\\]?([0-9a-f]{16,}) [ \*](.*)$`)
 	// Get hint from filename for the algorithm to use
-	re := regexp.MustCompile(`(?i:(md4|md5|sha1|sha224|sha256|sha384|sha512))`)
+	re := regexp.MustCompile(`(?i:(md5|sha1|sha224|sha256|sha384|sha512))`)
 	hint := strings.ToUpper(re.FindString(filepath.Base(filename)))
 
 	f := os.Stdin
