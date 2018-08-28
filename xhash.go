@@ -32,8 +32,8 @@ import (
 	_ "github.com/ricardobranco777/dgst/md5"
 	_ "github.com/ricardobranco777/dgst/sha1"
 	_ "github.com/ricardobranco777/dgst/sha256"
-	_ "github.com/ricardobranco777/dgst/sha512"
 	_ "github.com/ricardobranco777/dgst/sha3"
+	_ "github.com/ricardobranco777/dgst/sha512"
 	"golang.org/x/crypto/blake2b"
 	"hash"
 	"io"
@@ -92,19 +92,20 @@ var hashes = []*struct {
 }
 
 var opts struct {
-	all     bool
-	bsd     bool
-	gnu     bool
-	quiet   bool
-	recurse bool
-	status  bool
-	str     bool
-	verbose bool
-	version bool
-	zero    bool
-	cFile   strFlag
-	iFile   strFlag
-	key     strFlag
+	all           bool
+	bsd           bool
+	gnu           bool
+	ignoreMissing bool
+	quiet         bool
+	recurse       bool
+	status        bool
+	str           bool
+	verbose       bool
+	version       bool
+	zero          bool
+	cFile         strFlag
+	iFile         strFlag
+	key           strFlag
 }
 
 func init() {
@@ -124,6 +125,7 @@ func init() {
 	flag.BoolVar(&opts.gnu, "gnu", false, "output hashes in the format used by *sum")
 	flag.BoolVar(&opts.recurse, "r", false, "recurse into directories")
 	flag.BoolVar(&opts.str, "s", false, "treat arguments as strings")
+	flag.BoolVar(&opts.ignoreMissing, "ignore-missing", false, "don't fail or report status for missing files")
 	flag.BoolVar(&opts.quiet, "quiet", false, "don't print OK for each successfully verified file")
 	flag.BoolVar(&opts.status, "status", false, "don't output anything, status code shows success")
 	flag.BoolVar(&opts.verbose, "v", false, "verbose operation (currently useful with the -c option)")
@@ -420,7 +422,11 @@ func hashPathname(pathname string) (errs int) {
 	f, err := os.Open(pathname)
 	if err != nil {
 		perror("%v", err)
-		return -1
+		if opts.ignoreMissing && opts.cFile.isSet() {
+			return 0
+		} else {
+			return -1
+		}
 	}
 	defer f.Close()
 
