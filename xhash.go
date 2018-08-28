@@ -5,7 +5,8 @@
 package main
 
 /*
-#cgo pkg-config: libcrypto
+#cgo CFLAGS: -I/usr/local/ssl/include
+#cgo LDFLAGS: -lcrypto -L/usr/local/ssl/lib
 #include <openssl/crypto.h>
 
 #if OPENSSL_VERSION_NUMBER >> 20 & 0xff
