@@ -7,7 +7,17 @@ Usage: xhash [OPTIONS] [-s STRING...]|[FILE... DIRECTORY...]
 
 # OpenSSL
 
-Install OpenSSL 1.1.X for faster hashing for multiple algorithms.
+Install OpenSSL 1.1.1 for faster hashing for multiple algorithms:
+
+```
+./config --prefix=/usr/local/ssl -Wl,-rpath=/usr/local/ssl/lib
+make && make test
+sudo make install
+```
+
+# Build
+
+Run `build.sh`
 
 # Examples:
 
