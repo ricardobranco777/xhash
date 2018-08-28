@@ -5,18 +5,8 @@
 package main
 
 /*
-#cgo CFLAGS: -I/usr/local/ssl/include
 #cgo LDFLAGS: -lcrypto -L/usr/local/ssl/lib
 #include <openssl/crypto.h>
-
-#if OPENSSL_VERSION_NUMBER >> 20 & 0xff
-// This function was renamed in OpenSSL 1.1.0
-#undef SSLeay_version
-const char *SSLeay_version(int t) {
-       return OpenSSL_version(t);
-}
-const char *SSLeay_version(int t);
-#endif
 */
 import "C"
 
@@ -151,7 +141,7 @@ func main() {
 			fmt.Printf(" %s", hashes[h].name)
 		}
 		fmt.Println()
-		fmt.Printf("%s\n", C.GoString(C.SSLeay_version(0)))
+		fmt.Printf("%s\n", C.GoString(C.OpenSSL_version(0)))
 		os.Exit(0)
 	}
 
