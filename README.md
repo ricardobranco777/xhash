@@ -65,6 +65,8 @@ The output format is the same as OpenSSL's **dgst** command.  It may be changed 
     	output hashes in the format used by \*sum
 * `-i value`
     	read pathnames from file (use **-i ""** to read from standard input)
+* `-ignore-missing`
+    	don't fail or report status for missing files
 * `-key value`
     	key for HMAC (in hexadecimal). If key starts with '/' read key from specified pathname
 * `-md5`
