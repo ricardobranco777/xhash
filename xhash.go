@@ -15,7 +15,6 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/hmac"
-	"crypto/subtle"
 	"encoding/hex"
 	"flag"
 	"fmt"
@@ -271,7 +270,7 @@ func unescapeFilename(filename string) (result string) {
 
 func equalDigests(h int) bool {
 	if macKey != nil {
-		return subtle.ConstantTimeCompare(hashes[h].digest, hashes[h].cDigest) == 1
+		return hmac.Equal(hashes[h].digest, hashes[h].cDigest)
 	} else {
 		return bytes.Equal(hashes[h].digest, hashes[h].cDigest)
 	}
