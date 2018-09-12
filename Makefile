@@ -1,5 +1,7 @@
 SSL_LIB_DIR = $(shell ls -d /usr/local/ssl/lib64 2>/dev/null)
-SSL_LIB_DIR ?= /usr/local/ssl/lib
+ifeq ($(SSL_LIB_DIR),)
+	SSL_LIB_DIR := /usr/local/ssl/lib
+endif
 
 .PHONY: all
 
