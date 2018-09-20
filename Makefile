@@ -6,7 +6,7 @@ endif
 .PHONY: all
 
 all:
-	go build -ldflags "-L /usr/local/ssl/lib -extldflags \"-Wl,-rpath=${SSL_LIB_DIR} -static -ldl\""
+	go build -ldflags "static -ldl -L /usr/local/ssl/lib -extldflags -Wl,-rpath=${SSL_LIB_DIR}"
 
 install: xhash
 	@install -m 0755 xhash /usr/local/bin
