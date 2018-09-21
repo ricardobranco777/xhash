@@ -6,7 +6,9 @@ endif
 .PHONY: all
 
 all:
-	go build -ldflags "-L ${SSL_LIB_DIR} -extldflags \"-Wl,-rpath=${SSL_LIB_DIR} -static -ldl\""
+	# We can safely ignore linker warnings. Glibc static linking is broken.
+	go build -ldflags "-L ${SSL_LIB_DIR} -extldflags \"-ldl -static\"" || \
+	go build -ldflags "-L ${SSL_LIB_DIR} -extldflags \"-Wl,-rpath=${SSL_LIB_DIR}\""
 
 install: xhash
 	@install -m 0755 xhash /usr/local/bin
