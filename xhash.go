@@ -140,7 +140,8 @@ func main() {
 			fmt.Printf(" %s", hashes[h].name)
 		}
 		fmt.Println()
-		fmt.Printf("%s\n", C.GoString(C.OpenSSL_version(0)))
+		fmt.Printf("%s\n", C.GoString(C.OpenSSL_version(C.OPENSSL_VERSION)))
+		fmt.Printf("%s\n", C.GoString(C.OpenSSL_version(C.OPENSSL_CFLAGS)))
 		os.Exit(0)
 	}
 
