@@ -10,7 +10,7 @@ RUN	apt-get update \
 		make \
 		wget
 
-RUN	wget -qO- https://storage.googleapis.com/golang/go1.11.linux-amd64.tar.gz | tar zxf - -C /tmp/
+RUN	wget -qO- https://storage.googleapis.com/golang/go1.11.1.linux-amd64.tar.gz | tar zxf - -C /tmp/
 
 RUN	PATH=$PATH:/tmp/go/bin GOPATH=/tmp/ go get github.com/ricardobranco777/xhash
 
