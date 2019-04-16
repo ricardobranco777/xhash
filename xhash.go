@@ -1,29 +1,23 @@
-// (C) 2016, 2017, 2018 by Ricardo Branco
+// (C) 2016-2019 by Ricardo Branco
 //
 // MIT License
 
 package main
-
-/*
-#cgo LDFLAGS: -lcrypto -L/usr/local/ssl/lib
-#include <openssl/crypto.h>
-*/
-import "C"
 
 import (
 	"bufio"
 	"bytes"
 	"crypto"
 	"crypto/hmac"
+	_ "crypto/md5"
+	_ "crypto/sha1"
+	_ "crypto/sha256"
+	_ "crypto/sha512"
 	"encoding/hex"
 	"flag"
 	"fmt"
-	_ "github.com/ricardobranco777/go-openssl/md5"
-	_ "github.com/ricardobranco777/go-openssl/sha1"
-	_ "github.com/ricardobranco777/go-openssl/sha256"
-	_ "github.com/ricardobranco777/go-openssl/sha3"
-	_ "github.com/ricardobranco777/go-openssl/sha512"
 	"golang.org/x/crypto/blake2b"
+	_ "golang.org/x/crypto/sha3"
 	"hash"
 	"io"
 	"io/ioutil"
@@ -140,8 +134,6 @@ func main() {
 			fmt.Printf(" %s", hashes[h].name)
 		}
 		fmt.Println()
-		fmt.Printf("%s\n", C.GoString(C.OpenSSL_version(C.OPENSSL_VERSION)))
-		fmt.Printf("%s\n", C.GoString(C.OpenSSL_version(C.OPENSSL_CFLAGS)))
 		os.Exit(0)
 	}
 
