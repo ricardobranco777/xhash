@@ -33,12 +33,6 @@ import (
 
 const version = "1.0"
 
-const (
-	BLAKE2b256 = 100 + iota
-	BLAKE2b384
-	BLAKE2b512
-)
-
 var (
 	algorithms  *Bitset // Algorithms chosen in the command line
 	checkHashes *Bitset // Algorithms read with the -c option
@@ -57,9 +51,9 @@ var hashes = []*struct {
 	size    int
 	hash.Hash
 }{
-	{name: "BLAKE2b256", hash: BLAKE2b256},
-	{name: "BLAKE2b384", hash: BLAKE2b384},
-	{name: "BLAKE2b512", hash: BLAKE2b512},
+	{name: "BLAKE2b256", hash: crypto.BLAKE2b_256},
+	{name: "BLAKE2b384", hash: crypto.BLAKE2b_384},
+	{name: "BLAKE2b512", hash: crypto.BLAKE2b_512},
 	{name: "MD5", hash: crypto.MD5},
 	{name: "SHA1", hash: crypto.SHA1},
 	{name: "SHA224", hash: crypto.SHA224},
@@ -227,11 +221,11 @@ func initHash(h int) {
 	}
 
 	switch hashes[h].hash {
-	case BLAKE2b256:
+	case crypto.BLAKE2b_256:
 		hashes[h].Hash = blake2_(blake2b.New256, macKey)
-	case BLAKE2b384:
+	case crypto.BLAKE2b_384:
 		hashes[h].Hash = blake2_(blake2b.New384, macKey)
-	case BLAKE2b512:
+	case crypto.BLAKE2b_512:
 		hashes[h].Hash = blake2_(blake2b.New512, macKey)
 	default:
 		if macKey != nil {
