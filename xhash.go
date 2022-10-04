@@ -1,11 +1,6 @@
-// (C) 2016-2019 by Ricardo Branco
-//
-// MIT License
-
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"crypto"
 	"crypto/hmac"
@@ -14,670 +9,301 @@ import (
 	_ "crypto/sha256"
 	_ "crypto/sha512"
 	"encoding/hex"
-	"flag"
 	"fmt"
-	"golang.org/x/crypto/blake2b"
 	_ "golang.org/x/crypto/sha3"
 	"hash"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"sync"
-	"time"
 )
 
-const version = "1.0"
+import flag "github.com/spf13/pflag"
 
-var (
-	algorithms  *Bitset // Algorithms chosen in the command line
-	checkHashes *Bitset // Algorithms read with the -c option
-	chosen      []int
-	debug       bool
-	macKey      []byte
-	progname    string
-)
+const version string = "v2.0"
 
-var hashes = []*struct {
-	check   bool
-	hash    crypto.Hash
-	name    string
-	digest  []byte
-	cDigest []byte
-	size    int
+type Checksum struct {
+	hash crypto.Hash
 	hash.Hash
-}{
-	{name: "BLAKE2b256", hash: crypto.BLAKE2b_256},
-	{name: "BLAKE2b384", hash: crypto.BLAKE2b_384},
-	{name: "BLAKE2b512", hash: crypto.BLAKE2b_512},
-	{name: "MD5", hash: crypto.MD5},
-	{name: "SHA1", hash: crypto.SHA1},
-	{name: "SHA224", hash: crypto.SHA224},
-	{name: "SHA256", hash: crypto.SHA256},
-	{name: "SHA384", hash: crypto.SHA384},
-	{name: "SHA512", hash: crypto.SHA512},
-	{name: "SHA512-224", hash: crypto.SHA512_224},
-	{name: "SHA512-256", hash: crypto.SHA512_256},
-	{name: "SHA3-224", hash: crypto.SHA3_224},
-	{name: "SHA3-256", hash: crypto.SHA3_256},
-	{name: "SHA3-384", hash: crypto.SHA3_384},
-	{name: "SHA3-512", hash: crypto.SHA3_512},
+	sum []byte
 }
 
+type Info struct {
+	check bool
+	name  string
+}
+
+type Input struct {
+	file string
+	// Used only by the -c option
+	sum  []byte
+	hash crypto.Hash
+}
+
+type Results struct {
+	file      string
+	checksums []*Checksum
+	// Used only by the -c option
+	check []byte
+}
+
+var (
+	algorithms map[crypto.Hash]*Info
+	chosen     []*Checksum
+	logger     *log.Logger
+	macKey     []byte
+	name2Hash  map[string]crypto.Hash
+)
+
 var opts struct {
-	all           bool
-	bsd           bool
-	gnu           bool
-	ignoreMissing bool
-	quiet         bool
-	recurse       bool
-	status        bool
-	str           bool
-	verbose       bool
-	version       bool
-	zero          bool
-	cFile         strFlag
-	iFile         strFlag
-	key           strFlag
+	all       bool
+	bsd       bool
+	check     string
+	gnu       bool
+	input     string
+	ignore    bool
+	key       string
+	quiet     bool // Used by the -c option
+	recursive bool
+	status    bool // Used by the -c option
+	strict    bool // Used by the -c option
+	str       bool
+	verbose   bool // Used by the -c option
+	version   bool
+	warn      bool // Used by the -c option
+}
+
+var stats struct {
+	unmatched  uint64
+	unreadable uint64
+}
+
+func display(results *Results) {
+	file := results.file
+	if opts.check != "\x00" {
+		var ok bool
+		if macKey != nil {
+			ok = hmac.Equal(results.checksums[0].sum, results.check)
+		} else {
+			ok = bytes.Equal(results.checksums[0].sum, results.check)
+		}
+		if ok {
+			if !opts.quiet && !opts.status {
+				if opts.verbose {
+					fmt.Printf("%s: %s OK\n", file, algorithms[results.checksums[0].hash].name)
+				} else {
+					fmt.Printf("%s: OK\n", file)
+				}
+			}
+		} else {
+			stats.unmatched++
+			if !opts.status {
+				if opts.verbose {
+					fmt.Printf("%s: %s FAILED with %s\n", file, algorithms[results.checksums[0].hash].name, hex.EncodeToString(results.checksums[0].sum))
+				} else {
+					fmt.Printf("%s: FAILED\n", file)
+				}
+			}
+		}
+	} else {
+		var prefix string
+		if opts.gnu {
+			prefix, file = escapeFilename(results.file)
+		}
+		for _, h := range results.checksums {
+			if opts.bsd {
+				fmt.Printf("%s (%s) = %x\n", algorithms[h.hash].name, file, h.sum)
+			} else if opts.gnu {
+				fmt.Printf("%s%x  %s\n", prefix, h.sum, file)
+			} else {
+				fmt.Printf("%s(%s)= %x\n", algorithms[h.hash].name, file, h.sum)
+			}
+		}
+	}
 }
 
 func init() {
-	progname = filepath.Base(os.Args[0])
+	logger = log.New(os.Stderr, "ERROR: ", 0)
+
+	progname := filepath.Base(os.Args[0])
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] [-s STRING...]|[FILE... DIRECTORY...]\n\n", progname)
+		fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... DIRECTORY...]\n\n", progname)
 		flag.PrintDefaults()
 	}
 
-	for h := range hashes {
-		flag.BoolVar(&hashes[h].check, strings.ToLower(hashes[h].name), false, hashes[h].name+" algorithm")
+	flag.BoolVarP(&opts.all, "all", "a", false, "all algorithms (except others specified, if any)")
+	flag.BoolVarP(&opts.bsd, "bsd", "", false, "output hashes in the format used by *BSD")
+	flag.BoolVarP(&opts.gnu, "gnu", "", false, "output hashes in the format used by *sum")
+	flag.BoolVarP(&opts.ignore, "ignore-missing", "", false, "don't fail or report status for missing files")
+	flag.BoolVarP(&opts.quiet, "quiet", "q", false, "don't print OK for each successfully verified file")
+	flag.BoolVarP(&opts.recursive, "recursive", "r", false, "recurse into directories")
+	flag.BoolVarP(&opts.status, "status", "S", false, "don't output anything, status code shows success")
+	flag.BoolVarP(&opts.strict, "strict", "", false, "exit non-zero for improperly formatted checksum lines")
+	flag.BoolVarP(&opts.str, "string", "s", false, "treat arguments as strings")
+	flag.BoolVarP(&opts.verbose, "verbose", "v", false, "verbose operation")
+	flag.BoolVarP(&opts.version, "version", "V", false, "show version and exit")
+	flag.BoolVarP(&opts.warn, "warn", "w", false, "warn about improperly formatted checksum lines")
+	flag.StringVarP(&opts.check, "check", "c", "\x00", "read checksums from file (use \"\" for stdin)")
+	flag.StringVarP(&opts.input, "input", "i", "\x00", "read pathnames from file (use \"\" for stdin)")
+	flag.StringVarP(&opts.key, "hmac", "H", "\x00", "key for HMAC (in hexadecimal) or read from specified pathname")
+
+	hashes := []crypto.Hash{
+		crypto.BLAKE2b_256,
+		//crypto.BLAKE2b_384,
+		crypto.BLAKE2b_512,
+		//crypto.MD4,
+		crypto.MD5,
+		crypto.SHA1,
+		//crypto.SHA224,
+		crypto.SHA256,
+		//crypto.SHA384,
+		crypto.SHA512,
+		//crypto.SHA512_224,
+		crypto.SHA512_256,
+		//crypto.SHA3_224,
+		crypto.SHA3_256,
+		//crypto.SHA3_384,
+		crypto.SHA3_512,
+	}
+	max := 0
+	for _, h := range hashes {
+		if int(h) > max {
+			max = int(h)
+		}
 	}
 
-	flag.BoolVar(&opts.all, "all", false, "all algorithms (except others specified, if any)")
-	flag.BoolVar(&opts.bsd, "bsd", false, "output hashes in the format used by *BSD")
-	flag.BoolVar(&opts.gnu, "gnu", false, "output hashes in the format used by *sum")
-	flag.BoolVar(&opts.recurse, "r", false, "recurse into directories")
-	flag.BoolVar(&opts.str, "s", false, "treat arguments as strings")
-	flag.BoolVar(&opts.ignoreMissing, "ignore-missing", false, "don't fail or report status for missing files")
-	flag.BoolVar(&opts.quiet, "quiet", false, "don't print OK for each successfully verified file")
-	flag.BoolVar(&opts.status, "status", false, "don't output anything, status code shows success")
-	flag.BoolVar(&opts.verbose, "v", false, "verbose operation (currently useful with the -c option)")
-	flag.BoolVar(&opts.version, "version", false, "show version and exit")
-	flag.BoolVar(&opts.zero, "0", false, "lines are terminated by a null character (with the -i option)")
-	flag.Var(&opts.cFile, "c", "read checksums from file (use '-c \"\"' to read from standard input)")
-	flag.Var(&opts.iFile, "i", "read pathnames from file (use '-i \"\"' to read from standard input)")
-	flag.Var(&opts.key, "key", "key for HMAC (in hexadecimal). If key starts with '"+string(os.PathSeparator)+"' read key from specified pathname")
-
-	algorithms = NewBitset(len(hashes) - 1)
-	checkHashes = NewBitset(len(hashes) - 1)
-
-	debug = os.Getenv("DEBUG") != ""
-}
-
-func main() {
+	algorithms = make(map[crypto.Hash]*Info)
+	for _, h := range hashes {
+		if h.Available() {
+			algorithms[h] = &Info{
+				name: strings.ReplaceAll(strings.ReplaceAll(h.String(), "SHA-", "SHA"), "/", "-"),
+			}
+			flag.BoolVar(
+				&algorithms[h].check,
+				strings.ToLower(algorithms[h].name),
+				false,
+				h.String()+" algorithm")
+		}
+	}
 	flag.Parse()
 
+	if opts.bsd && opts.gnu {
+		logger.Fatal("The --bsd & --gnu options are mutually exclusive")
+	}
+	if opts.input != "\x00" && opts.check != "\x00" {
+		logger.Fatal("The --input & --check options are mutually exclusive")
+	}
+
 	if opts.version {
-		fmt.Printf("%s v%s %s %s %s\n", progname, version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+		fmt.Printf("%s\t%v %s/%s\n", version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 		fmt.Printf("Supported hashes:")
-		for h := range hashes {
-			fmt.Printf(" %s", hashes[h].name)
+		for _, h := range hashes {
+			fmt.Printf(" %s", algorithms[h].name)
 		}
 		fmt.Println()
 		os.Exit(0)
 	}
 
-	for h := range hashes {
-		if hashes[h].check {
-			algorithms.Add(h)
+	if opts.all {
+		// Ignore algorithm if -all was specified
+		for h := range algorithms {
+			algorithms[h].check = !algorithms[h].check
 		}
 	}
 
-	if opts.all || algorithms.GetCount() == 0 {
-		if algorithms.GetCount() == 0 {
-			algorithms.SetAll()
-		} else {
-			for h := range hashes {
-				if algorithms.Test(h) {
-					algorithms.Del(h)
-				} else {
-					algorithms.Add(h)
-				}
-			}
+	// Initialize algorithms
+	for _, h := range hashes {
+		if h.Available() && algorithms[h].check {
+			chosen = append(chosen, &Checksum{hash: h})
 		}
 	}
-	chosen = algorithms.GetAll()
 
-	if opts.key.isSet() {
+	if opts.check != "\x00" {
+		// Populate name2Hash
+		name2Hash = make(map[string]crypto.Hash)
+		for _, h := range hashes {
+			name2Hash[algorithms[h].name] = h
+		}
+	} else if len(chosen) == 0 {
+		// SHA-512 is default
+		chosen = append(chosen, &Checksum{hash: crypto.SHA512})
+	}
+
+	if opts.key != "\x00" {
 		var err error
-		key := opts.key.String()
-		if strings.HasPrefix(key, string(os.PathSeparator)) {
-			if macKey, err = ioutil.ReadFile(key); err != nil {
-				perror("%v", err)
-				os.Exit(1)
+		if opts.key == "" {
+			if macKey, err = io.ReadAll(os.Stdin); err != nil {
+				logger.Fatal(err)
 			}
-		} else {
-			if macKey, err = hex.DecodeString(key); err != nil {
-				perror("%v", err)
-				os.Exit(1)
+		} else if macKey, err = hex.DecodeString(opts.key); err != nil {
+			if macKey, err = os.ReadFile(opts.key); err != nil {
+				logger.Fatal(err)
 			}
 		}
 	}
+}
 
-	for h := range hashes {
-		if !opts.cFile.isSet() && !algorithms.Test(h) {
-			continue
-		}
-		initHash(h)
-	}
-
-	var errs bool
-
-	if opts.cFile.isSet() {
-		errs = checkFromFile(opts.cFile.String()) != 0
-	} else if opts.iFile.isSet() {
-		errs = hashFromFile(opts.cFile.String()) != 0
+func main() {
+	inputFrom := inputFromArgs
+	if opts.check != "\x00" {
+		inputFrom = inputFromCheck
+	} else if opts.input != "\x00" {
+		inputFrom = inputFromFile
 	} else if flag.NArg() == 0 {
-		errs = hashStdin()
-	}
-
-	if opts.str {
+		display(hashStdin())
+		os.Exit(0)
+	} else if opts.recursive {
+		inputFrom = inputFromDir
+	} else if opts.str {
 		for _, s := range flag.Args() {
-			hashString(s)
+			display(hashString(s))
 		}
-	} else {
-		for _, pathname := range flag.Args() {
-			errs = hashPathname(pathname) != 0
-		}
+		os.Exit(0)
 	}
 
-	if errs {
-		os.Exit(1)
-	}
-}
-
-func perror(format string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "%s: ", progname)
-	fmt.Fprintf(os.Stderr, format+"\n", args...)
-}
-
-// Wrapper for the Blake2 New() methods that need an optional key for MAC
-func blake2_(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
-	h, err := f(key)
-	if err != nil {
-		perror("%v", err)
-		os.Exit(1)
-	}
-	return h
-}
-
-func initHash(h int) {
-	if hashes[h].Hash != nil {
-		return
-	}
-
-	switch hashes[h].hash {
-	case crypto.BLAKE2b_256:
-		hashes[h].Hash = blake2_(blake2b.New256, macKey)
-	case crypto.BLAKE2b_384:
-		hashes[h].Hash = blake2_(blake2b.New384, macKey)
-	case crypto.BLAKE2b_512:
-		hashes[h].Hash = blake2_(blake2b.New512, macKey)
-	default:
-		if macKey != nil {
-			hashes[h].Hash = hmac.New(hashes[h].hash.New, macKey)
-		} else {
-			hashes[h].Hash = hashes[h].hash.New()
-		}
-	}
-
-	hashes[h].size = hashes[h].Size()
-}
-
-func escapeFilename(filename string) (prefix string, result string) {
-	if strings.ContainsAny(filename, "\n\\") {
-		prefix = "\\"
-		result = strings.Replace(filename, "\\", "\\\\", -1)
-		result = strings.Replace(result, "\n", "\\n", -1)
-		return
-	} else {
-		return "", filename
-	}
-}
-
-func unescapeFilename(filename string) (result string) {
-	result = strings.Replace(filename, "\\\\", "\\", -1)
-	result = strings.Replace(result, "\\n", "\n", -1)
-	return
-}
-
-func equalDigests(h int) bool {
-	if macKey != nil {
-		return hmac.Equal(hashes[h].digest, hashes[h].cDigest)
-	} else {
-		return bytes.Equal(hashes[h].digest, hashes[h].cDigest)
-	}
-}
-
-func display(file string) (errs int) {
-	var prefix string
-	if !opts.cFile.isSet() {
-		if opts.gnu {
-			prefix, file = escapeFilename(file)
-		}
-		for _, h := range chosen {
-			digest := hex.EncodeToString(hashes[h].digest)
-			if opts.bsd {
-				fmt.Printf("%s (%s) = %s\n", hashes[h].name, file, digest)
-			} else if opts.gnu {
-				fmt.Printf("%s%s  %s\n", prefix, digest, file)
-			} else {
-				fmt.Printf("%s(%s)= %s\n", hashes[h].name, file, digest)
-			}
-		}
-	} else if file != "" {
-		prefix, file := escapeFilename(file)
-		for _, h := range chosen {
-			status := ""
-			if checkHashes.Test(h) || checkHashes.GetCount() == 0 {
-				if equalDigests(h) {
-					if !opts.quiet {
-						status = "OK"
-					}
-				} else {
-					status = "FAILED"
-					if opts.verbose {
-						status += " with " + hex.EncodeToString(hashes[h].digest)
-					}
-					errs++
-				}
-				if !opts.status && status != "" {
-					fmt.Printf("%s%s: %s %s\n", prefix, file, hashes[h].name, status)
-				}
-			}
-		}
-	}
-	return
-}
-
-func hashString(str string) {
 	var wg sync.WaitGroup
-	wg.Add(len(chosen))
-	for _, h := range chosen {
-		go func(h int) {
-			defer wg.Done()
-			hashes[h].Write([]byte(str))
-			hashes[h].digest = hashes[h].Sum(nil)
-			hashes[h].Reset()
-		}(h)
-	}
-	wg.Wait()
-	display(`"` + str + `"`)
-}
+	channel := make(chan *Results)
 
-func hashSmallF(f *os.File) (errs bool) {
-	var wg sync.WaitGroup
-
-	data, err := ioutil.ReadAll(f)
-	if err != nil {
-		perror("%v", err)
-		return true
-	}
-
-	for _, h := range chosen {
-		if opts.cFile.isSet() && !checkHashes.Test(h) {
-			continue
-		}
-		wg.Add(1)
-		go func(h int) {
-			defer wg.Done()
-			if debug {
-				defer timeTrack(time.Now(), hashes[h].name)
-			}
-			hashes[h].Write(data)
-			hashes[h].digest = hashes[h].Sum(nil)
-			hashes[h].Reset()
-		}(h)
-	}
-
-	wg.Wait()
-	return
-}
-
-func hashF(f *os.File) bool {
-	var wg sync.WaitGroup
-	var writers []io.Writer
-	var pipeWriters []*io.PipeWriter
-
-	for _, h := range chosen {
-		if opts.cFile.isSet() && !checkHashes.Test(h) {
-			continue
-		}
-		pr, pw := io.Pipe()
-		writers = append(writers, pw)
-		pipeWriters = append(pipeWriters, pw)
-		wg.Add(1)
-		go func(h int) {
-			defer wg.Done()
-			if debug {
-				defer timeTrack(time.Now(), hashes[h].name)
-			}
-			if _, err := io.Copy(hashes[h], pr); err != nil {
-				panic(err)
-			}
-			hashes[h].digest = hashes[h].Sum(nil)
-			hashes[h].Reset()
-		}(h)
-	}
-
-	wg.Add(1)
 	go func() {
-		defer wg.Done()
-		defer func() {
-			for _, pw := range pipeWriters {
-				pw.Close()
-			}
-		}()
+		for input := range inputFrom() {
+			wg.Add(1)
+			go func(input *Input) {
+				defer wg.Done()
+				channel <- hashFile(input)
+			}(input)
 
-		// build the multiwriter for all the pipes
-		mw := io.MultiWriter(writers...)
-
-		// copy the data into the multiwriter
-		if _, err := io.Copy(mw, f); err != nil {
-			panic(err)
 		}
+		wg.Wait()
+		close(channel)
 	}()
 
-	wg.Wait()
-	return false
-}
-
-func hashPathname(pathname string) (errs int) {
-	f, err := os.Open(pathname)
-	if err != nil {
-		perror("%v", err)
-		if opts.ignoreMissing && opts.cFile.isSet() {
-			return 0
-		} else {
-			return -1
-		}
-	}
-	defer f.Close()
-
-	fi, err := f.Stat()
-	if err != nil {
-		perror("%v", err)
-		return -1
-	}
-
-	if fi.IsDir() {
-		if opts.recurse {
-			pathSeparator := string(os.PathSeparator)
-			if !strings.HasSuffix(pathname, pathSeparator) {
-				pathname += pathSeparator
-			}
-			return hashDir(pathname)
-		}
-		perror("%s is a directory and the -r option was not specified", pathname)
-		return -1
-	}
-
-	if fi.Size() < 1e6 {
-		if hashSmallF(f) {
-			errs++
-		}
-	} else {
-		if hashF(f) {
-			errs++
-		}
-	}
-	if errs == 0 {
-		return display(pathname)
-	} else {
-		return -1
-	}
-}
-
-func hashStdin() (errs bool) {
-	if errs = hashF(os.Stdin); !errs {
-		display("")
-	}
-	return
-}
-
-func hashDir(dir string) int {
-	err := filepath.Walk(dir, func(path string, fi os.FileInfo, err error) error {
-		if err != nil {
-			perror("%v", err)
-			if !os.IsPermission(err) {
-				return err
-			}
-		} else {
-			if fi.Mode().IsRegular() {
-				hashPathname(path)
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		perror("%v", err)
-		return -1
-	}
-	return 0
-}
-
-func hashFromFile(filename string) (errs int) {
-	terminator := "\n"
-	if opts.zero {
-		terminator = "\x00"
-	}
-
-	f := os.Stdin
-	var err error
-	if filename != "" {
-		if f, err = os.Open(filename); err != nil {
-			perror("%v", err)
-			os.Exit(1)
-		}
-		defer f.Close()
-	}
-
-	inputReader := bufio.NewReader(f)
-	for {
-		pathname, err := inputReader.ReadString(terminator[0])
-		if err != nil {
-			if err == io.EOF {
-				return
-			}
-			panic(err)
-		}
-		pathname = strings.TrimSuffix(pathname, terminator)
-		if !opts.zero {
-			pathname = strings.TrimSuffix(pathname, "\r")
-		}
-		if hashPathname(pathname) != 0 {
-			errs++
-		}
-	}
-}
-
-func checkFromFile(filename string) int {
-	var hash, current, file, digest string
-	var lineno uint64
-
-	var stats struct {
-		unmatched  uint64
-		unreadable uint64
-	}
-
-	bsdFormat, gnuFormat := opts.bsd, opts.gnu
-
-	defaultHashes := map[int]string{
-		64: "SHA512", 48: "SHA384", 32: "SHA256", 28: "SHA224", 20: "SHA1", 16: "MD5",
-	}
-
-	// Format used by OpenSSL dgst and *BSD md5, et al
-	bsd_begin := regexp.MustCompile(`^[A-Z]+[a-z0-9-]* ?\(`)
-	bsd := regexp.MustCompile(`(?ms:^([A-Z]+[a-z0-9-]*) ?\((.*?)\) ?= ([0-9a-f]{16,})$)`)
-	// Format used by md5sum, et al
-	gnu := regexp.MustCompile(`^[\\]?([0-9a-f]{16,}) [ \*](.*)$`)
-	// Get hint from filename for the algorithm to use
-	re := regexp.MustCompile(`(?i:(md5|sha1|sha224|sha256|sha384|sha512))`)
-	hint := strings.ToUpper(re.FindString(filepath.Base(filename)))
-
-	f := os.Stdin
-	var err error
-	if filename != "" {
-		if f, err = os.Open(filename); err != nil {
-			perror("%v", err)
-			os.Exit(1)
-		}
-		defer f.Close()
-	}
-
-	inputReader := bufio.NewReader(f)
-	for {
-		var xline string
-		lineno++
-		line := ""
-
-		for {
-			xline, err = inputReader.ReadString('\n')
-			if err != nil && err != io.EOF {
-				panic(err)
-			}
-
-			line += xline
-
-			if (bsdFormat || !gnuFormat) && bsd_begin.MatchString(line) {
-				bsdFormat = true
-				if !bsd.MatchString(line) && err == nil {
-					continue
-				}
-			} else {
-				gnuFormat = true
-			}
-			break
-		}
-
-		line = strings.TrimSuffix(line, "\n")
-		line = strings.TrimSuffix(line, "\r")
-
-		if bsdFormat && err == nil {
-			res := bsd.FindStringSubmatch(line)
-			if res == nil {
-				badFormat(lineno)
-			}
-			hash, file, digest = res[1], res[2], strings.ToLower(res[3])
-			hash = strings.Replace(hash, "BLAKE2b-", "BLAKE2b", 1)
-			if hash == "BLAKE2b" {
-				hash = "BLAKE2b512"
-			}
-		} else if gnuFormat && err == nil {
-			res := gnu.FindStringSubmatch(line)
-			if res == nil {
-				badFormat(lineno)
-			}
-			digest, file = strings.ToLower(res[1]), res[2]
-			if strings.HasPrefix(line, "\\") {
-				file = unescapeFilename(file)
-			}
-			if len(chosen) == 1 && len(digest)/2 == hashes[chosen[0]].size {
-				hash = hashes[chosen[0]].name
-			} else if hint != "" {
-				hash = hint
-			} else {
-				hash = defaultHashes[len(digest)/2]
-			}
-		} else if err == nil {
-			badFormat(lineno)
-		}
-
-		if current == "" {
-			current = file
-		}
-
-		h := getHashIndex(hash, len(digest)/2)
-		if h == -1 && err == nil {
-			if opts.verbose {
-				perror("Skipping unsupported algorithm %s for file %s (line %d)", hash, file, lineno)
-			}
+	for checksum := range channel {
+		if checksum == nil {
 			continue
 		}
+		display(checksum)
+	}
 
-		if current != file || err == io.EOF {
-			for _, k := range checkHashes.GetAll() {
-				if algorithms.Test(k) {
-					n := hashPathname(current)
-					if n < 0 {
-						stats.unreadable++
-					} else if n > 0 {
-						stats.unmatched += uint64(n)
-					}
-					break
-				}
+	if opts.check != "\x00" || opts.input != "\x00" {
+		plural := ""
+		if !opts.status && stats.unreadable > 0 {
+			if stats.unreadable > 1 {
+				plural = "s"
 			}
-			current = file
-			checkHashes.ClearAll()
+			fmt.Fprintf(os.Stderr, "WARNING: %d listed file%s could not be read\n", stats.unreadable, plural)
 		}
-
-		if err == io.EOF {
-			break
+		if !opts.status && stats.unmatched > 0 {
+			if stats.unmatched > 1 {
+				plural = "s"
+			}
+			fmt.Fprintf(os.Stderr, "WARNING: %d computed checksum%s did NOT match\n", stats.unmatched, plural)
 		}
-
-		if hashes[h].cDigest, err = hex.DecodeString(digest); err != nil {
-			badFormat(lineno)
-		}
-
-		initHash(h)
-		checkHashes.Add(h)
-	}
-
-	plural := ""
-	if !opts.status && stats.unreadable > 0 {
-		if stats.unreadable > 1 {
-			plural = "s"
-		}
-		perror("WARNING: %d listed file%s could not be read", stats.unreadable, plural)
-	}
-	if !opts.status && stats.unmatched > 0 {
-		if stats.unmatched > 1 {
-			plural = "s"
-		}
-		perror("WARNING: %d computed checksum%s did NOT match", stats.unmatched, plural)
 	}
 	if stats.unreadable > 0 || stats.unmatched > 0 {
-		return -1
+		os.Exit(1)
 	}
-	return 0
-}
-
-var hashIndex = make(map[string]int)
-
-func getHashIndex(name string, size int) int {
-	if h, ok := hashIndex[name]; !ok {
-		for i := range hashes {
-			if hashes[i].size == size && hashes[i].name == name {
-				hashIndex[name] = i
-				return hashIndex[name]
-			}
-		}
-	} else {
-		return h
-	}
-	return -1
-}
-
-func badFormat(lineno uint64) {
-	perror("Unrecognized format at line %d", lineno)
-	os.Exit(1)
-}
-
-func timeTrack(start time.Time, name string) {
-	elapsed := time.Since(start)
-	log.Printf("%s took %s", name, elapsed)
 }
