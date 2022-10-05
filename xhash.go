@@ -11,7 +11,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	_ "golang.org/x/crypto/sha3"
-	"hash"
 	"io"
 	"log"
 	"os"
@@ -25,72 +24,14 @@ import flag "github.com/spf13/pflag"
 
 const version string = "v2.0"
 
-type Checksum struct {
-	hash crypto.Hash
-	hash.Hash
-	sum []byte
-}
-
-type Info struct {
-	check bool
-	name  string
-}
-
-type Input struct {
-	file string
-	// Used only by the -c option
-	sum  []byte
-	hash crypto.Hash
-}
-
-type Results struct {
-	file      string
-	checksums []*Checksum
-	// Used only by the -c option
-	check []byte
-}
-
-var (
-	algorithms map[crypto.Hash]*Info
-	chosen     []*Checksum
-	logger     *log.Logger
-	macKey     []byte
-	name2Hash  map[string]crypto.Hash
-)
-
-var opts struct {
-	all       bool
-	bsd       bool
-	check     string
-	gnu       bool
-	input     string
-	ignore    bool
-	key       string
-	quiet     bool // Used by the -c option
-	recursive bool
-	status    bool // Used by the -c option
-	strict    bool // Used by the -c option
-	str       bool
-	symlinks  bool // Used by the -r option
-	verbose   bool // Used by the -c option
-	version   bool
-	warn      bool // Used by the -c option
-}
-
-var stats struct {
-	invalid    uint64
-	unmatched  uint64
-	unreadable uint64
-}
-
-func display(results *Results) {
+func display(results *Info) {
 	file := results.file
 	if opts.check != "\x00" {
 		var ok bool
 		if macKey != nil {
-			ok = hmac.Equal(results.checksums[0].sum, results.check)
+			ok = hmac.Equal(results.checksums[0].sum, results.checksums[0].csum)
 		} else {
-			ok = bytes.Equal(results.checksums[0].sum, results.check)
+			ok = bytes.Equal(results.checksums[0].sum, results.checksums[0].csum)
 		}
 		if ok {
 			if !opts.quiet && !opts.status {
@@ -179,10 +120,10 @@ func init() {
 		}
 	}
 
-	algorithms = make(map[crypto.Hash]*Info)
+	algorithms = make(map[crypto.Hash]*Algorithm)
 	for _, h := range hashes {
 		if h.Available() {
-			algorithms[h] = &Info{
+			algorithms[h] = &Algorithm{
 				name: strings.ReplaceAll(strings.ReplaceAll(h.String(), "SHA-", "SHA"), "/", "-"),
 			}
 			flag.BoolVar(
@@ -269,12 +210,12 @@ func main() {
 	}
 
 	var wg sync.WaitGroup
-	channel := make(chan *Results)
+	channel := make(chan *Info)
 
 	go func() {
 		for input := range inputFrom() {
 			wg.Add(1)
-			go func(input *Input) {
+			go func(input *Info) {
 				defer wg.Done()
 				channel <- hashFile(input)
 			}(input)

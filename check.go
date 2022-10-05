@@ -18,12 +18,12 @@ var regex = struct {
 
 var size2hash = map[int]string{128: "SHA512", 96: "SHA384", 64: "SHA256", 56: "SHA224", 40: "SHA1", 32: "MD5"}
 
-func bestHash(inputs []*Input) (best *Input) {
+func bestHash(inputs []*Info) (best *Info) {
 	max := 0
 	// For now, choose the algorithm with the longest digest size
 	for _, input := range inputs {
-		if input.hash.Size() > max {
-			max = input.hash.Size()
+		if input.checksums[0].hash.Size() > max {
+			max = input.checksums[0].hash.Size()
 			best = input
 		}
 	}
@@ -39,7 +39,7 @@ func isChosen(h crypto.Hash) bool {
 	return false
 }
 
-func parseLine(line string, lineno uint64) *Input {
+func parseLine(line string, lineno uint64) *Info {
 	var algorithm, file, digest string
 	var hash crypto.Hash
 	var match []string
@@ -74,13 +74,21 @@ func parseLine(line string, lineno uint64) *Input {
 		}
 		return nil
 	}
-	return &Input{file: file, hash: hash, sum: sum}
+	return &Info{
+		file: file,
+		checksums: []*Checksum{
+			&Checksum{
+				hash: hash,
+				csum: sum,
+			},
+		},
+	}
 }
 
-func inputFromCheck() <-chan *Input {
+func inputFromCheck() <-chan *Info {
 	var current string
 	var lineno uint64
-	var input *Input
+	var input *Info
 	var err error
 
 	f := os.Stdin
@@ -90,11 +98,11 @@ func inputFromCheck() <-chan *Input {
 		}
 	}
 
-	inputs := []*Input{}
+	inputs := []*Info{}
 	scanner := bufio.NewScanner(f)
 	scanner.Split(bufio.ScanLines)
 
-	files := make(chan *Input)
+	files := make(chan *Info)
 	go func() {
 		for {
 			lineno++
@@ -117,7 +125,7 @@ func inputFromCheck() <-chan *Input {
 					break
 				}
 				current = input.file
-				inputs = []*Input{}
+				inputs = []*Info{}
 			}
 			if input != nil {
 				inputs = append(inputs, input)

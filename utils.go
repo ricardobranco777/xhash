@@ -8,6 +8,7 @@ import (
 	"hash"
 	"io"
 	"io/fs"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -46,32 +47,79 @@ func getChosen() []*Checksum {
 	checksums := make([]*Checksum, len(chosen))
 	for i := range chosen {
 		checksums[i] = &Checksum{hash: chosen[i].hash}
-		initHash(checksums[i])
 	}
 	return checksums
 }
 
-// Hash file with just one algorithm
-func hashF1(f *os.File, hash crypto.Hash) (checksums []*Checksum) {
-	checksum := &Checksum{hash: hash}
-	initHash(checksum)
-	if _, err := io.Copy(checksum, f); err != nil {
+// Hash small file with just one algorithm
+func hashSmallF1(f *os.File, checksums []*Checksum) []*Checksum {
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
 		logger.Print(err)
 		return nil
 	}
-	checksum.sum = checksum.Sum(nil)
-	return []*Checksum{checksum}
+	checksums[0].Write(data)
+	checksums[0].sum = checksums[0].Sum(nil)
+	return checksums
 }
 
-func hashF(f *os.File) (checksums []*Checksum) {
-	if len(chosen) == 1 {
-		return hashF1(f, chosen[0].hash)
+// Hash small file with goroutines
+func hashSmallF(f *os.File, checksums []*Checksum) []*Checksum {
+	if checksums == nil {
+		checksums = getChosen()
+	}
+	for i, _ := range checksums {
+		initHash(checksums[i])
+	}
+	if len(checksums) == 1 {
+		return hashSmallF1(f, checksums)
+	}
+
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		logger.Print(err)
+		return nil
+	}
+
+	var wg sync.WaitGroup
+
+	wg.Add(len(checksums))
+	for _, h := range checksums {
+		go func(h *Checksum) {
+			defer wg.Done()
+			h.Write(data)
+			h.sum = h.Sum(nil)
+		}(h)
+	}
+	wg.Wait()
+	return checksums
+}
+
+// Hash file with just one algorithm
+func hashF1(f *os.File, checksums []*Checksum) []*Checksum {
+	if _, err := io.Copy(checksums[0], f); err != nil {
+		logger.Print(err)
+		return nil
+	}
+	checksums[0].sum = checksums[0].Sum(nil)
+	return checksums
+}
+
+// Hash file with goroutines
+func hashF(f *os.File, checksums []*Checksum) []*Checksum {
+	if checksums == nil {
+		checksums = getChosen()
+	}
+	for i, _ := range checksums {
+		initHash(checksums[i])
+	}
+	if len(checksums) == 1 {
+		return hashF1(f, checksums)
 	}
 
 	var wg sync.WaitGroup
 	var writers []io.Writer
 	var pipeWriters []*io.PipeWriter
-	checksums = getChosen()
 
 	wg.Add(len(checksums))
 	for _, h := range checksums {
@@ -103,11 +151,10 @@ func hashF(f *os.File) (checksums []*Checksum) {
 		}
 	}()
 	wg.Wait()
-
-	return
+	return checksums
 }
 
-func hashFile(input *Input) *Results {
+func hashFile(input *Info) *Info {
 	file := input.file
 	f, err := os.Open(file)
 	if err != nil {
@@ -118,44 +165,45 @@ func hashFile(input *Input) *Results {
 		return nil
 	}
 	defer f.Close()
-	if !opts.recursive {
-		info, err := f.Stat()
-		if err != nil {
-			logger.Print(err)
-			return nil
-		}
-		if info.IsDir() {
-			logger.Printf("%s is a directory and the -r option was not specified", file)
-			return nil
-		}
+
+	info, err := f.Stat()
+	if err != nil {
+		logger.Print(err)
+		return nil
 	}
-	if opts.check != "\x00" {
-		return &Results{
-			file:      file,
-			checksums: hashF1(f, input.hash),
-			check:     input.sum,
-		}
+	if opts.recursive && info.IsDir() {
+		logger.Printf("%s is a directory and the -r option was not specified", file)
+		return nil
 	}
-	return &Results{
+
+	var hashIt func(f *os.File, checksums []*Checksum) []*Checksum
+	if info.Size() < 1e4 {
+		hashIt = hashSmallF
+	} else {
+		hashIt = hashF
+	}
+
+	return &Info{
 		file:      file,
-		checksums: hashF(f),
+		checksums: hashIt(f, input.checksums),
 	}
 }
 
-func hashStdin() *Results {
-	return &Results{
+func hashStdin() *Info {
+	return &Info{
 		file:      "",
-		checksums: hashF(os.Stdin),
+		checksums: hashF(os.Stdin, nil),
 	}
 }
 
-func hashString(str string) *Results {
+func hashString(str string) *Info {
 	checksums := getChosen()
-	for _, h := range checksums {
+	for i, h := range checksums {
+		initHash(checksums[i])
 		h.Write([]byte(str))
 		h.sum = h.Sum(nil)
 	}
-	return &Results{
+	return &Info{
 		file:      `"` + str + `"`,
 		checksums: checksums,
 	}
@@ -175,11 +223,11 @@ func unescapeFilename(filename string) string {
 	return strings.Replace(strings.Replace(filename, "\\\\", "\\", -1), "\\n", "\n", -1)
 }
 
-func inputFromArgs() <-chan *Input {
-	files := make(chan *Input)
+func inputFromArgs() <-chan *Info {
+	files := make(chan *Info)
 	go func() {
 		for _, arg := range flag.Args() {
-			files <- &Input{file: arg}
+			files <- &Info{file: arg}
 		}
 		close(files)
 	}()
@@ -187,8 +235,8 @@ func inputFromArgs() <-chan *Input {
 }
 
 // Used by the -r option
-func inputFromDir() <-chan *Input {
-	files := make(chan *Input)
+func inputFromDir() <-chan *Info {
+	files := make(chan *Info)
 	go func() {
 		for _, arg := range flag.Args() {
 			filepath.WalkDir(arg, func(path string, d fs.DirEntry, err error) error {
@@ -198,7 +246,7 @@ func inputFromDir() <-chan *Input {
 						return err
 					}
 				} else if opts.symlinks && d.Type()&fs.ModeType == fs.ModeSymlink || d.Type().IsRegular() {
-					files <- &Input{file: path}
+					files <- &Info{file: path}
 				}
 				return nil
 			})
@@ -209,7 +257,7 @@ func inputFromDir() <-chan *Input {
 }
 
 // Used by the -i option
-func inputFromFile() <-chan *Input {
+func inputFromFile() <-chan *Info {
 	var err error
 
 	f := os.Stdin
@@ -222,13 +270,13 @@ func inputFromFile() <-chan *Input {
 	scanner := bufio.NewScanner(f)
 	scanner.Split(bufio.ScanLines)
 
-	files := make(chan *Input)
+	files := make(chan *Info)
 	go func() {
 		for scanner.Scan() {
 			if err := scanner.Err(); err != nil {
 				logger.Fatal(err)
 			}
-			files <- &Input{file: scanner.Text()}
+			files <- &Info{file: scanner.Text()}
 		}
 		close(files)
 		f.Close()
