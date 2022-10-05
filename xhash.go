@@ -78,6 +78,7 @@ var opts struct {
 }
 
 var stats struct {
+	invalid    uint64
 	unmatched  uint64
 	unreadable uint64
 }
@@ -305,7 +306,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "WARNING: %d computed checksum%s did NOT match\n", stats.unmatched, plural)
 		}
 	}
-	if stats.unreadable > 0 || stats.unmatched > 0 {
+	if stats.unreadable > 0 || stats.unmatched > 0 || stats.invalid > 0 {
 		os.Exit(1)
 	}
 }
