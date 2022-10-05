@@ -197,7 +197,7 @@ func inputFromDir() <-chan *Input {
 					if !os.IsPermission(err) {
 						return err
 					}
-				} else if d.Type().IsRegular() {
+				} else if opts.symlinks && d.Type()&fs.ModeType == fs.ModeSymlink || d.Type().IsRegular() {
 					files <- &Input{file: path}
 				}
 				return nil

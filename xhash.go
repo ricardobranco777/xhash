@@ -71,6 +71,7 @@ var opts struct {
 	status    bool // Used by the -c option
 	strict    bool // Used by the -c option
 	str       bool
+	symlinks  bool // Used by the -r option
 	verbose   bool // Used by the -c option
 	version   bool
 	warn      bool // Used by the -c option
@@ -144,6 +145,7 @@ func init() {
 	flag.BoolVarP(&opts.status, "status", "S", false, "don't output anything, status code shows success")
 	flag.BoolVarP(&opts.strict, "strict", "", false, "exit non-zero for improperly formatted checksum lines")
 	flag.BoolVarP(&opts.str, "string", "s", false, "treat arguments as strings")
+	flag.BoolVarP(&opts.symlinks, "symlinks", "L", false, "follow symbolic links with the -r option")
 	flag.BoolVarP(&opts.verbose, "verbose", "v", false, "verbose operation")
 	flag.BoolVarP(&opts.version, "version", "V", false, "show version and exit")
 	flag.BoolVarP(&opts.warn, "warn", "w", false, "warn about improperly formatted checksum lines")
