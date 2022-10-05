@@ -4,19 +4,10 @@ import (
 	"bufio"
 	"crypto"
 	"encoding/hex"
+	"io"
 	"os"
-	"regexp"
 	"strings"
 )
-
-var regex = struct {
-	bsd, gnu *regexp.Regexp
-}{
-	regexp.MustCompile(`^([A-Z]+[a-z0-9-]*) ?\((.*?)\) ?= ([0-9a-f]{16,})$`), // Format used by OpenSSL dgst and *BSD md5, et al
-	regexp.MustCompile(`^[\\]?([0-9a-f]{16,}) [ \*](.*)$`),                   // Format used by md5sum, et al
-}
-
-var size2hash = map[int]string{128: "SHA512", 96: "SHA384", 64: "SHA256", 56: "SHA224", 40: "SHA1", 32: "MD5"}
 
 func bestHash(inputs []*Info) (best *Info) {
 	max := 0
@@ -85,16 +76,18 @@ func parseLine(line string, lineno uint64) *Info {
 	}
 }
 
-func inputFromCheck() <-chan *Info {
+func inputFromCheck(f io.ReadCloser) <-chan *Info {
 	var current string
 	var lineno uint64
 	var input *Info
 	var err error
 
-	f := os.Stdin
-	if opts.input != "" {
-		if f, err = os.Open(opts.check); err != nil {
-			logger.Fatal(err)
+	if f == nil {
+		f = os.Stdin
+		if opts.input != "" {
+			if f, err = os.Open(opts.check); err != nil {
+				logger.Fatal(err)
+			}
 		}
 	}
 

@@ -7,6 +7,7 @@ $(BIN): *.go
 
 test:
 	@go vet
+	@go test -v
 
 clean:
 	@go clean

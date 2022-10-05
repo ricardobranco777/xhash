@@ -28,15 +28,21 @@ func display(results *Info) {
 	file := results.file
 	if opts.check != "\x00" {
 		var ok bool
-		if macKey != nil {
-			ok = hmac.Equal(results.checksums[0].sum, results.checksums[0].csum)
-		} else {
-			ok = bytes.Equal(results.checksums[0].sum, results.checksums[0].csum)
+		var i int
+		for i = range results.checksums {
+			if macKey != nil {
+				ok = hmac.Equal(results.checksums[i].sum, results.checksums[i].csum)
+			} else {
+				ok = bytes.Equal(results.checksums[i].sum, results.checksums[i].csum)
+			}
+			if !ok {
+				break
+			}
 		}
 		if ok {
 			if !opts.quiet && !opts.status {
 				if opts.verbose {
-					fmt.Printf("%s: %s OK\n", file, algorithms[results.checksums[0].hash].name)
+					fmt.Printf("%s: %s OK\n", file, algorithms[results.checksums[i].hash].name)
 				} else {
 					fmt.Printf("%s: OK\n", file)
 				}
@@ -45,7 +51,7 @@ func display(results *Info) {
 			stats.unmatched++
 			if !opts.status {
 				if opts.verbose {
-					fmt.Printf("%s: %s FAILED with %s\n", file, algorithms[results.checksums[0].hash].name, hex.EncodeToString(results.checksums[0].sum))
+					fmt.Printf("%s: %s FAILED with %s\n", file, algorithms[results.checksums[i].hash].name, hex.EncodeToString(results.checksums[i].sum))
 				} else {
 					fmt.Printf("%s: FAILED\n", file)
 				}
@@ -153,28 +159,24 @@ func init() {
 	}
 
 	if opts.all {
-		// Ignore algorithm if -all was specified
+		// Ignore algorithm if --all was specified
 		for h := range algorithms {
 			algorithms[h].check = !algorithms[h].check
 		}
 	}
 
-	// Initialize algorithms
+	// Initialize chosen and populate name2Hash
+	name2Hash = make(map[string]crypto.Hash)
 	for _, h := range hashes {
 		if h.Available() && algorithms[h].check {
 			chosen = append(chosen, &Checksum{hash: h})
 		}
+		name2Hash[algorithms[h].name] = h
 	}
 
-	if opts.check != "\x00" {
-		// Populate name2Hash
-		name2Hash = make(map[string]crypto.Hash)
-		for _, h := range hashes {
-			name2Hash[algorithms[h].name] = h
-		}
-	} else if len(chosen) == 0 {
-		// SHA-512 is default
-		chosen = append(chosen, &Checksum{hash: crypto.SHA512})
+	if opts.check == "\x00" && len(chosen) == 0 {
+		// SHA-256 is default
+		chosen = append(chosen, &Checksum{hash: crypto.SHA256})
 	}
 
 	if opts.key != "\x00" {
@@ -198,7 +200,7 @@ func main() {
 	} else if opts.input != "\x00" {
 		inputFrom = inputFromFile
 	} else if flag.NArg() == 0 {
-		display(hashStdin())
+		display(hashStdin(nil))
 		os.Exit(0)
 	} else if opts.recursive {
 		inputFrom = inputFromDir
@@ -213,7 +215,7 @@ func main() {
 	channel := make(chan *Info)
 
 	go func() {
-		for input := range inputFrom() {
+		for input := range inputFrom(nil) {
 			wg.Add(1)
 			go func(input *Info) {
 				defer wg.Done()

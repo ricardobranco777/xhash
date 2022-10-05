@@ -4,6 +4,8 @@ import (
 	"crypto"
 	"hash"
 	"log"
+	"regexp"
+	"strings"
 )
 
 type Algorithm struct {
@@ -28,7 +30,6 @@ var (
 	chosen     []*Checksum
 	logger     *log.Logger
 	macKey     []byte
-	name2Hash  map[string]crypto.Hash
 )
 
 var opts struct {
@@ -54,4 +55,27 @@ var stats struct {
 	invalid    uint64
 	unmatched  uint64
 	unreadable uint64
+}
+
+// Used by the -c option
+
+var regex = struct {
+	bsd, gnu *regexp.Regexp
+}{
+	regexp.MustCompile(`^([A-Z]+[a-z0-9-]*) ?\((.*?)\) ?= ([0-9a-f]{16,})$`), // Format used by OpenSSL dgst and *BSD md5, et al
+	regexp.MustCompile(`^[\\]?([0-9a-f]{16,}) [ \*](.*)$`),                   // Format used by md5sum, et al
+}
+
+var (
+	name2Hash map[string]crypto.Hash
+	size2hash = map[int]string{128: "SHA512", 96: "SHA384", 64: "SHA256", 56: "SHA224", 40: "SHA1", 32: "MD5"}
+)
+
+// io.ReadCloser compatible interface used for mocking
+type ReadCloser struct {
+	*strings.Reader
+}
+
+func (r ReadCloser) Close() error {
+	return nil
 }
