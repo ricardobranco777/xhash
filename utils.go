@@ -51,11 +51,26 @@ func getChosen() []*Checksum {
 	return checksums
 }
 
+// Hash file with just one algorithm
+func hashF1(f *os.File, hash crypto.Hash) (checksums []*Checksum) {
+	checksum := &Checksum{hash: hash}
+	initHash(checksum)
+	if _, err := io.Copy(checksum, f); err != nil {
+		logger.Print(err)
+		return nil
+	}
+	checksum.sum = checksum.Sum(nil)
+	return []*Checksum{checksum}
+}
+
 func hashF(f *os.File) (checksums []*Checksum) {
+	if len(chosen) == 1 {
+		return hashF1(f, chosen[0].hash)
+	}
+
 	var wg sync.WaitGroup
 	var writers []io.Writer
 	var pipeWriters []*io.PipeWriter
-
 	checksums = getChosen()
 
 	wg.Add(len(checksums))
@@ -115,16 +130,9 @@ func hashFile(input *Input) *Results {
 		}
 	}
 	if opts.check != "\x00" {
-		checksum := &Checksum{hash: input.hash}
-		initHash(checksum)
-		if _, err := io.Copy(checksum, f); err != nil {
-			logger.Print(err)
-			return nil
-		}
-		checksum.sum = checksum.Sum(nil)
 		return &Results{
 			file:      file,
-			checksums: []*Checksum{checksum},
+			checksums: hashF1(f, input.hash),
 			check:     input.sum,
 		}
 	}
