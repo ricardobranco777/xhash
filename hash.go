@@ -132,7 +132,7 @@ func hashFile(input *Info) *Info {
 		logger.Print(err)
 		return nil
 	}
-	if opts.recursive && info.IsDir() {
+	if !opts.recursive && info.IsDir() {
 		logger.Printf("%s is a directory and the -r option was not specified", file)
 		return nil
 	}
