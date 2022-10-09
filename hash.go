@@ -2,7 +2,6 @@ package main
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"sync"
 )
@@ -13,7 +12,7 @@ func hashSmallF1(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 		checksums = getChosen()
 	}
 	initHash(checksums[0])
-	data, err := ioutil.ReadAll(f)
+	data, err := io.ReadAll(f)
 	if err != nil {
 		logger.Print(err)
 		return nil
@@ -34,7 +33,7 @@ func hashSmallF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 		initHash(checksums[i])
 	}
 
-	data, err := ioutil.ReadAll(f)
+	data, err := io.ReadAll(f)
 	if err != nil {
 		logger.Print(err)
 		return nil

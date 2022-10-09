@@ -3,9 +3,9 @@ package main
 import (
 	"crypto"
 	"hash"
+	"io"
 	"log"
 	"regexp"
-	"strings"
 )
 
 type Algorithm struct {
@@ -73,7 +73,7 @@ var (
 
 // io.ReadCloser compatible interface used for mocking
 type ReadCloser struct {
-	*strings.Reader
+	io.Reader
 }
 
 func (r ReadCloser) Close() error {
