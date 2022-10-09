@@ -10,8 +10,8 @@ import (
 
 func Test_parseLine(t *testing.T) {
 	lineno := uint64(1)
-	xinput := map[string]*Info{
-		"44301b466258398bfee1c974a4a40831  /etc/passwd": &Info{
+	xinput := map[string]*Checksums{
+		"44301b466258398bfee1c974a4a40831  /etc/passwd": &Checksums{
 			file: "/etc/passwd",
 			checksums: []*Checksum{
 				&Checksum{
@@ -20,7 +20,7 @@ func Test_parseLine(t *testing.T) {
 				},
 			},
 		},
-		"MD5(/etc/passwd) = 44301b466258398bfee1c974a4a40832": &Info{
+		"MD5(/etc/passwd) = 44301b466258398bfee1c974a4a40832": &Checksums{
 			file: "/etc/passwd",
 			checksums: []*Checksum{
 				&Checksum{
@@ -29,7 +29,7 @@ func Test_parseLine(t *testing.T) {
 				},
 			},
 		},
-		"MD5(/etc/passwd)= 44301b466258398bfee1c974a4a40833": &Info{
+		"MD5(/etc/passwd)= 44301b466258398bfee1c974a4a40833": &Checksums{
 			file: "/etc/passwd",
 			checksums: []*Checksum{
 				&Checksum{
@@ -57,8 +57,8 @@ func Test_parseLine(t *testing.T) {
 }
 
 func Test_inputFromCheck(t *testing.T) {
-	xinput := map[string]*Info{
-		"44301b466258398bfee1c974a4a40831  /etc/passwd": &Info{
+	xinput := map[string]*Checksums{
+		"44301b466258398bfee1c974a4a40831  /etc/passwd": &Checksums{
 			file: "/etc/passwd",
 			checksums: []*Checksum{
 				&Checksum{
@@ -67,7 +67,7 @@ func Test_inputFromCheck(t *testing.T) {
 				},
 			},
 		},
-		"MD5(/etc/passwd) = 44301b466258398bfee1c974a4a40832\nSHA256(/etc/passwd) = fab8488def7282a75f223a062ec37acc5e35177d0645a9aaf0dc6ca27ae18dbf": &Info{
+		"MD5(/etc/passwd) = 44301b466258398bfee1c974a4a40832\nSHA256(/etc/passwd) = fab8488def7282a75f223a062ec37acc5e35177d0645a9aaf0dc6ca27ae18dbf": &Checksums{
 			file: "/etc/passwd",
 			checksums: []*Checksum{
 				&Checksum{
@@ -76,7 +76,7 @@ func Test_inputFromCheck(t *testing.T) {
 				},
 			},
 		},
-		"SHA256(/etc/passwd)= fab8488def7282a75f223a062ec37acc5e35177d0645a9aaf0dc6ca27ae18dbf\nSHA512-256(/etc/passwd) = 946097b17deb2745bb78a1a62bc35a14d2a39218514a16764880fff12b26b2fb\n": &Info{
+		"SHA256(/etc/passwd)= fab8488def7282a75f223a062ec37acc5e35177d0645a9aaf0dc6ca27ae18dbf\nSHA512-256(/etc/passwd) = 946097b17deb2745bb78a1a62bc35a14d2a39218514a16764880fff12b26b2fb\n": &Checksums{
 			file: "/etc/passwd",
 			checksums: []*Checksum{
 				&Checksum{

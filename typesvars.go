@@ -20,7 +20,7 @@ type Checksum struct {
 	csum []byte // Used only by the -c option
 }
 
-type Info struct {
+type Checksums struct {
 	file      string
 	checksums []*Checksum
 }

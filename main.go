@@ -24,7 +24,7 @@ import flag "github.com/spf13/pflag"
 
 const version string = "v2.0"
 
-func display(results *Info) {
+func display(results *Checksums) {
 	file := results.file
 	if opts.check != "\x00" {
 		var ok bool
@@ -212,12 +212,12 @@ func main() {
 	}
 
 	var wg sync.WaitGroup
-	channel := make(chan *Info)
+	channel := make(chan *Checksums)
 
 	go func() {
 		for input := range inputFrom(nil) {
 			wg.Add(1)
-			go func(input *Info) {
+			go func(input *Checksums) {
 				defer wg.Done()
 				channel <- hashFile(input)
 			}(input)

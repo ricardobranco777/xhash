@@ -115,7 +115,7 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	return checksums
 }
 
-func hashFile(input *Info) *Info {
+func hashFile(input *Checksums) *Checksums {
 	file := input.file
 	f, err := os.Open(file)
 	if err != nil {
@@ -145,30 +145,30 @@ func hashFile(input *Info) *Info {
 		hashIt = hashF
 	}
 
-	return &Info{
+	return &Checksums{
 		file:      file,
 		checksums: hashIt(f, input.checksums),
 	}
 }
 
-func hashStdin(f io.ReadCloser) *Info {
+func hashStdin(f io.ReadCloser) *Checksums {
 	if f == nil {
 		f = os.Stdin
 	}
-	return &Info{
+	return &Checksums{
 		file:      "",
 		checksums: hashF(f, nil),
 	}
 }
 
-func hashString(str string) *Info {
+func hashString(str string) *Checksums {
 	checksums := getChosen()
 	for i, h := range checksums {
 		initHash(checksums[i])
 		h.Write([]byte(str))
 		h.sum = h.Sum(nil)
 	}
-	return &Info{
+	return &Checksums{
 		file:      `"` + str + `"`,
 		checksums: checksums,
 	}

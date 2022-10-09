@@ -10,11 +10,11 @@ import (
 
 import flag "github.com/spf13/pflag"
 
-func inputFromArgs(f io.ReadCloser) <-chan *Info {
-	files := make(chan *Info)
+func inputFromArgs(f io.ReadCloser) <-chan *Checksums {
+	files := make(chan *Checksums)
 	go func() {
 		for _, arg := range flag.Args() {
-			files <- &Info{file: arg}
+			files <- &Checksums{file: arg}
 		}
 		close(files)
 	}()
@@ -22,8 +22,8 @@ func inputFromArgs(f io.ReadCloser) <-chan *Info {
 }
 
 // Used by the -r option
-func inputFromDir(f io.ReadCloser) <-chan *Info {
-	files := make(chan *Info)
+func inputFromDir(f io.ReadCloser) <-chan *Checksums {
+	files := make(chan *Checksums)
 	go func() {
 		for _, arg := range flag.Args() {
 			filepath.WalkDir(arg, func(path string, d fs.DirEntry, err error) error {
@@ -33,7 +33,7 @@ func inputFromDir(f io.ReadCloser) <-chan *Info {
 						return err
 					}
 				} else if opts.symlinks && d.Type()&fs.ModeType == fs.ModeSymlink || d.Type().IsRegular() {
-					files <- &Info{file: path}
+					files <- &Checksums{file: path}
 				}
 				return nil
 			})
@@ -44,7 +44,7 @@ func inputFromDir(f io.ReadCloser) <-chan *Info {
 }
 
 // Used by the -i option
-func inputFromFile(f io.ReadCloser) <-chan *Info {
+func inputFromFile(f io.ReadCloser) <-chan *Checksums {
 	var err error
 
 	if f == nil {
@@ -59,7 +59,7 @@ func inputFromFile(f io.ReadCloser) <-chan *Info {
 	scanner := bufio.NewScanner(f)
 	scanner.Split(bufio.ScanLines)
 
-	files := make(chan *Info)
+	files := make(chan *Checksums)
 	go func() {
 		for scanner.Scan() {
 			if err := scanner.Err(); err != nil {
@@ -67,7 +67,7 @@ func inputFromFile(f io.ReadCloser) <-chan *Info {
 			}
 			file := scanner.Text()
 			if file != "" {
-				files <- &Info{file: scanner.Text()}
+				files <- &Checksums{file: scanner.Text()}
 			}
 		}
 		close(files)

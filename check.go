@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func bestHash(inputs []*Info) (best *Info) {
+func bestHash(inputs []*Checksums) (best *Checksums) {
 	max := 0
 	// For now, choose the algorithm with the longest digest size
 	for _, input := range inputs {
@@ -30,7 +30,7 @@ func isChosen(h crypto.Hash) bool {
 	return false
 }
 
-func parseLine(line string, lineno uint64) *Info {
+func parseLine(line string, lineno uint64) *Checksums {
 	var algorithm, file, digest string
 	var hash crypto.Hash
 	var match []string
@@ -65,7 +65,7 @@ func parseLine(line string, lineno uint64) *Info {
 		}
 		return nil
 	}
-	return &Info{
+	return &Checksums{
 		file: file,
 		checksums: []*Checksum{
 			&Checksum{
@@ -76,10 +76,10 @@ func parseLine(line string, lineno uint64) *Info {
 	}
 }
 
-func inputFromCheck(f io.ReadCloser) <-chan *Info {
+func inputFromCheck(f io.ReadCloser) <-chan *Checksums {
 	var current string
 	var lineno uint64
-	var input *Info
+	var input *Checksums
 	var err error
 
 	if f == nil {
@@ -91,11 +91,11 @@ func inputFromCheck(f io.ReadCloser) <-chan *Info {
 		}
 	}
 
-	inputs := []*Info{}
+	inputs := []*Checksums{}
 	scanner := bufio.NewScanner(f)
 	scanner.Split(bufio.ScanLines)
 
-	files := make(chan *Info)
+	files := make(chan *Checksums)
 	go func() {
 		for {
 			lineno++
@@ -118,7 +118,7 @@ func inputFromCheck(f io.ReadCloser) <-chan *Info {
 					break
 				}
 				current = input.file
-				inputs = []*Info{}
+				inputs = []*Checksums{}
 			}
 			if input != nil {
 				inputs = append(inputs, input)
