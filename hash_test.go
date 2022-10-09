@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"golang.org/x/exp/slices"
 	"io"
+	"os"
 	"strings"
 	"testing"
 )
@@ -117,4 +118,62 @@ func Test_hashF1(t *testing.T) {
 func Test_hashF(t *testing.T) {
 	testIt(t, "hashF", hashF)
 	testIt2(t, "hashF", hashF)
+}
+
+func benchmarkSize(f func(f io.ReadCloser, checksums []*Checksum) []*Checksum, b *testing.B, size int) {
+	buf := make([]byte, size)
+	oldAll := opts.all
+	opts.all = true
+	defer func() { opts.all = oldAll }()
+	b.SetBytes(int64(size))
+
+	file, err := os.CreateTemp("", "*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.Remove(file.Name())
+	if n, err := file.Write(buf); n != size || err != nil {
+		panic(err)
+	}
+
+	var checksums []*Checksum
+	for h := range algorithms {
+		checksums = append(checksums, &Checksum{hash: h})
+	}
+
+	for i := 0; i < b.N; i++ {
+		f(file, checksums)
+	}
+}
+
+func BenchmarkHash1M_Small(b *testing.B) {
+	benchmarkSize(hashSmallF, b, 1<<20)
+}
+
+func BenchmarkHash1M(b *testing.B) {
+	benchmarkSize(hashF, b, 1<<20)
+}
+
+func BenchmarkHash32M_Small(b *testing.B) {
+	benchmarkSize(hashSmallF, b, 1<<25)
+}
+
+func BenchmarkHash32M(b *testing.B) {
+	benchmarkSize(hashF, b, 1<<25)
+}
+
+func BenchmarkHash512M_Small(b *testing.B) {
+	benchmarkSize(hashSmallF, b, 1<<29)
+}
+
+func BenchmarkHash512M(b *testing.B) {
+	benchmarkSize(hashF, b, 1<<29)
+}
+
+func BenchmarkHash1G_Small(b *testing.B) {
+	benchmarkSize(hashSmallF, b, 1<<30)
+}
+
+func BenchmarkHash1G(b *testing.B) {
+	benchmarkSize(hashF, b, 1<<30)
 }
