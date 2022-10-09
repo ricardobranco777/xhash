@@ -138,8 +138,8 @@ func hashFile(input *Checksums) *Checksums {
 	}
 
 	var hashIt func(f io.ReadCloser, checksums []*Checksum) []*Checksum
-	// Use hashSmallF for files < 512M
-	if info.Size() < 1<<29 {
+	// Use hashSmallF for files < 256M
+	if info.Size() < 1<<28 {
 		hashIt = hashSmallF
 	} else {
 		hashIt = hashF
