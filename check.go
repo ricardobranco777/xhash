@@ -107,8 +107,8 @@ func inputFromCheck(f io.ReadCloser) <-chan *Info {
 			}
 			if input != nil && current != input.file || eof {
 				if current != "" {
-					if info := bestHash(inputs); info != nil {
-						files <- info
+					if best := bestHash(inputs); best != nil {
+						files <- best
 					}
 				}
 				if eof {
