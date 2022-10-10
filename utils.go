@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"crypto"
 	"crypto/hmac"
 	"golang.org/x/crypto/blake2b"
@@ -41,13 +40,6 @@ func getChosen() []*Checksum {
 		checksums[i] = &Checksum{hash: chosen[i].hash}
 	}
 	return checksums
-}
-
-func equal(sum []byte, csum []byte) bool {
-	if macKey != nil {
-		return hmac.Equal(sum, csum)
-	}
-	return bytes.Equal(sum, csum)
 }
 
 // *sum escapes filenames with backslash & newline

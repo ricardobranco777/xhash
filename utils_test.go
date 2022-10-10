@@ -1,9 +1,30 @@
 package main
 
 import (
+	"crypto"
 	"strings"
 	"testing"
 )
+
+func Test_initHash(t *testing.T) {
+	oldChosen := chosen
+	chosen = []*Checksum{&Checksum{hash: crypto.SHA256}, &Checksum{hash: crypto.SHA512}}
+	defer func() { chosen = oldChosen }()
+
+	for _, h := range getChosen() {
+		initHash(h)
+		if h == nil {
+			t.Errorf("initHash(%v) = nil", h)
+		}
+	}
+}
+
+func Test_getChosen(t *testing.T) {
+	got := getChosen()
+	if len(got) != 1 && got[0].hash != crypto.SHA256 {
+		t.Errorf("getChosen() = %v; want %v", got[0].hash, crypto.SHA256)
+	}
+}
 
 func Test_escapeFilename(t *testing.T) {
 	xstr := map[string]string{

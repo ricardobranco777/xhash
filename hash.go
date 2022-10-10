@@ -29,8 +29,8 @@ func hashSmallF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	} else if len(checksums) == 1 {
 		return hashSmallF1(f, checksums)
 	}
-	for i, _ := range checksums {
-		initHash(checksums[i])
+	for h := range checksums {
+		initHash(checksums[h])
 	}
 
 	data, err := io.ReadAll(f)
@@ -74,8 +74,8 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	} else if len(checksums) == 1 {
 		return hashF1(f, checksums)
 	}
-	for i, _ := range checksums {
-		initHash(checksums[i])
+	for h := range checksums {
+		initHash(checksums[h])
 	}
 
 	var wg sync.WaitGroup

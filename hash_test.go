@@ -122,9 +122,11 @@ func Test_hashF(t *testing.T) {
 
 func benchmarkSize(f func(f io.ReadCloser, checksums []*Checksum) []*Checksum, b *testing.B, size int) {
 	buf := make([]byte, size)
-	oldAll := opts.all
-	opts.all = true
-	defer func() { opts.all = oldAll }()
+	oldChosen := chosen
+	chosen = []*Checksum{&Checksum{hash: crypto.SHA256}, &Checksum{hash: crypto.SHA512}}
+	initHash(chosen[0])
+	initHash(chosen[1])
+	defer func() { chosen = oldChosen }()
 	b.SetBytes(int64(size))
 
 	file, err := os.CreateTemp("", "*")
@@ -154,12 +156,12 @@ func BenchmarkHash1M(b *testing.B) {
 	benchmarkSize(hashF, b, 1<<20)
 }
 
-func BenchmarkHash32M_Small(b *testing.B) {
-	benchmarkSize(hashSmallF, b, 1<<25)
+func BenchmarkHash256M_Small(b *testing.B) {
+	benchmarkSize(hashSmallF, b, 1<<28)
 }
 
-func BenchmarkHash32M(b *testing.B) {
-	benchmarkSize(hashF, b, 1<<25)
+func BenchmarkHash256M(b *testing.B) {
+	benchmarkSize(hashF, b, 1<<28)
 }
 
 func BenchmarkHash512M_Small(b *testing.B) {
@@ -168,12 +170,4 @@ func BenchmarkHash512M_Small(b *testing.B) {
 
 func BenchmarkHash512M(b *testing.B) {
 	benchmarkSize(hashF, b, 1<<29)
-}
-
-func BenchmarkHash1G_Small(b *testing.B) {
-	benchmarkSize(hashSmallF, b, 1<<30)
-}
-
-func BenchmarkHash1G(b *testing.B) {
-	benchmarkSize(hashF, b, 1<<30)
 }
