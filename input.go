@@ -32,7 +32,7 @@ func inputFromDir(f io.ReadCloser) <-chan *Checksums {
 					if !os.IsPermission(err) {
 						return err
 					}
-				} else if opts.symlinks && d.Type()&fs.ModeType == fs.ModeSymlink || d.Type().IsRegular() {
+				} else if !d.IsDir() {
 					files <- &Checksums{file: path}
 				}
 				return nil

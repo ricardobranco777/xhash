@@ -132,8 +132,8 @@ func hashFile(input *Checksums) *Checksums {
 		logger.Print(err)
 		return nil
 	}
-	if !opts.recursive && info.IsDir() {
-		logger.Printf("%s is a directory and the -r option was not specified", file)
+	if info.IsDir() {
+		logger.Printf("%s is a directory", file)
 		return nil
 	}
 

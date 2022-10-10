@@ -45,7 +45,6 @@ var opts struct {
 	status    bool // Used by the -c option
 	strict    bool // Used by the -c option
 	str       bool
-	symlinks  bool // Used by the -r option
 	verbose   bool // Used by the -c option
 	version   bool
 	warn      bool // Used by the -c option
