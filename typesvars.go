@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"regexp"
+	"text/template"
 )
 
 type Algorithm struct {
@@ -25,9 +26,16 @@ type Checksums struct {
 	checksums []*Checksum
 }
 
+type Output struct {
+	Name string
+	File string
+	Sum  string
+}
+
 var (
 	algorithms map[crypto.Hash]*Algorithm
 	chosen     []*Checksum
+	format     = template.New("format")
 	logger     *log.Logger
 	macKey     []byte
 )
@@ -36,6 +44,7 @@ var opts struct {
 	all       bool
 	bsd       bool
 	check     string
+	format    string
 	gnu       bool
 	input     string
 	ignore    bool

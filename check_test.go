@@ -50,6 +50,12 @@ func Test_bestHashes(t *testing.T) {
 	}
 }
 
+func Test_isChosen(t *testing.T) {
+	if !isChosen(crypto.SHA256) {
+		t.Errorf("ischosen(%v) = false; want true", crypto.SHA256)
+	}
+}
+
 func Test_parseLine(t *testing.T) {
 	lineno := uint64(1)
 	xinput := map[string]*Checksums{

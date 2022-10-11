@@ -24,6 +24,22 @@ import flag "github.com/spf13/pflag"
 
 const version string = "v2.0"
 
+func getOutput(results *Checksums) []*Output {
+	output := make([]*Output, len(results.checksums))
+	prefix, file := escapeFilename(results.file)
+	if !opts.gnu {
+		prefix = ""
+	}
+	for i := range results.checksums {
+		output[i] = &Output{
+			File: file,
+			Name: algorithms[results.checksums[i].hash].name,
+			Sum:  prefix + hex.EncodeToString(results.checksums[i].sum),
+		}
+	}
+	return output
+}
+
 func display(results *Checksums) {
 	file := results.file
 	if opts.check != "\x00" {
@@ -55,18 +71,8 @@ func display(results *Checksums) {
 			}
 		}
 	} else {
-		var prefix string
-		if opts.gnu {
-			prefix, file = escapeFilename(results.file)
-		}
-		for _, h := range results.checksums {
-			if opts.bsd {
-				fmt.Printf("%s (%s) = %x\n", algorithms[h.hash].name, file, h.sum)
-			} else if opts.gnu {
-				fmt.Printf("%s%x  %s\n", prefix, h.sum, file)
-			} else {
-				fmt.Printf("%s(%s)= %x\n", algorithms[h.hash].name, file, h.sum)
-			}
+		if err := format.Execute(os.Stdout, getOutput(results)); err != nil {
+			logger.Print(err)
 		}
 	}
 }
@@ -96,6 +102,7 @@ func init() {
 	flag.StringVarP(&opts.check, "check", "c", "\x00", "read checksums from file (use \"\" for stdin)")
 	flag.StringVarP(&opts.input, "input", "i", "\x00", "read pathnames from file (use \"\" for stdin)")
 	flag.StringVarP(&opts.key, "hmac", "H", "\x00", "key for HMAC (in hexadecimal) or read from specified pathname")
+	flag.StringVarP(&opts.format, "format", "f", "{{range .}}{{.Name}}({{.File}}) = {{.Sum}}\n{{end}}", "output format")
 
 	hashes := []crypto.Hash{
 		crypto.BLAKE2b_256,
@@ -187,6 +194,18 @@ func init() {
 			}
 		}
 	}
+
+	if opts.bsd {
+		opts.format = "{{range .}}{{.Name}} ({{.File}}) = {{.Sum}}\n{{end}}"
+	} else if opts.gnu {
+		opts.format = "{{range .}}{{.Sum}}  {{.File}}\n{{end}}"
+	}
+	var err error
+	format, err = format.Parse(opts.format)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
 }
 
 func main() {
@@ -224,10 +243,9 @@ func main() {
 	}()
 
 	for checksum := range channel {
-		if checksum == nil {
-			continue
+		if checksum != nil {
+			display(checksum)
 		}
-		display(checksum)
 	}
 
 	if opts.check != "\x00" || opts.input != "\x00" {
