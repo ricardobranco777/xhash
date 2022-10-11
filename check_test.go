@@ -8,6 +8,48 @@ import (
 	"testing"
 )
 
+func Test_bestHash(t *testing.T) {
+	got := bestHash([]*Checksum{
+		&Checksum{hash: crypto.SHA256},
+		&Checksum{hash: crypto.SHA512_256},
+	}, 0)
+	if got.hash != crypto.SHA256 {
+		t.Errorf("got %v; want %v", got.hash, crypto.SHA256)
+	}
+	got = bestHash([]*Checksum{
+		&Checksum{hash: crypto.MD5},
+		&Checksum{hash: crypto.SHA256},
+	}, 0)
+	if got.hash != crypto.SHA256 {
+		t.Errorf("got %v; want %v", got.hash, crypto.SHA256)
+	}
+}
+
+func Test_bestHashes(t *testing.T) {
+	got := bestHashes([]*Checksum{
+		&Checksum{hash: crypto.SHA256},
+		&Checksum{hash: crypto.SHA512_256},
+	})
+	if len(got) != 1 || got[0].hash != crypto.SHA256 {
+		t.Errorf("got %v; want %v", got[0].hash, crypto.SHA256)
+	}
+	got = bestHashes([]*Checksum{
+		&Checksum{hash: crypto.MD5},
+		&Checksum{hash: crypto.SHA1},
+		&Checksum{hash: crypto.SHA256},
+	})
+	if len(got) != 1 || got[0].hash != crypto.SHA256 {
+		t.Errorf("got %v; want %v", got[0].hash, crypto.SHA256)
+	}
+	got = bestHashes([]*Checksum{
+		&Checksum{hash: crypto.MD5},
+		&Checksum{hash: crypto.SHA1},
+	})
+	if len(got) != 2 || got[0].hash != crypto.SHA1 || got[1].hash != crypto.MD5 {
+		t.Errorf("got %v; want %v", got, "I want it all")
+	}
+}
+
 func Test_parseLine(t *testing.T) {
 	lineno := uint64(1)
 	xinput := map[string]*Checksums{

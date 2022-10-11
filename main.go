@@ -35,25 +35,22 @@ func display(results *Checksums) {
 			} else {
 				ok = bytes.Equal(results.checksums[i].sum, results.checksums[i].csum)
 			}
-			if !ok {
-				break
-			}
-		}
-		if ok {
-			if !opts.quiet && !opts.status {
-				if opts.verbose {
-					fmt.Printf("%s: %s OK\n", file, algorithms[results.checksums[i].hash].name)
-				} else {
-					fmt.Printf("%s: OK\n", file)
+			if ok {
+				if !opts.quiet && !opts.status {
+					if opts.verbose {
+						fmt.Printf("%s: %s OK\n", file, algorithms[results.checksums[i].hash].name)
+					} else {
+						fmt.Printf("%s: OK\n", file)
+					}
 				}
-			}
-		} else {
-			stats.unmatched++
-			if !opts.status {
-				if opts.verbose {
-					fmt.Printf("%s: %s FAILED with %s\n", file, algorithms[results.checksums[i].hash].name, hex.EncodeToString(results.checksums[i].sum))
-				} else {
-					fmt.Printf("%s: FAILED\n", file)
+			} else {
+				stats.unmatched++
+				if !opts.status {
+					if opts.verbose {
+						fmt.Printf("%s: %s FAILED with %s\n", file, algorithms[results.checksums[i].hash].name, hex.EncodeToString(results.checksums[i].sum))
+					} else {
+						fmt.Printf("%s: FAILED\n", file)
+					}
 				}
 			}
 		}

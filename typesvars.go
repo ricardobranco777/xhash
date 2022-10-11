@@ -66,6 +66,7 @@ var regex = struct {
 }
 
 var (
+	insecure  = []crypto.Hash{crypto.MD4, crypto.MD5, crypto.RIPEMD160, crypto.SHA1}
 	name2Hash map[string]crypto.Hash
 	size2hash = map[int]string{128: "SHA512", 96: "SHA384", 64: "SHA256", 56: "SHA224", 40: "SHA1", 32: "MD5"}
 )

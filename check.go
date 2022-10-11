@@ -4,18 +4,37 @@ import (
 	"bufio"
 	"crypto"
 	"encoding/hex"
+	"golang.org/x/exp/slices"
 	"io"
 	"os"
 	"strings"
 )
 
-func bestHash(inputs []*Checksums) (best *Checksums) {
+// Choose the algorithm with the longest digest size
+func bestHash(checksums []*Checksum, ignore crypto.Hash) *Checksum {
 	max := 0
-	// For now, choose the algorithm with the longest digest size
-	for _, input := range inputs {
-		if input.checksums[0].hash.Size() > max {
-			max = input.checksums[0].hash.Size()
-			best = input
+	var best *Checksum
+	for _, checksum := range checksums {
+		if ignore != checksum.hash && checksum.hash.Size() > max {
+			max = checksum.hash.Size()
+			best = checksum
+		}
+	}
+	return best
+}
+
+// Choose the best algorithm, or 2 if one of them is insecure
+func bestHashes(checksums []*Checksum) (best []*Checksum) {
+	best1 := bestHash(checksums, 0)
+	if best1 == nil {
+		return nil
+	}
+	best = append(best, best1)
+	// Return 2 algorithms if the "best" of them is insecure
+	if slices.Contains(insecure, best1.hash) {
+		best2 := bestHash(checksums, best1.hash)
+		if best2 != nil {
+			best = append(best, best2)
 		}
 	}
 	return best
@@ -91,7 +110,7 @@ func inputFromCheck(f io.ReadCloser) <-chan *Checksums {
 		}
 	}
 
-	inputs := []*Checksums{}
+	checksums := []*Checksum{}
 	scanner := bufio.NewScanner(f)
 	scanner.Split(bufio.ScanLines)
 
@@ -107,8 +126,8 @@ func inputFromCheck(f io.ReadCloser) <-chan *Checksums {
 			}
 			if input != nil && current != input.file || eof {
 				if current != "" {
-					if best := bestHash(inputs); best != nil {
-						files <- best
+					if best := bestHashes(checksums); best != nil {
+						files <- &Checksums{file: current, checksums: best}
 					}
 				}
 				if eof {
@@ -117,11 +136,10 @@ func inputFromCheck(f io.ReadCloser) <-chan *Checksums {
 					}
 					break
 				}
-				current = input.file
-				inputs = []*Checksums{}
+				checksums = []*Checksum{}
 			}
 			if input != nil {
-				inputs = append(inputs, input)
+				checksums = append(checksums, input.checksums[0])
 			}
 		}
 		close(files)
