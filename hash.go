@@ -17,7 +17,10 @@ func hashSmallF1(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 		logger.Print(err)
 		return nil
 	}
-	checksums[0].Write(data)
+	if _, err := checksums[0].Write(data); err != nil {
+		logger.Print(err)
+		return nil
+	}
 	checksums[0].sum = checksums[0].Sum(nil)
 	return checksums
 }
@@ -45,7 +48,9 @@ func hashSmallF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	for _, h := range checksums {
 		go func(h *Checksum) {
 			defer wg.Done()
-			h.Write(data)
+			if _, err := h.Write(data); err != nil {
+				logger.Print(err)
+			}
 			h.sum = h.Sum(nil)
 		}(h)
 	}
