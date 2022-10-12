@@ -6,13 +6,14 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"testing/fstest"
 )
 
 import flag "github.com/spf13/pflag"
 
 func Test_inputFromArgs(t *testing.T) {
 	oldArgs := os.Args
-	defer func() { os.Args = oldArgs }()
+	defer func() { os.Args = oldArgs; flag.Parse() }()
 
 	xinput := [][]string{
 		[]string{"xhash", "/etc/passwd"},
@@ -34,6 +35,38 @@ func Test_inputFromArgs(t *testing.T) {
 		if !slices.Equal(xstr, got) {
 			t.Errorf("inputFromArgs(%q) got %v, want %v", xstr, got, xstr)
 		}
+	}
+}
+
+func Test_inputFromDir(t *testing.T) {
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs; flag.Parse() }()
+
+	fsys = fstest.MapFS{
+		"file.go":          &fstest.MapFile{},
+		"folder/file1.go":  {Mode: 0},
+		"folder2/file2.go": {Mode: 0},
+		"folder2/file3.go": {},
+	}
+	defer func() { fsys = nil }()
+
+	var want []string
+	for f := range fsys {
+		want = append(want, f)
+	}
+	sort.Sort(sort.StringSlice(want))
+
+	os.Args = []string{"progname", "."}
+	flag.Parse()
+
+	var got []string
+	for input := range inputFromDir(nil) {
+		got = append(got, input.file)
+	}
+	sort.Sort(sort.StringSlice(got))
+
+	if !slices.Equal(got, want) {
+		t.Errorf("inputFromDir() got %v; want %v", got, want)
 	}
 }
 

@@ -24,10 +24,16 @@ func inputFromArgs(f io.ReadCloser) <-chan *Checksums {
 // Used by the -r option
 func inputFromDir(f io.ReadCloser) <-chan *Checksums {
 	isSymlink := func(d fs.DirEntry) bool { return d.Type()&fs.ModeType == fs.ModeSymlink }
+
+	walkDir := filepath.WalkDir
+	if fsys != nil {
+		walkDir = func(root string, fn fs.WalkDirFunc) error { return fs.WalkDir(fsys, root, fn) }
+	}
+
 	files := make(chan *Checksums)
 	go func() {
 		for _, arg := range flag.Args() {
-			filepath.WalkDir(arg, func(path string, d fs.DirEntry, err error) error {
+			walkDir(arg, func(path string, d fs.DirEntry, err error) error {
 				if err != nil {
 					logger.Print(err)
 				} else if opts.symlinks && isSymlink(d) || !d.IsDir() && !isSymlink(d) {

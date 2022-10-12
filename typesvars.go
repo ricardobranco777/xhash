@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"regexp"
+	"testing/fstest"
 	"text/template"
 )
 
@@ -36,6 +37,7 @@ var (
 	algorithms map[crypto.Hash]*Algorithm
 	chosen     []*Checksum
 	format     = template.New("format")
+	fsys       fstest.MapFS
 	logger     *log.Logger
 	macKey     []byte
 )
