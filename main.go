@@ -92,6 +92,7 @@ func init() {
 	flag.BoolVarP(&opts.gnu, "gnu", "", false, "output hashes in the format used by *sum")
 	flag.BoolVarP(&opts.ignore, "ignore-missing", "", false, "don't fail or report status for missing files")
 	flag.BoolVarP(&opts.quiet, "quiet", "q", false, "don't print OK for each successfully verified file")
+	flag.BoolVarP(&opts.symlinks, "symlinks", "L", false, "don't follow symbolic links with the -r option")
 	flag.BoolVarP(&opts.recursive, "recursive", "r", false, "recurse into directories")
 	flag.BoolVarP(&opts.status, "status", "S", false, "don't output anything, status code shows success")
 	flag.BoolVarP(&opts.strict, "strict", "", false, "exit non-zero for improperly formatted checksum lines")
