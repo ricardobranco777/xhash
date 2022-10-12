@@ -103,7 +103,7 @@ func inputFromCheck(f io.ReadCloser) <-chan *Checksums {
 
 	if f == nil {
 		f = os.Stdin
-		if opts.input != "" {
+		if opts.check != "" {
 			if f, err = os.Open(opts.check); err != nil {
 				logger.Fatal(err)
 			}
