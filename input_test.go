@@ -2,6 +2,7 @@ package main
 
 import (
 	"golang.org/x/exp/slices"
+	"io/fs"
 	"os"
 	"sort"
 	"strings"
@@ -44,9 +45,10 @@ func Test_inputFromDir(t *testing.T) {
 
 	fsys = fstest.MapFS{
 		"file.go":          &fstest.MapFile{},
-		"folder/file1.go":  {Mode: 0},
-		"folder2/file2.go": {Mode: 0},
+		"folder/file1.go":  {},
+		"folder2/file2.go": {},
 		"folder2/file3.go": {},
+		"folder3/file4.go": {Mode: fs.ModeSymlink},
 	}
 	defer func() { fsys = nil }()
 
@@ -59,14 +61,30 @@ func Test_inputFromDir(t *testing.T) {
 	os.Args = []string{"progname", "."}
 	flag.Parse()
 
+	// Test without -L option
 	var got []string
 	for input := range inputFromDir(nil) {
 		got = append(got, input.file)
 	}
 	sort.Sort(sort.StringSlice(got))
 
+	if !slices.Equal(got, want[:len(want)-1]) {
+		t.Errorf("#1 inputFromDir() got %v; want %v", got, want)
+	}
+
+	// Test with -L option
+	oldSymlinks := opts.symlinks
+	opts.symlinks = true
+	defer func() { opts.symlinks = oldSymlinks }()
+
+	got = nil
+	for input := range inputFromDir(nil) {
+		got = append(got, input.file)
+	}
+	sort.Sort(sort.StringSlice(got))
+
 	if !slices.Equal(got, want) {
-		t.Errorf("inputFromDir() got %v; want %v", got, want)
+		t.Errorf("#2 inputFromDir() got %v; want %v", got, want)
 	}
 }
 

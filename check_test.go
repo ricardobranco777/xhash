@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto"
+	"fmt"
 	"golang.org/x/exp/slices"
 	"strings"
 	"testing"
@@ -58,7 +59,7 @@ func Test_isChosen(t *testing.T) {
 
 func Test_parseLine(t *testing.T) {
 	lineno := uint64(1)
-	xinput := map[string]*Checksums{
+	want := map[string]*Checksums{
 		"44301b466258398bfee1c974a4a40831  /etc/passwd": &Checksums{
 			file: "/etc/passwd",
 			checksums: []*Checksum{
@@ -68,7 +69,7 @@ func Test_parseLine(t *testing.T) {
 				},
 			},
 		},
-		"MD5(/etc/passwd) = 44301b466258398bfee1c974a4a40832": &Checksums{
+		"MD5 (/etc/passwd) = 44301b466258398bfee1c974a4a40832": &Checksums{
 			file: "/etc/passwd",
 			checksums: []*Checksum{
 				&Checksum{
@@ -91,45 +92,94 @@ func Test_parseLine(t *testing.T) {
 	defer func() { chosen = oldChosen }()
 	chosen = nil
 
-	for line := range xinput {
+	for line := range want {
 		got := parseLine(line, lineno)
 		if got == nil {
 			panic("nil")
 		}
-		if got.file != xinput[line].file || !slices.EqualFunc(got.checksums, xinput[line].checksums, func(s1, s2 *Checksum) bool {
+		if got.file != want[line].file || !slices.EqualFunc(got.checksums, want[line].checksums, func(s1, s2 *Checksum) bool {
 			return s1.hash == s2.hash && bytes.Equal(s1.csum, s2.csum)
 		}) {
-			t.Errorf("parseLine(%q) got %v, want %v", line, got, xinput[line])
+			t.Errorf("parseLine(%q) got %v, want %v", line, got, want[line])
 		}
 	}
 }
 
 func Test_inputFromCheck(t *testing.T) {
-	xinput := map[string]*Checksums{
-		"44301b466258398bfee1c974a4a40831  /etc/passwd": &Checksums{
-			file: "/etc/passwd",
-			checksums: []*Checksum{
-				&Checksum{
-					hash: crypto.MD5,
-					csum: []byte{0x44, 0x30, 0x1b, 0x46, 0x62, 0x58, 0x39, 0x8b, 0xfe, 0xe1, 0xc9, 0x74, 0xa4, 0xa4, 0x08, 0x31},
+	xwant := map[string][]*Checksums{
+		"44301b466258398bfee1c974a4a40831  /etc/passwd": []*Checksums{
+			&Checksums{
+				file: "/etc/passwd",
+				checksums: []*Checksum{
+					&Checksum{
+						hash: crypto.MD5,
+						csum: []byte{0x44, 0x30, 0x1b, 0x46, 0x62, 0x58, 0x39, 0x8b, 0xfe, 0xe1, 0xc9, 0x74, 0xa4, 0xa4, 0x08, 0x31},
+					},
 				},
 			},
 		},
-		"MD5(/etc/passwd) = 44301b466258398bfee1c974a4a40832\nSHA256(/etc/passwd) = fab8488def7282a75f223a062ec37acc5e35177d0645a9aaf0dc6ca27ae18dbf": &Checksums{
-			file: "/etc/passwd",
-			checksums: []*Checksum{
-				&Checksum{
-					hash: crypto.SHA256,
-					csum: []byte{0xfa, 0xb8, 0x48, 0x8d, 0xef, 0x72, 0x82, 0xa7, 0x5f, 0x22, 0x3a, 0x06, 0x2e, 0xc3, 0x7a, 0xcc, 0x5e, 0x35, 0x17, 0x7d, 0x06, 0x45, 0xa9, 0xaa, 0xf0, 0xdc, 0x6c, 0xa2, 0x7a, 0xe1, 0x8d, 0xbf},
+		"MD5 (/etc/passwd) = 44301b466258398bfee1c974a4a40832\nSHA256(/etc/passwd) = fab8488def7282a75f223a062ec37acc5e35177d0645a9aaf0dc6ca27ae18dbf": []*Checksums{
+			&Checksums{
+				file: "/etc/passwd",
+				checksums: []*Checksum{
+					&Checksum{
+						hash: crypto.SHA256,
+						csum: []byte{0xfa, 0xb8, 0x48, 0x8d, 0xef, 0x72, 0x82, 0xa7, 0x5f, 0x22, 0x3a, 0x06, 0x2e, 0xc3, 0x7a, 0xcc, 0x5e, 0x35, 0x17, 0x7d, 0x06, 0x45, 0xa9, 0xaa, 0xf0, 0xdc, 0x6c, 0xa2, 0x7a, 0xe1, 0x8d, 0xbf},
+					},
 				},
 			},
 		},
-		"SHA256(/etc/passwd)= fab8488def7282a75f223a062ec37acc5e35177d0645a9aaf0dc6ca27ae18dbf\nSHA512-256(/etc/passwd) = 946097b17deb2745bb78a1a62bc35a14d2a39218514a16764880fff12b26b2fb\n": &Checksums{
-			file: "/etc/passwd",
-			checksums: []*Checksum{
-				&Checksum{
-					hash: crypto.SHA256,
-					csum: []byte{0xfa, 0xb8, 0x48, 0x8d, 0xef, 0x72, 0x82, 0xa7, 0x5f, 0x22, 0x3a, 0x06, 0x2e, 0xc3, 0x7a, 0xcc, 0x5e, 0x35, 0x17, 0x7d, 0x06, 0x45, 0xa9, 0xaa, 0xf0, 0xdc, 0x6c, 0xa2, 0x7a, 0xe1, 0x8d, 0xbf},
+		"SHA256 (/etc/passwd)= fab8488def7282a75f223a062ec37acc5e35177d0645a9aaf0dc6ca27ae18dbf\nSHA512-256(/etc/passwd) = 946097b17deb2745bb78a1a62bc35a14d2a39218514a16764880fff12b26b2fb\n": []*Checksums{
+			&Checksums{
+				file: "/etc/passwd",
+				checksums: []*Checksum{
+					&Checksum{
+						hash: crypto.SHA256,
+						csum: []byte{0xfa, 0xb8, 0x48, 0x8d, 0xef, 0x72, 0x82, 0xa7, 0x5f, 0x22, 0x3a, 0x06, 0x2e, 0xc3, 0x7a, 0xcc, 0x5e, 0x35, 0x17, 0x7d, 0x06, 0x45, 0xa9, 0xaa, 0xf0, 0xdc, 0x6c, 0xa2, 0x7a, 0xe1, 0x8d, 0xbf},
+					},
+				},
+			},
+		},
+		"MD5 (/etc/passwd) = 44301b466258398bfee1c974a4a40831\nSHA1 (/etc/passwd) = 5a9695f925c683e7a4f6fce8ca006529e6bd6b9f\n": []*Checksums{
+			&Checksums{
+				file: "/etc/passwd",
+				checksums: []*Checksum{
+					&Checksum{
+						hash: crypto.MD5,
+						csum: []byte{0x44, 0x30, 0x1b, 0x46, 0x62, 0x58, 0x39, 0x8b, 0xfe, 0xe1, 0xc9, 0x74, 0xa4, 0xa4, 0x08, 0x31},
+					},
+					&Checksum{
+						hash: crypto.SHA1,
+						csum: []byte{0x5a, 0x96, 0x95, 0xf9, 0x25, 0xc6, 0x83, 0xe7, 0xa4, 0xf6, 0xfc, 0xe8, 0xca, 0x00, 0x65, 0x29, 0xe6, 0xbd, 0x6b, 0x9f},
+					},
+				},
+			},
+		},
+		"44301b466258398bfee1c974a4a40831  /etc/passwd\n5a9695f925c683e7a4f6fce8ca006529e6bd6b9f  /etc/passwd\n3975f0d8c4e1ecb25f035edfb1ba27ac  /etc/services\na0d7a229bf049f7fe17e8445226236e4024535d0  /etc/services\n": []*Checksums{
+			&Checksums{
+				file: "/etc/passwd",
+				checksums: []*Checksum{
+					&Checksum{
+						hash: crypto.MD5,
+						csum: []byte{0x44, 0x30, 0x1b, 0x46, 0x62, 0x58, 0x39, 0x8b, 0xfe, 0xe1, 0xc9, 0x74, 0xa4, 0xa4, 0x08, 0x31},
+					},
+					&Checksum{
+						hash: crypto.SHA1,
+						csum: []byte{0x5a, 0x96, 0x95, 0xf9, 0x25, 0xc6, 0x83, 0xe7, 0xa4, 0xf6, 0xfc, 0xe8, 0xca, 0x00, 0x65, 0x29, 0xe6, 0xbd, 0x6b, 0x9f},
+					},
+				},
+			},
+			&Checksums{
+				file: "/etc/services",
+				checksums: []*Checksum{
+					&Checksum{
+						hash: crypto.MD5,
+						csum: []byte{0x39, 0x75, 0xf0, 0xd8, 0xc4, 0xe1, 0xec, 0xb2, 0x5f, 0x03, 0x5e, 0xdf, 0xb1, 0xba, 0x27, 0xac},
+					},
+					&Checksum{
+						hash: crypto.SHA1,
+						csum: []byte{0xa0, 0xd7, 0xa2, 0x29, 0xbf, 0x04, 0x9f, 0x7f, 0xe1, 0x7e, 0x84, 0x45, 0x22, 0x62, 0x36, 0xe4, 0x02, 0x45, 0x35, 0xd0},
+					},
 				},
 			},
 		},
@@ -138,16 +188,23 @@ func Test_inputFromCheck(t *testing.T) {
 	defer func() { chosen = oldChosen }()
 	chosen = nil
 
-	for line := range xinput {
+	for line := range xwant {
 		reader := ReadCloser{strings.NewReader(line)}
 		for got := range inputFromCheck(reader) {
-			if got == nil {
-				panic("nil")
+			want := xwant[line]
+			// Goroutines may return randomized stuff so swap if needed
+			i := 0
+			if len(want) > 1 && got.file != want[0].file {
+				i = 1
 			}
-			if got.file != xinput[line].file || !slices.EqualFunc(got.checksums, xinput[line].checksums, func(s1, s2 *Checksum) bool {
+			if len(got.checksums) > 1 && got.checksums[0].hash != want[i].checksums[0].hash {
+				got.checksums[0], got.checksums[1] = got.checksums[1], got.checksums[0]
+			}
+			if got.file != want[i].file || !slices.EqualFunc(got.checksums, want[i].checksums, func(s1, s2 *Checksum) bool {
 				return s1.hash == s2.hash && bytes.Equal(s1.csum, s2.csum)
 			}) {
-				t.Errorf("parseLine(%q) got %v, want %v", line, got, xinput[line])
+				fmt.Printf("line: %q\ngot: %v\nwant:%v\n", line, got, want[i])
+				t.Errorf("inputFromCheck(%q) got %v, want %v", line, got.checksums[0], want[i].checksums[0])
 			}
 		}
 	}
