@@ -136,6 +136,7 @@ func inputFromCheck(f io.ReadCloser) <-chan *Checksums {
 					}
 					break
 				}
+				current = input.file
 				checksums = []*Checksum{}
 			}
 			if input != nil {
