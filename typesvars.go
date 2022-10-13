@@ -52,6 +52,7 @@ var opts struct {
 	input     string
 	ignore    bool
 	key       string
+	size      bool
 	symlinks  bool // Used by the -r option
 	quiet     bool // Used by the -c option
 	recursive bool

@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -25,19 +26,27 @@ import flag "github.com/spf13/pflag"
 const version string = "v2.0"
 
 func getOutput(results *Checksums) []*Output {
-	output := make([]*Output, len(results.checksums))
+	outputs := make([]*Output, len(results.checksums))
 	prefix, file := escapeFilename(results.file)
 	if !opts.gnu {
 		prefix = ""
 	}
 	for i := range results.checksums {
-		output[i] = &Output{
+		outputs[i] = &Output{
 			File: file,
 			Name: algorithms[results.checksums[i].hash].name,
 			Sum:  prefix + hex.EncodeToString(results.checksums[i].sum),
 		}
 	}
-	return output
+	if opts.size {
+		size := &Output{
+			File: file,
+			Name: "SIZE",
+			Sum:  strconv.FormatInt(results.checksums[0].written, 10),
+		}
+		outputs = append(outputs, size)
+	}
+	return outputs
 }
 
 func display(results *Checksums) {
@@ -94,6 +103,7 @@ func init() {
 	flag.BoolVarP(&opts.quiet, "quiet", "q", false, "don't print OK for each successfully verified file")
 	flag.BoolVarP(&opts.symlinks, "symlinks", "L", false, "don't follow symbolic links with the -r option")
 	flag.BoolVarP(&opts.recursive, "recursive", "r", false, "recurse into directories")
+	flag.BoolVarP(&opts.size, "size", "", false, "output size")
 	flag.BoolVarP(&opts.status, "status", "S", false, "don't output anything, status code shows success")
 	flag.BoolVarP(&opts.strict, "strict", "", false, "exit non-zero for improperly formatted checksum lines")
 	flag.BoolVarP(&opts.str, "string", "s", false, "treat arguments as strings")

@@ -51,6 +51,7 @@ Usage: xhash [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... 
       --sha3-512         SHA3-512 algorithm
       --sha512           SHA-512 algorithm
       --sha512-256       SHA-512/256 algorithm
+      --size             output size
   -S, --status           don't output anything, status code shows success
       --strict           exit non-zero for improperly formatted checksum lines
   -s, --string           treat arguments as strings
