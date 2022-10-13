@@ -57,7 +57,13 @@ func parseLine(line string, lineno uint64) *Checksums {
 	var err error
 	var ok bool
 
-	if !opts.bsd {
+	if !opts.gnu {
+		match = regex.bsd.FindStringSubmatch(line)
+		if match != nil {
+			algorithm, file, digest = match[1], match[2], strings.ToLower(match[3])
+		}
+	}
+	if match == nil {
 		match = regex.gnu.FindStringSubmatch(line)
 		if match != nil {
 			digest, file = strings.ToLower(match[1]), unescapeFilename(match[2])
@@ -66,12 +72,6 @@ func parseLine(line string, lineno uint64) *Checksums {
 			} else {
 				algorithm = size2hash[len(digest)]
 			}
-		}
-	}
-	if !opts.gnu {
-		match = regex.bsd.FindStringSubmatch(line)
-		if match != nil {
-			algorithm, file, digest = match[1], match[2], strings.ToLower(match[3])
 		}
 	}
 	sum, err = hex.DecodeString(digest)

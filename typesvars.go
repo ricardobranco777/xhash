@@ -45,7 +45,6 @@ var (
 
 var opts struct {
 	all       bool
-	bsd       bool
 	check     string
 	format    string
 	gnu       bool

@@ -97,7 +97,6 @@ func init() {
 	}
 
 	flag.BoolVarP(&opts.all, "all", "a", false, "all algorithms (except others specified, if any)")
-	flag.BoolVarP(&opts.bsd, "bsd", "", false, "output hashes in the format used by *BSD")
 	flag.BoolVarP(&opts.gnu, "gnu", "", false, "output hashes in the format used by *sum")
 	flag.BoolVarP(&opts.ignore, "ignore-missing", "", false, "don't fail or report status for missing files")
 	flag.BoolVarP(&opts.quiet, "quiet", "q", false, "don't print OK for each successfully verified file")
@@ -113,7 +112,7 @@ func init() {
 	flag.StringVarP(&opts.check, "check", "c", "\x00", "read checksums from file (use \"\" for stdin)")
 	flag.StringVarP(&opts.input, "input", "i", "\x00", "read pathnames from file (use \"\" for stdin)")
 	flag.StringVarP(&opts.key, "hmac", "H", "\x00", "key for HMAC (in hexadecimal) or read from specified pathname")
-	flag.StringVarP(&opts.format, "format", "f", "{{range .}}{{.Name}}({{.File}}) = {{.Sum}}\n{{end}}", "output format")
+	flag.StringVarP(&opts.format, "format", "f", "{{ range . }}{{ .Name }} ({{ .File }}) = {{ .Sum }}\n{{ end }}", "output format")
 
 	hashes := []crypto.Hash{
 		crypto.BLAKE2b_256,
@@ -155,9 +154,6 @@ func init() {
 	}
 	flag.Parse()
 
-	if opts.bsd && opts.gnu {
-		logger.Fatal("The --bsd & --gnu options are mutually exclusive")
-	}
 	if opts.input != "\x00" && opts.check != "\x00" {
 		logger.Fatal("The --input & --check options are mutually exclusive")
 	}
@@ -206,10 +202,8 @@ func init() {
 		}
 	}
 
-	if opts.bsd {
-		opts.format = "{{range .}}{{.Name}} ({{.File}}) = {{.Sum}}\n{{end}}"
-	} else if opts.gnu {
-		opts.format = "{{range .}}{{.Sum}}  {{.File}}\n{{end}}"
+	if opts.gnu {
+		opts.format = "{{ range . }}{{ .Sum }}  {{ .File }}\n{{end}}"
 	}
 	var err error
 	format, err = format.Parse(opts.format)

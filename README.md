@@ -35,9 +35,8 @@ Usage: xhash [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... 
   -a, --all              all algorithms (except others specified, if any)
       --blake2b-256      BLAKE2b-256 algorithm
       --blake2b-512      BLAKE2b-512 algorithm
-      --bsd              output hashes in the format used by *BSD
   -c, --check string     read checksums from file (use "" for stdin) (default "\x00")
-  -f, --format string    output format (default "{{range .}}{{.Name}}({{.File}}) = {{.Sum}}\n{{end}}")
+  -f, --format string    output format (default "{{ range . }}{{ .Name }} ({{ .File }}) = {{ .Sum }}\n{{ end }}")
       --gnu              output hashes in the format used by *sum
   -H, --hmac string      key for HMAC (in hexadecimal) or read from specified pathname (default "\x00")
       --ignore-missing   don't fail or report status for missing files
