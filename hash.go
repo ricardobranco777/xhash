@@ -17,11 +17,13 @@ func hashSmallF1(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 		logger.Print(err)
 		return nil
 	}
-	if _, err := checksums[0].Write(data); err != nil {
+	if n, err := checksums[0].Write(data); err != nil {
 		logger.Print(err)
 		return nil
+	} else {
+		checksums[0].written = int64(n)
+		checksums[0].sum = checksums[0].Sum(nil)
 	}
-	checksums[0].sum = checksums[0].Sum(nil)
 	return checksums
 }
 
@@ -48,10 +50,12 @@ func hashSmallF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	for _, h := range checksums {
 		go func(h *Checksum) {
 			defer wg.Done()
-			if _, err := h.Write(data); err != nil {
+			if n, err := h.Write(data); err != nil {
 				logger.Print(err)
+			} else {
+				h.written = int64(n)
+				h.sum = h.Sum(nil)
 			}
-			h.sum = h.Sum(nil)
 		}(h)
 	}
 	wg.Wait()
@@ -64,11 +68,13 @@ func hashF1(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 		checksums = getChosen()
 	}
 	initHash(checksums[0])
-	if _, err := io.Copy(checksums[0], f); err != nil {
+	if n, err := io.Copy(checksums[0], f); err != nil {
 		logger.Print(err)
 		return nil
+	} else {
+		checksums[0].written = n
+		checksums[0].sum = checksums[0].Sum(nil)
 	}
-	checksums[0].sum = checksums[0].Sum(nil)
 	return checksums
 }
 
@@ -94,10 +100,12 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 		pipeWriters = append(pipeWriters, pw)
 		go func(h *Checksum) {
 			defer wg.Done()
-			if _, err := io.Copy(h, pr); err != nil {
+			if n, err := io.Copy(h, pr); err != nil {
 				logger.Print(err)
+			} else {
+				h.written = n
+				h.sum = h.Sum(nil)
 			}
-			h.sum = h.Sum(nil)
 		}(h)
 	}
 
@@ -150,9 +158,15 @@ func hashFile(input *Checksums) *Checksums {
 		hashIt = hashF
 	}
 
-	return &Checksums{
-		file:      file,
-		checksums: hashIt(f, input.checksums),
+	checksums := hashIt(f, input.checksums)
+	if info.Size() > 0 && checksums[0].written != info.Size() {
+		logger.Printf("%s: written %d, expected: %d", file, checksums[0].written, info.Size())
+		return nil
+	} else {
+		return &Checksums{
+			file:      file,
+			checksums: checksums,
+		}
 	}
 }
 

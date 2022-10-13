@@ -55,7 +55,7 @@ func testIt(t *testing.T, funcname string, f func(io.ReadCloser, []*Checksum) []
 	// Test with nil (should default to SHA-256)
 	reader := ReadCloser{strings.NewReader(fox_string)}
 	got := f(reader, nil)
-	if got[0].hash != crypto.SHA256 || !bytes.Equal(got[0].sum, fox_sha256) {
+	if got[0].hash != crypto.SHA256 || !bytes.Equal(got[0].sum, fox_sha256) || got[0].written != int64(len(fox_string)) {
 		t.Errorf("%s(%q) got %v, want %v", funcname, fox_string, got[0].sum, fox_sha256)
 	}
 

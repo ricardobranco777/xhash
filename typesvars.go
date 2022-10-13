@@ -18,8 +18,9 @@ type Algorithm struct {
 type Checksum struct {
 	hash crypto.Hash
 	hash.Hash
-	sum  []byte
-	csum []byte // Used only by the -c option
+	written int64
+	sum     []byte
+	csum    []byte // Used by the -c option
 }
 
 type Checksums struct {
