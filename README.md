@@ -25,7 +25,9 @@ This Go program uses goroutines to calculate multiple hashes on strings, files a
 
 ## Output format
 
-The output format is the same as OpenSSL's **dgst** command.  It may be changed with the `--bsd` option to support the format used by FreeBSD's **md5**, **sha1**, etc; NetBSD's **digest**, or the `---gnu` option to support the format used by **md5sum** and friends.
+The output format is the same as the BSD commands.  Use `--gnu` to use the format used by **md5sum**.
+
+To use the format used by **hashdeep** use `--size -f '{{ range . }}{{ .Sum }},{{ end }}{{ (index . 0).File }}\n'`
 
 ## Usage
 

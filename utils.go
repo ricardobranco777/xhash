@@ -43,15 +43,46 @@ func getChosen() []*Checksum {
 }
 
 // *sum escapes filenames with backslash & newline
-func escapeFilename(filename string) (prefix string, result string) {
-	if strings.ContainsAny(filename, "\n\\") {
-		return "\\", strings.Replace(strings.Replace(filename, "\\", "\\\\", -1), "\n", "\\n", -1)
-	} else {
-		return "", filename
+func escapeFilename(filename string) (string, string) {
+	var replace = map[string]string{
+		"\r": "\\r",
+		"\n": "\\n",
 	}
+	prefix := ""
+	if strings.ContainsAny(filename, "\\\r\n") {
+		filename = strings.ReplaceAll(filename, "\\", "\\\\")
+		for s, ss := range replace {
+			filename = strings.ReplaceAll(filename, s, ss)
+		}
+		prefix = "\\"
+	}
+	return prefix, filename
 }
 
 // *sum escapes filenames with backslash & newline
 func unescapeFilename(filename string) string {
-	return strings.Replace(strings.Replace(filename, "\\\\", "\\", -1), "\\n", "\n", -1)
+	var replace = map[string]string{
+		"\\\\": "\\",
+		"\\r":  "\r",
+		"\\n":  "\n",
+	}
+	for s, ss := range replace {
+		filename = strings.ReplaceAll(filename, s, ss)
+	}
+	return filename
+}
+
+// Used to support the --format option
+func unescape(str string) string {
+	var replace = map[string]string{
+		"\\\\": "\\",
+		"\\r":  "\r",
+		"\\n":  "\n",
+		"\\t":  "\t",
+		"\\0":  "\x00",
+	}
+	for s, ss := range replace {
+		str = strings.ReplaceAll(str, s, ss)
+	}
+	return str
 }

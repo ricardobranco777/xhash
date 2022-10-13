@@ -44,7 +44,7 @@ func getOutput(results *Checksums) []*Output {
 			Name: "SIZE",
 			Sum:  strconv.FormatInt(results.checksums[0].written, 10),
 		}
-		outputs = append(outputs, size)
+		outputs = append([]*Output{size}, outputs...)
 	}
 	return outputs
 }
@@ -205,6 +205,7 @@ func init() {
 	if opts.gnu {
 		opts.format = "{{ range . }}{{ .Sum }}  {{ .File }}\n{{end}}"
 	}
+	opts.format = unescape(opts.format)
 	var err error
 	format, err = format.Parse(opts.format)
 	if err != nil {
