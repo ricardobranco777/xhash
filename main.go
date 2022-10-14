@@ -23,7 +23,7 @@ import (
 
 import flag "github.com/spf13/pflag"
 
-const version string = "v2.0"
+const version string = "v2.1"
 
 func getOutput(results *Checksums) []*Output {
 	outputs := make([]*Output, len(results.checksums))
