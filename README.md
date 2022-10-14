@@ -27,7 +27,7 @@ This Go program uses goroutines to calculate multiple hashes on strings, files a
 
 The output format is the same as the BSD commands.  Use `--gnu` to use the format used by **md5sum**.
 
-To use the format used by **hashdeep** use `--size -f '{{ range . }}{{ .Sum }},{{ end }}{{ (index . 0).File }}\n'`
+To use the format used by **hashdeep** use `--size -f '{{range .}}{{.Sum}},{{end}}{{(index . 0).File}}\n'`
 
 ## Usage
 
@@ -37,12 +37,12 @@ Usage: xhash [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... 
   -a, --all              all algorithms (except others specified, if any)
       --blake2b-256      BLAKE2b-256 algorithm
       --blake2b-512      BLAKE2b-512 algorithm
-  -c, --check string     read checksums from file (use "" for stdin) (default "\x00")
-  -f, --format string    output format (default "{{ range . }}{{ .Name }} ({{ .File }}) = {{ .Sum }}\n{{ end }}")
+  -c, --check string     read checksums from file (use "" for stdin)
+  -f, --format string    output format (default "{{range .}}{{.Name}} ({{.File}}) = {{.Sum }}\n{{end}}")
       --gnu              output hashes in the format used by *sum
-  -H, --hmac string      key for HMAC (in hexadecimal) or read from specified pathname (default "\x00")
+  -H, --hmac string      key for HMAC (in hexadecimal) or read from specified pathname
       --ignore-missing   don't fail or report status for missing files
-  -i, --input string     read pathnames from file (use "" for stdin) (default "\x00")
+  -i, --input string     read pathnames from file (use "" for stdin)
       --md5              MD5 algorithm
   -q, --quiet            don't print OK for each successfully verified file
   -r, --recursive        recurse into directories

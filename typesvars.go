@@ -80,9 +80,13 @@ var regex = struct {
 
 var (
 	insecure  = []crypto.Hash{crypto.MD4, crypto.MD5, crypto.RIPEMD160, crypto.SHA1}
-	name2Hash map[string]crypto.Hash
 	size2hash = map[int]string{128: "SHA512", 96: "SHA384", 64: "SHA256", 56: "SHA224", 40: "SHA1", 32: "MD5"}
 )
+
+var name2Hash = map[string]crypto.Hash{
+	"SHA512t256": crypto.SHA512_256,  // Used by FreeBSD's md5
+	"BLAKE2b":    crypto.BLAKE2b_512, // Used by GNU coreutils's btsum
+}
 
 // io.ReadCloser compatible interface used for mocking
 type ReadCloser struct {

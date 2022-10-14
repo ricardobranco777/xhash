@@ -91,13 +91,35 @@ func init() {
 
 	progname := filepath.Base(os.Args[0])
 
+	// Allow xhash to be hard-linked to "md5sum" or "md5", etc and only use that algorithm
+	cmd := strings.TrimSuffix(strings.TrimSuffix(progname, ".exe"), "sum")
+
+	var defaults = map[string]crypto.Hash{
+		"b2":     crypto.BLAKE2b_512,
+		"md5":    crypto.MD5,
+		"sha1":   crypto.SHA1,
+		"sha224": crypto.SHA224,
+		"sha256": crypto.SHA256,
+		"sha384": crypto.SHA384,
+		"sha512": crypto.SHA512,
+	}
+	var use crypto.Hash
+	var ok bool
+	if use, ok = defaults[cmd]; !ok {
+		use = crypto.Hash(0)
+	}
+
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... DIRECTORY...]\n\n", progname)
+		fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... DIRECTORY...]\n", progname)
 		flag.PrintDefaults()
 	}
 
-	flag.BoolVarP(&opts.all, "all", "a", false, "all algorithms (except others specified, if any)")
-	flag.BoolVarP(&opts.gnu, "gnu", "", false, "output hashes in the format used by *sum")
+	if strings.HasPrefix(progname, "xhash") {
+		flag.BoolVarP(&opts.all, "all", "a", false, "all algorithms (except others specified, if any)")
+	}
+	if !strings.Contains(progname, "sum") {
+		flag.BoolVarP(&opts.gnu, "gnu", "", false, "output hashes in the format used by *sum")
+	}
 	flag.BoolVarP(&opts.ignore, "ignore-missing", "", false, "don't fail or report status for missing files")
 	flag.BoolVarP(&opts.quiet, "quiet", "q", false, "don't print OK for each successfully verified file")
 	flag.BoolVarP(&opts.symlinks, "symlinks", "L", false, "don't follow symbolic links with the -r option")
@@ -112,7 +134,11 @@ func init() {
 	flag.StringVarP(&opts.check, "check", "c", "\x00", "read checksums from file (use \"\" for stdin)")
 	flag.StringVarP(&opts.input, "input", "i", "\x00", "read pathnames from file (use \"\" for stdin)")
 	flag.StringVarP(&opts.key, "hmac", "H", "\x00", "key for HMAC (in hexadecimal) or read from specified pathname")
-	flag.StringVarP(&opts.format, "format", "f", "{{ range . }}{{ .Name }} ({{ .File }}) = {{ .Sum }}\n{{ end }}", "output format")
+	if strings.Contains(progname, "sum") {
+		flag.StringVarP(&opts.format, "format", "f", "{{range .}}{{.Sum}}  {{.File}}\n{{end}}", "output format")
+	} else {
+		flag.StringVarP(&opts.format, "format", "f", "{{range .}}{{.Name}} ({{.File}}) = {{.Sum }}\n{{end}}", "output format")
+	}
 
 	hashes := []crypto.Hash{
 		crypto.BLAKE2b_256,
@@ -132,6 +158,10 @@ func init() {
 		//crypto.SHA3_384,
 		crypto.SHA3_512,
 	}
+	if !strings.HasPrefix(progname, "xhash") {
+		hashes = []crypto.Hash{use}
+	}
+
 	max := 0
 	for _, h := range hashes {
 		if int(h) > max {
@@ -145,14 +175,20 @@ func init() {
 			algorithms[h] = &Algorithm{
 				name: strings.ReplaceAll(strings.ReplaceAll(h.String(), "SHA-", "SHA"), "/", "-"),
 			}
-			flag.BoolVar(
-				&algorithms[h].check,
-				strings.ToLower(algorithms[h].name),
-				false,
-				h.String()+" algorithm")
+			if strings.HasPrefix(progname, "xhash") {
+				flag.BoolVar(
+					&algorithms[h].check,
+					strings.ToLower(algorithms[h].name),
+					false,
+					h.String()+" algorithm")
+			}
 		}
 	}
 	flag.Parse()
+
+	if strings.Contains(progname, "sum") {
+		opts.gnu = true
+	}
 
 	if opts.input != "\x00" && opts.check != "\x00" {
 		logger.Fatal("The --input & --check options are mutually exclusive")
@@ -168,25 +204,29 @@ func init() {
 		os.Exit(0)
 	}
 
-	if opts.all {
-		// Ignore algorithm if --all was specified
-		for h := range algorithms {
-			algorithms[h].check = !algorithms[h].check
+	if strings.HasPrefix(progname, "xhash") {
+		if opts.all {
+			// Ignore algorithm if --all was specified
+			for h := range algorithms {
+				algorithms[h].check = !algorithms[h].check
+			}
 		}
-	}
 
-	// Initialize chosen and populate name2Hash
-	name2Hash = make(map[string]crypto.Hash)
-	for _, h := range hashes {
-		if h.Available() && algorithms[h].check {
-			chosen = append(chosen, &Checksum{hash: h})
+		// Initialize chosen and populate name2Hash
+		for _, h := range hashes {
+			if h.Available() && algorithms[h].check {
+				chosen = append(chosen, &Checksum{hash: h})
+			}
+			name2Hash[algorithms[h].name] = h
 		}
-		name2Hash[algorithms[h].name] = h
-	}
 
-	if opts.check == "\x00" && len(chosen) == 0 {
-		// SHA-256 is default
-		chosen = append(chosen, &Checksum{hash: crypto.SHA256})
+		if opts.check == "\x00" && len(chosen) == 0 {
+			// SHA-256 is default
+			chosen = append(chosen, &Checksum{hash: crypto.SHA256})
+		}
+	} else {
+		chosen = []*Checksum{&Checksum{hash: use}}
+		name2Hash[algorithms[use].name] = use
 	}
 
 	if opts.key != "\x00" {
@@ -203,7 +243,7 @@ func init() {
 	}
 
 	if opts.gnu {
-		opts.format = "{{ range . }}{{ .Sum }}  {{ .File }}\n{{end}}"
+		opts.format = "{{range .}}{{.Sum}}  {{.File}}\n{{end}}"
 	}
 	opts.format = unescape(opts.format)
 	var err error
