@@ -87,6 +87,15 @@ func Test_parseLine(t *testing.T) {
 				},
 			},
 		},
+		"\\44301b466258398bfee1c974a4a40834  /etc/\\npasswd": &Checksums{
+			file: "/etc/\npasswd",
+			checksums: []*Checksum{
+				&Checksum{
+					hash: crypto.MD5,
+					csum: []byte{0x44, 0x30, 0x1b, 0x46, 0x62, 0x58, 0x39, 0x8b, 0xfe, 0xe1, 0xc9, 0x74, 0xa4, 0xa4, 0x08, 0x34},
+				},
+			},
+		},
 	}
 	oldChosen := chosen
 	defer func() { chosen = oldChosen }()
