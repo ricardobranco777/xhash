@@ -187,10 +187,6 @@ func init() {
 	}
 	flag.Parse()
 
-	if strings.Contains(progname, "sum") {
-		opts.gnu = true
-	}
-
 	if opts.input != "\x00" && opts.check != "\x00" {
 		logger.Fatal("The --input & --check options are mutually exclusive")
 	}
@@ -258,6 +254,9 @@ func init() {
 		logger.Fatal(err)
 	}
 
+	if strings.Contains(progname, "sum") {
+		opts.gnu = true
+	}
 }
 
 func main() {
