@@ -1,5 +1,5 @@
 # xhash
-This Go program uses goroutines to calculate multiple hashes on strings, files and directories.  By default it reads from standard input.
+This Go program uses goroutines to calculate multiple hashes on strings, files and directories.  By default it reads from standard input.  It can be used as a drop-in replacement for the GNU **coreutils** when hard-linked as **md5sum**, etc. and it actually supports the `--zero` option with `--check`.  The output format is fully configurable.
 
 ## Examples:
 
