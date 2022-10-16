@@ -97,18 +97,24 @@ func Test_inputFromFile(t *testing.T) {
 		"/etc/passwd\r\n/etc/services\r\n": []string{"/etc/passwd", "/etc/services"},
 	}
 
-	for str := range xinput {
-		reader := ReadCloser{strings.NewReader(str)}
-		var got []string
-		for input := range inputFromFile(reader) {
-			if input.checksums != nil {
-				panic(input.checksums)
+	oldZero := opts.zero
+	defer func() { opts.zero = oldZero }()
+
+	for input, want := range xinput {
+		for _, str := range []string{input, strings.ReplaceAll(strings.ReplaceAll(input, "\r\n", "\x00"), "\n", "\x00")} {
+			opts.zero = strings.Contains(str, "\x00")
+			reader := ReadCloser{strings.NewReader(str)}
+			var got []string
+			for input := range inputFromFile(reader) {
+				if input.checksums != nil {
+					panic(input.checksums)
+				}
+				got = append(got, input.file)
 			}
-			got = append(got, input.file)
-		}
-		sort.Sort(sort.StringSlice(got))
-		if !slices.Equal(xinput[str], got) {
-			t.Errorf("inputFromFile(%q) got %v, want %v", str, got, xinput[str])
+			sort.Sort(sort.StringSlice(got))
+			if !slices.Equal(want, got) {
+				t.Errorf("inputFromFile(%q) got %v; want %v", str, got, want)
+			}
 		}
 	}
 }

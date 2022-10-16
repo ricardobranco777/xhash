@@ -43,4 +43,24 @@ func Test_getOutput(t *testing.T) {
 			t.Errorf("got %v; want %v", b.String(), want)
 		}
 	}
+
+	oldZero := opts.zero
+	defer func() { opts.zero = oldZero }()
+	opts.zero = true
+
+	for str, want := range templates {
+		str = strings.ReplaceAll(strings.ReplaceAll(str, "\r\n", "\x00"), "\n", "\x00")
+		want = strings.ReplaceAll(strings.ReplaceAll(want, "\r\n", "\x00"), "\n", "\x00")
+		format := template.New(str)
+		format, err := format.Parse(str)
+		if err != nil {
+			logger.Fatal(err)
+		}
+		b := new(strings.Builder)
+		format.Execute(b, getOutput(results))
+		if b.String() != want {
+			t.Errorf("got %v; want %v", b.String(), want)
+		}
+	}
+
 }

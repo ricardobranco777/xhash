@@ -115,7 +115,7 @@ func Test_parseLine(t *testing.T) {
 }
 
 func Test_inputFromCheck(t *testing.T) {
-	xwant := map[string][]*Checksums{
+	xinput := map[string][]*Checksums{
 		"44301b466258398bfee1c974a4a40831  /etc/passwd": []*Checksums{
 			&Checksums{
 				file: "/etc/passwd",
@@ -197,23 +197,28 @@ func Test_inputFromCheck(t *testing.T) {
 	defer func() { chosen = oldChosen }()
 	chosen = nil
 
-	for line := range xwant {
-		reader := ReadCloser{strings.NewReader(line)}
-		for got := range inputFromCheck(reader) {
-			want := xwant[line]
-			// Goroutines may return randomized stuff so swap if needed
-			i := 0
-			if len(want) > 1 && got.file != want[0].file {
-				i = 1
-			}
-			if len(got.checksums) > 1 && got.checksums[0].hash != want[i].checksums[0].hash {
-				got.checksums[0], got.checksums[1] = got.checksums[1], got.checksums[0]
-			}
-			if got.file != want[i].file || !slices.EqualFunc(got.checksums, want[i].checksums, func(s1, s2 *Checksum) bool {
-				return s1.hash == s2.hash && bytes.Equal(s1.csum, s2.csum)
-			}) {
-				fmt.Printf("line: %q\ngot: %v\nwant:%v\n", line, got, want[i])
-				t.Errorf("inputFromCheck(%q) got %v, want %v", line, got.checksums[0], want[i].checksums[0])
+	oldZero := opts.zero
+	defer func() { opts.zero = oldZero }()
+
+	for input, want := range xinput {
+		for _, str := range []string{input, strings.ReplaceAll(strings.ReplaceAll(input, "\r\n", "\x00"), "\n", "\x00")} {
+			opts.zero = strings.Contains(str, "\x00")
+			reader := ReadCloser{strings.NewReader(str)}
+			for got := range inputFromCheck(reader) {
+				// Goroutines may return randomized stuff so swap if needed
+				i := 0
+				if len(want) > 1 && got.file != want[0].file {
+					i = 1
+				}
+				if len(got.checksums) > 1 && got.checksums[0].hash != want[i].checksums[0].hash {
+					got.checksums[0], got.checksums[1] = got.checksums[1], got.checksums[0]
+				}
+				if got.file != want[i].file || !slices.EqualFunc(got.checksums, want[i].checksums, func(s1, s2 *Checksum) bool {
+					return s1.hash == s2.hash && bytes.Equal(s1.csum, s2.csum)
+				}) {
+					fmt.Printf("line: %q\ngot: %v\nwant:%v\n", str, got, want[i])
+					t.Errorf("inputFromCheck(%q) got %v, want %v", str, got.checksums[0], want[i].checksums[0])
+				}
 			}
 		}
 	}
