@@ -117,8 +117,10 @@ func init() {
 	if strings.HasPrefix(progname, "xhash") {
 		flag.BoolVarP(&opts.all, "all", "a", false, "all algorithms (except others specified, if any)")
 	}
-	if !strings.Contains(progname, "sum") {
-		flag.BoolVarP(&opts.gnu, "gnu", "", false, "output hashes in the format used by *sum")
+	if strings.Contains(progname, "sum") {
+		flag.BoolVarP(&opts.tag, "tag", "", false, "create a BSD-style checksum")
+	} else {
+		flag.BoolVarP(&opts.gnu, "gnu", "", false, "output hashes in the format used by md5sum")
 	}
 	flag.BoolVarP(&opts.ignore, "ignore-missing", "", false, "don't fail or report status for missing files")
 	flag.BoolVarP(&opts.quiet, "quiet", "q", false, "don't print OK for each successfully verified file")
@@ -135,9 +137,9 @@ func init() {
 	flag.StringVarP(&opts.input, "input", "i", "\x00", "read pathnames from file (use \"\" for stdin)")
 	flag.StringVarP(&opts.key, "hmac", "H", "\x00", "key for HMAC (in hexadecimal) or read from specified pathname")
 	if strings.Contains(progname, "sum") {
-		flag.StringVarP(&opts.format, "format", "f", "{{range .}}{{.Sum}}  {{.File}}\n{{end}}", "output format")
+		flag.StringVarP(&opts.format, "format", "f", gnuFormat, "output format")
 	} else {
-		flag.StringVarP(&opts.format, "format", "f", "{{range .}}{{.Name}} ({{.File}}) = {{.Sum }}\n{{end}}", "output format")
+		flag.StringVarP(&opts.format, "format", "f", bsdFormat, "output format")
 	}
 
 	hashes := []crypto.Hash{
@@ -243,7 +245,9 @@ func init() {
 	}
 
 	if opts.gnu {
-		opts.format = "{{range .}}{{.Sum}}  {{.File}}\n{{end}}"
+		opts.format = gnuFormat
+	} else if opts.tag {
+		opts.format = bsdFormat
 	}
 	opts.format = unescape(opts.format)
 	var err error

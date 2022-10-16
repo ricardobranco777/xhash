@@ -42,6 +42,8 @@ uninstall:
 $(ALL):	$(BIN)
 	@for f in $(ALL) ; do ln -f $(BIN) $$f ; done
 
+ALL:	$(ALL)
+
 install-all: $(ALL)
 	@for f in $(ALL) ; do install -m 0755 $$f $(BINDIR) ; done
 

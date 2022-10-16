@@ -41,6 +41,8 @@ var (
 	fsys       fstest.MapFS
 	logger     *log.Logger
 	macKey     []byte
+	bsdFormat  string = "{{range .}}{{.Name}} ({{.File}}) = {{.Sum }}\n{{end}}"
+	gnuFormat  string = "{{range .}}{{.Sum}}  {{.File}}\n{{end}}"
 )
 
 var opts struct {
@@ -58,6 +60,7 @@ var opts struct {
 	status    bool // Used by the -c option
 	strict    bool // Used by the -c option
 	str       bool
+	tag       bool
 	verbose   bool // Used by the -c option
 	version   bool
 	warn      bool // Used by the -c option
