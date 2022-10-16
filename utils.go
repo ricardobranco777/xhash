@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/hmac"
 	"golang.org/x/crypto/blake2b"
@@ -44,6 +45,9 @@ func getChosen() []*Checksum {
 
 // *sum escapes filenames with backslash & newline
 func escapeFilename(filename string) (string, string) {
+	if opts.zero {
+		return "", filename
+	}
 	var replace = map[string]string{
 		"\r": "\\r",
 		"\n": "\\n",
@@ -61,6 +65,9 @@ func escapeFilename(filename string) (string, string) {
 
 // *sum escapes filenames with backslash & newline
 func unescapeFilename(filename string) string {
+	if opts.zero {
+		return filename
+	}
 	var replace = map[string]string{
 		"\\\\": "\\",
 		"\\r":  "\r",
@@ -85,4 +92,21 @@ func unescape(str string) string {
 		str = strings.ReplaceAll(str, s, ss)
 	}
 	return str
+}
+
+// scanLinesZ is a split function like bufio.ScanLines for NUL-terminated lines
+func scanLinesZ(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	if i := bytes.IndexByte(data, '\x00'); i >= 0 {
+		// We have a full NUL-terminated line.
+		return i + 1, data[0:i], nil
+	}
+	// If we're at EOF, we have a final, non-terminated line. Return it.
+	if atEOF {
+		return len(data), data, nil
+	}
+	// Request more data.
+	return 0, nil, nil
 }

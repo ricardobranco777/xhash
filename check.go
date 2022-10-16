@@ -112,7 +112,11 @@ func inputFromCheck(f io.ReadCloser) <-chan *Checksums {
 
 	checksums := []*Checksum{}
 	scanner := bufio.NewScanner(f)
-	scanner.Split(bufio.ScanLines)
+	if opts.zero {
+		scanner.Split(scanLinesZ)
+	} else {
+		scanner.Split(bufio.ScanLines)
+	}
 
 	files := make(chan *Checksums)
 	go func() {

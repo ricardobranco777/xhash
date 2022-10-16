@@ -117,6 +117,7 @@ func init() {
 	flag.BoolVarP(&opts.verbose, "verbose", "v", false, "verbose operation")
 	flag.BoolVarP(&opts.version, "version", "V", false, "show version and exit")
 	flag.BoolVarP(&opts.warn, "warn", "w", false, "warn about improperly formatted checksum lines")
+	flag.BoolVarP(&opts.zero, "zero", "z", false, "consider NUL instead as EOL and disable file name escaping")
 	flag.StringVarP(&opts.check, "check", "c", "\x00", "read checksums from file (use \"\" for stdin)")
 	flag.StringVarP(&opts.input, "input", "i", "\x00", "read pathnames from file (use \"\" for stdin)")
 	flag.StringVarP(&opts.key, "hmac", "H", "\x00", "key for HMAC (in hexadecimal) or read from specified pathname")
@@ -248,6 +249,9 @@ func init() {
 		opts.format = bsdFormat
 	}
 	opts.format = unescape(opts.format)
+	if opts.zero {
+		opts.format = strings.ReplaceAll(opts.format, "\n", "\x00")
+	}
 	var err error
 	format, err = format.Parse(opts.format)
 	if err != nil {
