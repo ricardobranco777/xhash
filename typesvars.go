@@ -49,6 +49,7 @@ var opts struct {
 	all       bool
 	check     string
 	format    string
+	dummy     bool // Used to support unsupported options
 	gnu       bool
 	input     string
 	ignore    bool

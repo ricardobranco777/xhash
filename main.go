@@ -100,6 +100,8 @@ func init() {
 		flag.BoolVarP(&opts.all, "all", "a", false, "all algorithms (except others specified, if any)")
 	}
 	if strings.Contains(progname, "sum") {
+		flag.BoolVarP(&opts.dummy, "binary", "b", false, "read in binary mode")
+		flag.BoolVarP(&opts.dummy, "text", "t", false, "read in text mode (default)")
 		flag.BoolVarP(&opts.tag, "tag", "", false, "create a BSD-style checksum")
 	} else {
 		flag.BoolVarP(&opts.gnu, "gnu", "", false, "output hashes in the format used by md5sum")
