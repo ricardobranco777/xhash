@@ -91,24 +91,6 @@ func init() {
 
 	progname := filepath.Base(os.Args[0])
 
-	// Allow xhash to be hard-linked to "md5sum" or "md5", etc and only use that algorithm
-	cmd := strings.TrimSuffix(strings.TrimSuffix(progname, ".exe"), "sum")
-
-	var defaults = map[string]crypto.Hash{
-		"b2":     crypto.BLAKE2b_512,
-		"md5":    crypto.MD5,
-		"sha1":   crypto.SHA1,
-		"sha224": crypto.SHA224,
-		"sha256": crypto.SHA256,
-		"sha384": crypto.SHA384,
-		"sha512": crypto.SHA512,
-	}
-	var use crypto.Hash
-	var ok bool
-	if use, ok = defaults[cmd]; !ok {
-		use = crypto.Hash(0)
-	}
-
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... DIRECTORY...]\n", progname)
 		flag.PrintDefaults()
@@ -160,8 +142,22 @@ func init() {
 		//crypto.SHA3_384,
 		crypto.SHA3_512,
 	}
+
+	// Allow xhash to be hard-linked to "md5sum" or "md5", etc and only use that algorithm
 	if !strings.HasPrefix(progname, "xhash") {
-		hashes = []crypto.Hash{use}
+		cmd := strings.TrimSuffix(strings.TrimSuffix(progname, ".exe"), "sum")
+		var defaults = map[string]crypto.Hash{
+			"b2":     crypto.BLAKE2b_512,
+			"md5":    crypto.MD5,
+			"sha1":   crypto.SHA1,
+			"sha224": crypto.SHA224,
+			"sha256": crypto.SHA256,
+			"sha384": crypto.SHA384,
+			"sha512": crypto.SHA512,
+		}
+		if h, ok := defaults[cmd]; ok {
+			hashes = []crypto.Hash{h}
+		}
 	}
 
 	max := 0
@@ -227,8 +223,8 @@ func init() {
 			chosen = append(chosen, &Checksum{hash: crypto.SHA256})
 		}
 	} else {
-		chosen = []*Checksum{&Checksum{hash: use}}
-		name2Hash[algorithms[use].name] = use
+		chosen = []*Checksum{&Checksum{hash: hashes[0]}}
+		name2Hash[algorithms[hashes[0]].name] = hashes[0]
 	}
 
 	if opts.key != "\x00" {
