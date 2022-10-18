@@ -34,6 +34,25 @@ type Output struct {
 	Sum  string
 }
 
+var hashes = []crypto.Hash{
+	crypto.BLAKE2b_256,
+	crypto.BLAKE2b_384,
+	crypto.BLAKE2b_512,
+	//crypto.MD4,
+	crypto.MD5,
+	crypto.SHA1,
+	crypto.SHA224,
+	crypto.SHA256,
+	crypto.SHA384,
+	crypto.SHA512,
+	crypto.SHA512_224,
+	crypto.SHA512_256,
+	crypto.SHA3_224,
+	crypto.SHA3_256,
+	crypto.SHA3_384,
+	crypto.SHA3_512,
+}
+
 var (
 	algorithms map[crypto.Hash]*Algorithm
 	chosen     []*Checksum

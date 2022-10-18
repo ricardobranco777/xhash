@@ -120,6 +120,23 @@ func Test_hashF(t *testing.T) {
 	testIt2(t, "hashF", hashF)
 }
 
+func BenchmarkHashes(b *testing.B) {
+	buf := make([]byte, 32768)
+
+	for _, h := range hashes {
+		checksum := &Checksum{hash: h}
+		b.Run(h.String(), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				initHash(checksum)
+				if _, err := checksum.Write(buf); err != nil {
+					panic(err)
+				}
+				checksum.sum = checksum.Sum(nil)
+			}
+		})
+	}
+}
+
 func benchmarkSize(f func(f io.ReadCloser, checksums []*Checksum) []*Checksum, b *testing.B, size int) {
 	buf := make([]byte, size)
 	oldChosen := chosen
