@@ -34,6 +34,7 @@ type Output struct {
 	Sum  string
 }
 
+// Keep sorted
 var hashes = []crypto.Hash{
 	crypto.BLAKE2b_256,
 	crypto.BLAKE2b_384,
@@ -94,6 +95,27 @@ var stats struct {
 }
 
 // Used by the -c option
+
+// Choose the fastest and more secure.
+var better = []crypto.Hash{
+	crypto.BLAKE2b_512,
+	crypto.BLAKE2b_384,
+	crypto.BLAKE2b_256,
+	crypto.SHA512, // SHA512 is faster than SHA256 on some architectures
+	crypto.SHA384,
+	crypto.SHA512_256, // Truncated SHA512 has security against length extension attacks
+	crypto.SHA256,
+	crypto.SHA512_224, // Truncated SHA512 has security against length extension attacks
+	crypto.SHA224,
+	// SHA-3 are slow
+	crypto.SHA3_256,
+	crypto.SHA3_224,
+	crypto.SHA3_512,
+	crypto.SHA3_384,
+	crypto.SHA1,
+	crypto.MD5,
+	crypto.MD4,
+}
 
 var regex = struct {
 	bsd, gnu *regexp.Regexp

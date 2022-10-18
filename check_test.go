@@ -14,8 +14,8 @@ func Test_bestHash(t *testing.T) {
 		&Checksum{hash: crypto.SHA256},
 		&Checksum{hash: crypto.SHA512_256},
 	}, 0)
-	if got.hash != crypto.SHA256 {
-		t.Errorf("got %v; want %v", got.hash, crypto.SHA256)
+	if got.hash != crypto.SHA512_256 {
+		t.Errorf("got %v; want %v", got.hash, crypto.SHA512_256)
 	}
 	got = bestHash([]*Checksum{
 		&Checksum{hash: crypto.MD5},
@@ -31,8 +31,8 @@ func Test_bestHashes(t *testing.T) {
 		&Checksum{hash: crypto.SHA256},
 		&Checksum{hash: crypto.SHA512_256},
 	})
-	if len(got) != 1 || got[0].hash != crypto.SHA256 {
-		t.Errorf("got %v; want %v", got[0].hash, crypto.SHA256)
+	if len(got) != 1 || got[0].hash != crypto.SHA512_256 {
+		t.Errorf("got %v; want %v", got[0].hash, crypto.SHA512_256)
 	}
 	got = bestHashes([]*Checksum{
 		&Checksum{hash: crypto.MD5},
@@ -143,8 +143,8 @@ func Test_inputFromCheck(t *testing.T) {
 				file: "/etc/passwd",
 				checksums: []*Checksum{
 					&Checksum{
-						hash: crypto.SHA256,
-						csum: []byte{0xfa, 0xb8, 0x48, 0x8d, 0xef, 0x72, 0x82, 0xa7, 0x5f, 0x22, 0x3a, 0x06, 0x2e, 0xc3, 0x7a, 0xcc, 0x5e, 0x35, 0x17, 0x7d, 0x06, 0x45, 0xa9, 0xaa, 0xf0, 0xdc, 0x6c, 0xa2, 0x7a, 0xe1, 0x8d, 0xbf},
+						hash: crypto.SHA512_256,
+						csum: []byte{0x94, 0x60, 0x97, 0xb1, 0x7d, 0xeb, 0x27, 0x45, 0xbb, 0x78, 0xa1, 0xa6, 0x2b, 0xc3, 0x5a, 0x14, 0xd2, 0xa3, 0x92, 0x18, 0x51, 0x4a, 0x16, 0x76, 0x48, 0x80, 0xff, 0xf1, 0x2b, 0x26, 0xb2, 0xfb},
 					},
 				},
 			},

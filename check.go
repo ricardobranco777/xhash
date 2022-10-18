@@ -12,11 +12,13 @@ import (
 
 // Choose the algorithm with the longest digest size
 func bestHash(checksums []*Checksum, ignore crypto.Hash) *Checksum {
-	max := 0
+	minIndex := 777
+
 	var best *Checksum
 	for _, checksum := range checksums {
-		if ignore != checksum.hash && checksum.hash.Size() > max {
-			max = checksum.hash.Size()
+		index := slices.Index(better, checksum.hash)
+		if ignore != checksum.hash && index < minIndex {
+			minIndex = index
 			best = checksum
 		}
 	}
