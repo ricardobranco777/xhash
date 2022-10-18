@@ -58,7 +58,9 @@ func escapeFilename(filename string) (string, string) {
 		for s, ss := range replace {
 			filename = strings.ReplaceAll(filename, s, ss)
 		}
-		prefix = "\\"
+		if !opts.gnu {
+			prefix = "\\"
+		}
 	}
 	return prefix, filename
 }

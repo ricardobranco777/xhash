@@ -26,25 +26,21 @@ import flag "github.com/spf13/pflag"
 const version string = "v2.2"
 
 func getOutput(results *Checksums) []*Output {
-	outputs := make([]*Output, len(results.checksums))
+	outputs := make([]*Output, 0, len(results.checksums)+1)
 	prefix, file := escapeFilename(results.file)
-	if !opts.gnu {
-		prefix = ""
-	}
-	for i := range results.checksums {
-		outputs[i] = &Output{
-			File: file,
-			Name: algorithms[results.checksums[i].hash].name,
-			Sum:  prefix + hex.EncodeToString(results.checksums[i].sum),
-		}
-	}
 	if opts.size {
-		size := &Output{
+		outputs = append(outputs, &Output{
 			File: file,
 			Name: "SIZE",
 			Sum:  strconv.FormatInt(results.checksums[0].written, 10),
-		}
-		outputs = append([]*Output{size}, outputs...)
+		})
+	}
+	for i := range results.checksums {
+		outputs = append(outputs, &Output{
+			File: file,
+			Name: algorithms[results.checksums[i].hash].name,
+			Sum:  prefix + hex.EncodeToString(results.checksums[i].sum),
+		})
 	}
 	return outputs
 }
