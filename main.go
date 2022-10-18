@@ -111,7 +111,7 @@ func init() {
 	flag.BoolVarP(&opts.strict, "strict", "", false, "exit non-zero for improperly formatted checksum lines")
 	flag.BoolVarP(&opts.str, "string", "s", false, "treat arguments as strings")
 	flag.BoolVarP(&opts.verbose, "verbose", "v", false, "verbose operation")
-	flag.BoolVarP(&opts.version, "version", "V", false, "show version and exit")
+	flag.BoolVarP(&opts.version, "version", "", false, "show version and exit")
 	flag.BoolVarP(&opts.warn, "warn", "w", false, "warn about improperly formatted checksum lines")
 	flag.BoolVarP(&opts.zero, "zero", "z", false, "consider NUL instead as EOL and disable file name escaping")
 	flag.StringVarP(&opts.check, "check", "c", "\x00", "read checksums from file (use \"\" for stdin)")

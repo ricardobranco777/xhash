@@ -64,7 +64,7 @@ Usage: xhash [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... 
   -s, --string           treat arguments as strings
   -L, --symlinks         don't follow symbolic links with the -r option
   -v, --verbose          verbose operation
-  -V, --version          show version and exit
+      --version          show version and exit
   -w, --warn             warn about improperly formatted checksum lines
   -z, --zero             consider NUL instead as EOL and disable file name escaping
 ``` 
