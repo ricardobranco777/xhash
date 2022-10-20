@@ -13,7 +13,7 @@ func hashBytes(data []byte, checksums []*Checksum) []*Checksum {
 	}
 	initHashes(checksums)
 	// Do not use goroutines if only one algorith or no data
-	if len(checksums) == 1 || len(data) == 0 {
+	if len(checksums) == 1 || len(data) == 0 {  // TODO: Check best len(data)
 		for i := range checksums {
 			if n, err := checksums[i].Write(data); err != nil {
 				logger.Print(err)
@@ -65,38 +65,43 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	// Use goroutines if more than one algorithm
 
 	var wg sync.WaitGroup
-	var writers []io.Writer
-	var pipeWriters []*io.PipeWriter
-
 	wg.Add(len(checksums))
-	for _, h := range checksums {
-		pr, pw := io.Pipe()
-		writers = append(writers, pw)
-		pipeWriters = append(pipeWriters, pw)
-		go func(h *Checksum) {
+
+	dataChans := make([]chan []byte, len(checksums))
+
+	for i, h := range checksums {
+		dataChans[i] = make(chan []byte)
+		go func(h *Checksum, dataChan <-chan []byte) {
 			defer wg.Done()
-			if n, err := io.Copy(h, pr); err != nil {
-				logger.Print(err)
-			} else {
-				h.written = n
-				h.sum = h.Sum(nil)
+			for data := range dataChan {
+				n, err := h.Write(data)
+				if err != nil {
+					logger.Print(err)
+				}
+				h.written += int64(n)
 			}
-		}(h)
+			h.sum = h.Sum(nil)
+		}(h, dataChans[i])
 	}
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		defer func() {
-			for _, pw := range pipeWriters {
-				pw.Close()
+		b := make([]byte, 65536)  // TODO: Check best buffer size
+		for {
+			n, err := f.Read(b)
+			if err != nil {
+				if err != io.EOF {
+					logger.Print(err)
+				}
+				break
 			}
-		}()
-		// build the multiwriter for all the pipes
-		mw := io.MultiWriter(writers...)
-		// copy the data into the multiwriter
-		if _, err := io.Copy(mw, f); err != nil {
-			logger.Print(err)
+			for i := range dataChans {
+				dataChans[i] <- b[:n]
+			}
+		}
+		for i := range dataChans {
+			close(dataChans[i])
 		}
 	}()
 	wg.Wait()
@@ -127,7 +132,8 @@ func hashFile(input *Checksums) *Checksums {
 
 	var checksums []*Checksum
 
-	if info.Size() < 1<<28 {
+	// If size is < 256M use io.ReadAll()
+	if info.Size() < 1<<28 {  // TODO: Check best size
 		data, err := io.ReadAll(f)
 		if err != nil {
 			logger.Print(err)
