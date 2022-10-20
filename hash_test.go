@@ -6,7 +6,6 @@ import (
 	"golang.org/x/exp/slices"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 	"testing"
 )
@@ -136,55 +135,4 @@ func createTemp(size int) *os.File {
 		panic(err)
 	}
 	return f
-}
-
-func BenchmarkSize(b *testing.B) {
-	oldChosen := chosen
-	chosen = []*Checksum{&Checksum{hash: crypto.SHA256}, &Checksum{hash: crypto.SHA512}}
-	initHashes(chosen)
-	defer func() { chosen = oldChosen }()
-
-	var checksums []*Checksum
-	for h := range algorithms {
-		checksums = append(checksums, &Checksum{hash: h})
-	}
-
-	// Test 1M, 256M & 512M
-	for _, size := range []int{1 << 20, 1 << 28, 1 << 29} {
-		f := createTemp(size)
-		defer os.Remove(f.Name())
-		b.Run("hashF_"+strconv.Itoa(size), func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
-				func() {
-					f, err := os.Open(f.Name())
-					if err != nil {
-						panic(err)
-					}
-					defer f.Close()
-					if hashF(f, checksums) == nil {
-						panic("hashF")
-					}
-				}()
-			}
-		})
-		b.Run("hashBytes_"+strconv.Itoa(size), func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
-				func() {
-					f, err := os.Open(f.Name())
-					if err != nil {
-						panic(err)
-					}
-					defer f.Close()
-					data, err := io.ReadAll(f)
-					if err != nil {
-						panic(err)
-					}
-					if hashBytes(data, checksums) == nil {
-						panic("hashBytes")
-					}
-				}()
-			}
-		})
-		f.Close()
-	}
 }

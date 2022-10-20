@@ -6,45 +6,6 @@ import (
 	"sync"
 )
 
-// Hash bytes
-func hashBytes(data []byte, checksums []*Checksum) []*Checksum {
-	if checksums == nil {
-		checksums = getChosen()
-	}
-	initHashes(checksums)
-	// Do not use goroutines if only one algorith or no data
-	if len(checksums) == 1 || len(data) == 0 {  // TODO: Check best len(data)
-		for i := range checksums {
-			if n, err := checksums[i].Write(data); err != nil {
-				logger.Print(err)
-				return nil
-			} else {
-				checksums[i].written = int64(n)
-				checksums[i].sum = checksums[i].Sum(nil)
-			}
-		}
-		return checksums
-	}
-
-	// Use goroutines if more than one algorithm
-	var wg sync.WaitGroup
-
-	wg.Add(len(checksums))
-	for _, h := range checksums {
-		go func(h *Checksum) {
-			defer wg.Done()
-			if n, err := h.Write(data); err != nil {
-				logger.Print(err)
-			} else {
-				h.written = int64(n)
-				h.sum = h.Sum(nil)
-			}
-		}(h)
-	}
-	wg.Wait()
-	return checksums
-}
-
 // Hash file
 func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	if checksums == nil {
@@ -87,7 +48,7 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		b := make([]byte, 65536)  // TODO: Check best buffer size
+		b := make([]byte, 65536) // TODO: Check best buffer size
 		for {
 			n, err := f.Read(b)
 			if err != nil {
@@ -130,21 +91,7 @@ func hashFile(input *Checksums) *Checksums {
 		return nil
 	}
 
-	var checksums []*Checksum
-
-	// If size is < 256M use io.ReadAll()
-	if info.Size() < 1<<28 {  // TODO: Check best size
-		data, err := io.ReadAll(f)
-		if err != nil {
-			logger.Print(err)
-		} else {
-			checksums = hashBytes(data, input.checksums)
-		}
-	}
-	if checksums == nil { // io.ReadAll() failed or file is bigger
-		checksums = hashF(f, input.checksums)
-	}
-
+	checksums := hashF(f, input.checksums)
 	if info.Size() > 0 && checksums[0].written != info.Size() {
 		logger.Printf("%s: written %d, expected: %d", file, checksums[0].written, info.Size())
 		return nil
