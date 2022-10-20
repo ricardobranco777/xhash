@@ -35,6 +35,12 @@ func initHash(h *Checksum) {
 	}
 }
 
+func initHashes(checksums []*Checksum) {
+	for _, h := range checksums {
+		initHash(h)
+	}
+}
+
 func getChosen() []*Checksum {
 	checksums := make([]*Checksum, len(chosen))
 	for i := range chosen {

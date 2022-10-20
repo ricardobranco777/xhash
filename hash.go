@@ -6,44 +6,27 @@ import (
 	"sync"
 )
 
-// Hash small file with just one algorithm
-func hashSmallF1(f io.ReadCloser, checksums []*Checksum) []*Checksum {
+// Hash bytes
+func hashBytes(data []byte, checksums []*Checksum) []*Checksum {
 	if checksums == nil {
 		checksums = getChosen()
 	}
-	initHash(checksums[0])
-	data, err := io.ReadAll(f)
-	if err != nil {
-		logger.Print(err)
-		return nil
-	}
-	if n, err := checksums[0].Write(data); err != nil {
-		logger.Print(err)
-		return nil
-	} else {
-		checksums[0].written = int64(n)
-		checksums[0].sum = checksums[0].Sum(nil)
-	}
-	return checksums
-}
-
-// Hash small file with goroutines
-func hashSmallF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
-	if checksums == nil {
-		checksums = getChosen()
-	} else if len(checksums) == 1 {
-		return hashSmallF1(f, checksums)
-	}
-	for h := range checksums {
-		initHash(checksums[h])
+	initHashes(checksums)
+	// Do not use goroutines if only one algorith or no data
+	if len(checksums) == 1 || len(data) == 0 {
+		for i := range checksums {
+			if n, err := checksums[i].Write(data); err != nil {
+				logger.Print(err)
+				return nil
+			} else {
+				checksums[i].written = int64(n)
+				checksums[i].sum = checksums[i].Sum(nil)
+			}
+		}
+		return checksums
 	}
 
-	data, err := io.ReadAll(f)
-	if err != nil {
-		logger.Print(err)
-		return nil
-	}
-
+	// Use goroutines if more than one algorithm
 	var wg sync.WaitGroup
 
 	wg.Add(len(checksums))
@@ -62,32 +45,24 @@ func hashSmallF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	return checksums
 }
 
-// Hash file with just one algorithm
-func hashF1(f io.ReadCloser, checksums []*Checksum) []*Checksum {
-	if checksums == nil {
-		checksums = getChosen()
-	}
-	initHash(checksums[0])
-	if n, err := io.Copy(checksums[0], f); err != nil {
-		logger.Print(err)
-		return nil
-	} else {
-		checksums[0].written = n
-		checksums[0].sum = checksums[0].Sum(nil)
-	}
-	return checksums
-}
-
-// Hash file with goroutines
+// Hash file
 func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	if checksums == nil {
 		checksums = getChosen()
-	} else if len(checksums) == 1 {
-		return hashF1(f, checksums)
 	}
-	for h := range checksums {
-		initHash(checksums[h])
+	initHashes(checksums)
+	if len(checksums) == 1 {
+		if n, err := io.Copy(checksums[0], f); err != nil {
+			logger.Print(err)
+			return nil
+		} else {
+			checksums[0].written = n
+			checksums[0].sum = checksums[0].Sum(nil)
+		}
+		return checksums
 	}
+
+	// Use goroutines if more than one algorithm
 
 	var wg sync.WaitGroup
 	var writers []io.Writer
@@ -150,15 +125,20 @@ func hashFile(input *Checksums) *Checksums {
 		return nil
 	}
 
-	var hashIt func(f io.ReadCloser, checksums []*Checksum) []*Checksum
-	// Use hashSmallF for files < 256M
+	var checksums []*Checksum
+
 	if info.Size() < 1<<28 {
-		hashIt = hashSmallF
-	} else {
-		hashIt = hashF
+		data, err := io.ReadAll(f)
+		if err != nil {
+			logger.Print(err)
+		} else {
+			checksums = hashBytes(data, input.checksums)
+		}
+	}
+	if checksums == nil { // io.ReadAll() failed or file is bigger
+		checksums = hashF(f, input.checksums)
 	}
 
-	checksums := hashIt(f, input.checksums)
 	if info.Size() > 0 && checksums[0].written != info.Size() {
 		logger.Printf("%s: written %d, expected: %d", file, checksums[0].written, info.Size())
 		return nil
@@ -182,8 +162,8 @@ func hashStdin(f io.ReadCloser) *Checksums {
 
 func hashString(str string) *Checksums {
 	checksums := getChosen()
-	for i, h := range checksums {
-		initHash(checksums[i])
+	for _, h := range checksums {
+		initHash(h)
 		h.Write([]byte(str))
 		h.sum = h.Sum(nil)
 	}

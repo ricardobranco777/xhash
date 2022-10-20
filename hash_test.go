@@ -6,6 +6,7 @@ import (
 	"golang.org/x/exp/slices"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -102,26 +103,13 @@ func testIt2(t *testing.T, funcname string, f func(io.ReadCloser, []*Checksum) [
 	}
 }
 
-func Test_hashSmallF1(t *testing.T) {
-	testIt(t, "hashSmallF1", hashSmallF1)
-}
-
-func Test_hashSmallF(t *testing.T) {
-	testIt(t, "hashSmallF", hashSmallF)
-	testIt2(t, "hashSmallF", hashSmallF)
-}
-
-func Test_hashF1(t *testing.T) {
-	testIt(t, "hashF1", hashF1)
-}
-
 func Test_hashF(t *testing.T) {
 	testIt(t, "hashF", hashF)
 	testIt2(t, "hashF", hashF)
 }
 
 func BenchmarkHashes(b *testing.B) {
-	buf := make([]byte, 32768)
+	buf := make([]byte, 16384)
 
 	for _, h := range hashes {
 		checksum := &Checksum{hash: h}
@@ -137,54 +125,66 @@ func BenchmarkHashes(b *testing.B) {
 	}
 }
 
-func benchmarkSize(f func(f io.ReadCloser, checksums []*Checksum) []*Checksum, b *testing.B, size int) {
+func createTemp(size int) *os.File {
 	buf := make([]byte, size)
-	oldChosen := chosen
-	chosen = []*Checksum{&Checksum{hash: crypto.SHA256}, &Checksum{hash: crypto.SHA512}}
-	initHash(chosen[0])
-	initHash(chosen[1])
-	defer func() { chosen = oldChosen }()
-	b.SetBytes(int64(size))
 
-	file, err := os.CreateTemp("", "*")
+	f, err := os.CreateTemp("", "*")
 	if err != nil {
 		panic(err)
 	}
-	defer os.Remove(file.Name())
-	if n, err := file.Write(buf); n != size || err != nil {
+	if n, err := f.Write(buf); n != size || err != nil {
 		panic(err)
 	}
+	return f
+}
+
+func BenchmarkSize(b *testing.B) {
+	oldChosen := chosen
+	chosen = []*Checksum{&Checksum{hash: crypto.SHA256}, &Checksum{hash: crypto.SHA512}}
+	initHashes(chosen)
+	defer func() { chosen = oldChosen }()
 
 	var checksums []*Checksum
 	for h := range algorithms {
 		checksums = append(checksums, &Checksum{hash: h})
 	}
 
-	for i := 0; i < b.N; i++ {
-		f(file, checksums)
+	// Test 1M, 256M & 512M
+	for _, size := range []int{1 << 20, 1 << 28, 1 << 29} {
+		f := createTemp(size)
+		defer os.Remove(f.Name())
+		b.Run("hashF_"+strconv.Itoa(size), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				func() {
+					f, err := os.Open(f.Name())
+					if err != nil {
+						panic(err)
+					}
+					defer f.Close()
+					if hashF(f, checksums) == nil {
+						panic("hashF")
+					}
+				}()
+			}
+		})
+		b.Run("hashBytes_"+strconv.Itoa(size), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				func() {
+					f, err := os.Open(f.Name())
+					if err != nil {
+						panic(err)
+					}
+					defer f.Close()
+					data, err := io.ReadAll(f)
+					if err != nil {
+						panic(err)
+					}
+					if hashBytes(data, checksums) == nil {
+						panic("hashBytes")
+					}
+				}()
+			}
+		})
+		f.Close()
 	}
-}
-
-func BenchmarkHash1M_Small(b *testing.B) {
-	benchmarkSize(hashSmallF, b, 1<<20)
-}
-
-func BenchmarkHash1M(b *testing.B) {
-	benchmarkSize(hashF, b, 1<<20)
-}
-
-func BenchmarkHash256M_Small(b *testing.B) {
-	benchmarkSize(hashSmallF, b, 1<<28)
-}
-
-func BenchmarkHash256M(b *testing.B) {
-	benchmarkSize(hashF, b, 1<<28)
-}
-
-func BenchmarkHash512M_Small(b *testing.B) {
-	benchmarkSize(hashSmallF, b, 1<<29)
-}
-
-func BenchmarkHash512M(b *testing.B) {
-	benchmarkSize(hashF, b, 1<<29)
 }
