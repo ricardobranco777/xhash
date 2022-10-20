@@ -74,6 +74,7 @@ var opts struct {
 	input     string
 	ignore    bool
 	key       string
+	mmap      bool
 	size      bool
 	symlinks  bool // Used by the -r option
 	quiet     bool // Used by the -c option

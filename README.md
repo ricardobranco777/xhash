@@ -47,6 +47,7 @@ Usage: xhash [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... 
       --ignore-missing   don't fail or report status for missing files
   -i, --input string     read pathnames from file (use "" for stdin)
       --md5              MD5 algorithm
+  -M, --mmap             use mmap - EXPERIMENTAL
   -q, --quiet            don't print OK for each successfully verified file
   -r, --recursive        recurse into directories
       --sha1             SHA-1 algorithm
