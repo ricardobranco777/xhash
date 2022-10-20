@@ -6,7 +6,6 @@ import (
 	"sync"
 )
 
-// Hash file
 func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	if checksums == nil {
 		checksums = getChosen()
@@ -92,14 +91,9 @@ func hashFile(input *Checksums) *Checksums {
 	}
 
 	checksums := hashF(f, input.checksums)
-	if info.Size() > 0 && checksums[0].written != info.Size() {
-		logger.Printf("%s: written %d, expected: %d", file, checksums[0].written, info.Size())
-		return nil
-	} else {
-		return &Checksums{
-			file:      file,
-			checksums: checksums,
-		}
+	return &Checksums{
+		file:      file,
+		checksums: checksums,
 	}
 }
 
