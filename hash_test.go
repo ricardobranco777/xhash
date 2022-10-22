@@ -104,7 +104,7 @@ func Test_hashF(t *testing.T) {
 }
 
 func BenchmarkHashes(b *testing.B) {
-	buf := make([]byte, 16384)
+	buf := make([]byte, 16*KB)
 
 	for _, h := range hashes {
 		checksum := &Checksum{hash: h}
@@ -146,7 +146,8 @@ func BenchmarkSize(b *testing.B) {
 	}
 
 	// Test 1M, 128M & 256M
-	for _, size := range []int{1 << 20, 1 << 27, 1 << 28} {
+	for _, size := range []Size{1 * MB, 128 * MB, 256 * MB} {
+		size := int(size)
 		f := createTemp(b, size)
 		defer os.Remove(f.Name())
 		b.Run("hashF_"+strconv.Itoa(size), func(b *testing.B) {

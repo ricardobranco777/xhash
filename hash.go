@@ -89,7 +89,7 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		b := make([]byte, 65536) // TODO: Check best buffer size
+		b := make([]byte, 64*KB) // TODO: Check best buffer size
 		for {
 			n, err := f.Read(b)
 			if err != nil {

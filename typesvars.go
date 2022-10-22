@@ -34,6 +34,16 @@ type Output struct {
 	Sum  string
 }
 
+type Size int
+
+const (
+	_       = iota
+	KB Size = 1 << (10 * iota)
+	MB
+	GB
+	TB
+)
+
 // Keep sorted
 var hashes = []crypto.Hash{
 	crypto.BLAKE2b_256,
