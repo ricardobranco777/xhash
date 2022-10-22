@@ -41,36 +41,36 @@ func Test_getChosen(t *testing.T) {
 }
 
 func Test_escapeFilename(t *testing.T) {
-	xstr := map[string]string{
+	xwant := map[string]string{
 		"abc":     "abc",
 		"a\\c":    "a\\\\c",
 		"a\nc":    "a\\nc",
 		"a\\b\nc": "a\\\\b\\nc",
 		"a\nb\\c": "a\\nb\\\\c",
 	}
-	for str := range xstr {
+	for str, want := range xwant {
 		prefix, got := escapeFilename(str)
-		if strings.ContainsAny(str, "\"\n") && prefix != "\\" {
+		if strings.ContainsAny(str, "\\\n") && prefix != "\\" {
 			t.Errorf("prefix in str %q got %q; want: \\", str, prefix)
 		}
-		if got != xstr[str] {
-			t.Errorf("escapeFilename(%q) got %q; want %q", str, got, xstr[str])
+		if got != want {
+			t.Errorf("escapeFilename(%q) got %q; want %q", str, got, want)
 		}
 	}
 }
 
 func Test_unescapeFilename(t *testing.T) {
-	xstr := map[string]string{
+	xwant := map[string]string{
 		"abc":        "abc",
 		"a\\\\c":     "a\\c",
 		"a\\nc":      "a\nc",
 		"a\\\\b\\nc": "a\\b\nc",
 		"a\\nb\\\\c": "a\nb\\c",
 	}
-	for str := range xstr {
+	for str, want := range xwant {
 		got := unescapeFilename(str)
-		if got != xstr[str] {
-			t.Errorf("unescapeFilename(%q) got %q; want %q", str, got, xstr[str])
+		if got != want {
+			t.Errorf("unescapeFilename(%q) got %q; want %q", str, got, want)
 		}
 	}
 }

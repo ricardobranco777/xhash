@@ -3,9 +3,9 @@ package main
 import (
 	"bytes"
 	"crypto"
-	"golang.org/x/exp/slices"
 	"io"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -48,10 +48,8 @@ func testIt(t *testing.T, funcname string, f func(io.ReadCloser, []*Checksum) []
 	for checksum := range xchecksum {
 		reader := ReadCloser{strings.NewReader(checksum)}
 		got := f(reader, xchecksum[checksum][:1])
-		if !slices.EqualFunc(got, xchecksum[checksum][:1], func(s1, s2 *Checksum) bool {
-			return s1.hash == s2.hash && bytes.Equal(s1.csum, s2.csum) && bytes.Equal(s1.sum, s2.csum)
-		}) {
-			t.Errorf("%s(%q) got %v, want %v", funcname, checksum, got[0].sum, xchecksum[checksum][0].csum)
+		if !reflect.DeepEqual(got, xchecksum[checksum][:1]) {
+			t.Errorf("%s(%q) got %v, want %v", funcname, checksum, got, xchecksum[checksum][:1])
 		}
 	}
 
@@ -69,23 +67,20 @@ func testIt(t *testing.T, funcname string, f func(io.ReadCloser, []*Checksum) []
 
 	for checksum := range xhmac {
 		reader := ReadCloser{strings.NewReader(checksum)}
-		got := f(reader, xhmac[checksum][:1])
-		if !slices.EqualFunc(got, xhmac[checksum][:1], func(s1, s2 *Checksum) bool {
-			return s1.hash == s2.hash && bytes.Equal(s1.csum, s2.csum) && bytes.Equal(s1.sum, s2.csum)
-		}) {
-			t.Errorf("%s(%q) got %v, want %v", funcname, checksum, got[0].sum, xhmac[checksum][0].csum)
+		want := xhmac[checksum][:1]
+		got := f(reader, want)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("%s(%q) got %v, want %v", funcname, checksum, got, want)
 		}
 	}
 }
 
 func testIt2(t *testing.T, funcname string, f func(io.ReadCloser, []*Checksum) []*Checksum) {
-	for checksum := range xchecksum {
+	for checksum, want := range xchecksum {
 		reader := ReadCloser{strings.NewReader(checksum)}
-		got := f(reader, xchecksum[checksum])
-		if !slices.EqualFunc(got, xchecksum[checksum], func(s1, s2 *Checksum) bool {
-			return s1.hash == s2.hash && bytes.Equal(s1.csum, s2.csum) && bytes.Equal(s1.sum, s2.csum)
-		}) {
-			t.Errorf("%s(%q) got %v, want %v", funcname, checksum, got, xchecksum[checksum])
+		got := f(reader, want)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("%s(%q) got %v, want %v", funcname, checksum, got, want)
 		}
 	}
 
@@ -94,13 +89,11 @@ func testIt2(t *testing.T, funcname string, f func(io.ReadCloser, []*Checksum) [
 	macKey = hmac_key
 	defer func() { macKey = oldKey }()
 
-	for checksum := range xhmac {
+	for checksum, want := range xhmac {
 		reader := ReadCloser{strings.NewReader(checksum)}
-		got := f(reader, xhmac[checksum])
-		if !slices.EqualFunc(got, xhmac[checksum], func(s1, s2 *Checksum) bool {
-			return s1.hash == s2.hash && bytes.Equal(s1.csum, s2.csum) && bytes.Equal(s1.sum, s2.csum)
-		}) {
-			t.Errorf("%s(%q) got %v, want %v", funcname, checksum, got, xhmac[checksum])
+		got := f(reader, want)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("%s(%q) got %v, want %v", funcname, checksum, got, want)
 		}
 	}
 }
@@ -127,7 +120,8 @@ func BenchmarkHashes(b *testing.B) {
 	}
 }
 
-func createTemp(size int) *os.File {
+func createTemp(t testing.TB, size int) *os.File {
+	t.Helper()
 	buf := make([]byte, size)
 
 	f, err := os.CreateTemp("", "*")
@@ -153,7 +147,7 @@ func BenchmarkSize(b *testing.B) {
 
 	// Test 1M, 128M & 256M
 	for _, size := range []int{1 << 20, 1 << 27, 1 << 28} {
-		f := createTemp(size)
+		f := createTemp(b, size)
 		defer os.Remove(f.Name())
 		b.Run("hashF_"+strconv.Itoa(size), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {

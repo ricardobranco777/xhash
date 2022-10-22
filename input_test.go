@@ -1,9 +1,9 @@
 package main
 
 import (
-	"golang.org/x/exp/slices"
 	"io/fs"
 	"os"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -16,14 +16,14 @@ func Test_inputFromArgs(t *testing.T) {
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs; flag.Parse() }()
 
-	xinput := [][]string{
+	xwant := [][]string{
 		[]string{"xhash", "/etc/passwd"},
 		[]string{"xhash", "/etc/passwd", "/etc/services"},
 	}
 
-	for _, xstr := range xinput {
+	for _, want := range xwant {
 		var got []string
-		os.Args = xstr
+		os.Args = want
 		flag.Parse()
 		for input := range inputFromArgs(nil) {
 			if input.checksums != nil {
@@ -31,10 +31,10 @@ func Test_inputFromArgs(t *testing.T) {
 			}
 			got = append(got, input.file)
 		}
-		xstr = xstr[1:] // Strip progname
+		want = want[1:] // Strip progname
 		sort.Sort(sort.StringSlice(got))
-		if !slices.Equal(xstr, got) {
-			t.Errorf("inputFromArgs(%q) got %v, want %v", xstr, got, xstr)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("inputFromArgs(%q) got %v, want %v", want, got, want)
 		}
 	}
 }
@@ -68,7 +68,7 @@ func Test_inputFromDir(t *testing.T) {
 	}
 	sort.Sort(sort.StringSlice(got))
 
-	if !slices.Equal(got, want[:len(want)-1]) {
+	if !reflect.DeepEqual(got, want[:len(want)-1]) {
 		t.Errorf("#1 inputFromDir() got %v; want %v", got, want)
 	}
 
@@ -83,13 +83,13 @@ func Test_inputFromDir(t *testing.T) {
 	}
 	sort.Sort(sort.StringSlice(got))
 
-	if !slices.Equal(got, want) {
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf("#2 inputFromDir() got %v; want %v", got, want)
 	}
 }
 
 func Test_inputFromFile(t *testing.T) {
-	xinput := map[string][]string{
+	xwant := map[string][]string{
 		"/etc/passwd":                      []string{"/etc/passwd"},
 		"/etc/passwd\n/etc/services":       []string{"/etc/passwd", "/etc/services"},
 		"/etc/passwd\n/etc/services\n":     []string{"/etc/passwd", "/etc/services"},
@@ -100,7 +100,7 @@ func Test_inputFromFile(t *testing.T) {
 	oldZero := opts.zero
 	defer func() { opts.zero = oldZero }()
 
-	for input, want := range xinput {
+	for input, want := range xwant {
 		for _, str := range []string{input, strings.ReplaceAll(strings.ReplaceAll(input, "\r\n", "\x00"), "\n", "\x00")} {
 			opts.zero = strings.Contains(str, "\x00")
 			reader := ReadCloser{strings.NewReader(str)}
@@ -112,7 +112,7 @@ func Test_inputFromFile(t *testing.T) {
 				got = append(got, input.file)
 			}
 			sort.Sort(sort.StringSlice(got))
-			if !slices.Equal(want, got) {
+			if !reflect.DeepEqual(got, want) {
 				t.Errorf("inputFromFile(%q) got %v; want %v", str, got, want)
 			}
 		}

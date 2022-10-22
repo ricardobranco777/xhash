@@ -1,10 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"crypto"
 	"fmt"
-	"golang.org/x/exp/slices"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -59,7 +58,7 @@ func Test_isChosen(t *testing.T) {
 
 func Test_parseLine(t *testing.T) {
 	lineno := uint64(1)
-	want := map[string]*Checksums{
+	xwant := map[string]*Checksums{
 		"44301b466258398bfee1c974a4a40831  /etc/passwd": &Checksums{
 			file: "/etc/passwd",
 			checksums: []*Checksum{
@@ -101,15 +100,13 @@ func Test_parseLine(t *testing.T) {
 	defer func() { chosen = oldChosen }()
 	chosen = nil
 
-	for line := range want {
+	for line, want := range xwant {
 		got := parseLine(line, lineno)
 		if got == nil {
 			panic("nil")
 		}
-		if got.file != want[line].file || !slices.EqualFunc(got.checksums, want[line].checksums, func(s1, s2 *Checksum) bool {
-			return s1.hash == s2.hash && bytes.Equal(s1.csum, s2.csum)
-		}) {
-			t.Errorf("parseLine(%q) got %v, want %v", line, got, want[line])
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("parseLine(%q) got %v, want %v", line, got, want)
 		}
 	}
 }
@@ -213,9 +210,7 @@ func Test_inputFromCheck(t *testing.T) {
 				if len(got.checksums) > 1 && got.checksums[0].hash != want[i].checksums[0].hash {
 					got.checksums[0], got.checksums[1] = got.checksums[1], got.checksums[0]
 				}
-				if got.file != want[i].file || !slices.EqualFunc(got.checksums, want[i].checksums, func(s1, s2 *Checksum) bool {
-					return s1.hash == s2.hash && bytes.Equal(s1.csum, s2.csum)
-				}) {
+				if !reflect.DeepEqual(got, want[i]) {
 					fmt.Printf("line: %q\ngot: %v\nwant:%v\n", str, got, want[i])
 					t.Errorf("inputFromCheck(%q) got %v, want %v", str, got.checksums[0], want[i].checksums[0])
 				}
