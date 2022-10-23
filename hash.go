@@ -68,22 +68,22 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 
 	var wg sync.WaitGroup
 	wg.Add(len(checksums))
-
-	dataChans := make([]chan []byte, len(checksums))
+	channels := make([]chan []byte, len(checksums))
 
 	for i, h := range checksums {
-		dataChans[i] = make(chan []byte)
-		go func(h *Checksum, dataChan <-chan []byte) {
+		channels[i] = make(chan []byte)
+		go func(h *Checksum, channel <-chan []byte) {
 			defer wg.Done()
-			for data := range dataChan {
-				n, err := h.Write(data)
-				if err != nil {
+			for data := range channel {
+				if n, err := h.Write(data); err != nil {
 					logger.Print(err)
+					return
+				} else {
+					h.written += int64(n)
 				}
-				h.written += int64(n)
 			}
 			h.sum = h.Sum(nil)
-		}(h, dataChans[i])
+		}(h, channels[i])
 	}
 
 	wg.Add(1)
@@ -98,12 +98,12 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 				}
 				break
 			}
-			for i := range dataChans {
-				dataChans[i] <- b[:n]
+			for i := range channels {
+				channels[i] <- b[:n]
 			}
 		}
-		for i := range dataChans {
-			close(dataChans[i])
+		for i := range channels {
+			close(channels[i])
 		}
 	}()
 	wg.Wait()
