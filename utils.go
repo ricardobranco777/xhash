@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"golang.org/x/crypto/blake2b"
 	"hash"
+	"log"
 	"strings"
 )
 
@@ -13,7 +14,7 @@ import (
 func blake2_(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
 	h, err := f(key)
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(err)
 	}
 	return h
 }

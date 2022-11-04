@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -35,7 +36,7 @@ func inputFromDir(f io.ReadCloser) <-chan *Checksums {
 		for _, arg := range flag.Args() {
 			walkDir(arg, func(path string, d fs.DirEntry, err error) error {
 				if err != nil {
-					logger.Print(err)
+					log.Print(err)
 				} else if opts.symlinks && isSymlink(d) || !d.IsDir() && !isSymlink(d) {
 					files <- &Checksums{file: path}
 				}
@@ -55,7 +56,7 @@ func inputFromFile(f io.ReadCloser) <-chan *Checksums {
 		f = os.Stdin
 		if opts.input != "" {
 			if f, err = os.Open(opts.input); err != nil {
-				logger.Fatal(err)
+				log.Fatal(err)
 			}
 		}
 	}
@@ -71,7 +72,7 @@ func inputFromFile(f io.ReadCloser) <-chan *Checksums {
 	go func() {
 		for scanner.Scan() {
 			if err := scanner.Err(); err != nil {
-				logger.Fatal(err)
+				log.Fatal(err)
 			}
 			file := scanner.Text()
 			if file != "" {

@@ -77,13 +77,14 @@ func display(results *Checksums) {
 		}
 	} else {
 		if err := format.Execute(os.Stdout, getOutput(results)); err != nil {
-			logger.Print(err)
+			log.Print(err)
 		}
 	}
 }
 
 func init() {
-	logger = log.New(os.Stderr, "ERROR: ", 0)
+	log.SetPrefix("ERROR: ")
+	log.SetFlags(0)
 
 	progname := filepath.Base(os.Args[0])
 
@@ -166,7 +167,7 @@ func init() {
 	flag.Parse()
 
 	if opts.input != "\x00" && opts.check != "\x00" {
-		logger.Fatal("The --input & --check options are mutually exclusive")
+		log.Fatal("The --input & --check options are mutually exclusive")
 	}
 
 	if opts.version {
@@ -208,11 +209,11 @@ func init() {
 		var err error
 		if opts.key == "" {
 			if macKey, err = io.ReadAll(os.Stdin); err != nil {
-				logger.Fatal(err)
+				log.Fatal(err)
 			}
 		} else if macKey, err = hex.DecodeString(opts.key); err != nil {
 			if macKey, err = os.ReadFile(opts.key); err != nil {
-				logger.Fatal(err)
+				log.Fatal(err)
 			}
 		}
 	}
@@ -229,7 +230,7 @@ func init() {
 	var err error
 	format, err = format.Parse(opts.format)
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(err)
 	}
 
 	if strings.Contains(progname, "sum") {

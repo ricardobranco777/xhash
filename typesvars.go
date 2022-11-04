@@ -4,7 +4,6 @@ import (
 	"crypto"
 	"hash"
 	"io"
-	"log"
 	"regexp"
 	"testing/fstest"
 	"text/template"
@@ -69,7 +68,6 @@ var (
 	chosen     []*Checksum
 	format     = template.New("format")
 	fsys       fstest.MapFS
-	logger     *log.Logger
 	macKey     []byte
 	bsdFormat  string = "{{range .}}{{.Name}} ({{.File}}) = {{.Sum }}\n{{end}}"
 	gnuFormat  string = "{{range .}}{{.Sum}}  {{.File}}\n{{end}}"

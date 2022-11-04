@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto"
 	"io"
+	"log"
 	"os"
 	"reflect"
 	"strconv"
@@ -174,7 +175,7 @@ func BenchmarkSize(b *testing.B) {
 					defer f.Close()
 					m, err := mmap.Map(f, mmap.RDONLY, 0)
 					if err != nil {
-						logger.Printf("mmap: %v", err)
+						log.Printf("mmap: %v", err)
 					} else {
 						defer func() { m.Unmap() }()
 					}

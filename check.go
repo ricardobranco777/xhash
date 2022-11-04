@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"golang.org/x/exp/slices"
 	"io"
+	"log"
 	"os"
 	"strings"
 )
@@ -80,9 +81,9 @@ func parseLine(line string, lineno uint64) *Checksums {
 	if hash, ok = name2Hash[algorithm]; !ok || err != nil || len(chosen) > 0 && !isChosen(hash) {
 		stats.invalid++
 		if opts.warn {
-			logger.Printf("Invalid digest at line %d\n", lineno)
+			log.Printf("Invalid digest at line %d\n", lineno)
 		} else if opts.strict {
-			logger.Fatalf("Invalid digest at line %d\n", lineno)
+			log.Fatalf("Invalid digest at line %d\n", lineno)
 		}
 		return nil
 	}
@@ -107,7 +108,7 @@ func inputFromCheck(f io.ReadCloser) <-chan *Checksums {
 		f = os.Stdin
 		if opts.check != "" {
 			if f, err = os.Open(opts.check); err != nil {
-				logger.Fatal(err)
+				log.Fatal(err)
 			}
 		}
 	}
@@ -138,7 +139,7 @@ func inputFromCheck(f io.ReadCloser) <-chan *Checksums {
 				}
 				if eof {
 					if err := scanner.Err(); err != nil {
-						logger.Fatal(err)
+						log.Fatal(err)
 					}
 					break
 				}

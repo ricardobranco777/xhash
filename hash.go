@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"log"
 	"os"
 	"sync"
 
@@ -19,7 +20,7 @@ func hashBytes(data []byte, checksums []*Checksum) []*Checksum {
 	if len(checksums) == 1 || len(data) == 0 { // TODO: Check best len(data)
 		for i := range checksums {
 			if n, err := checksums[i].Write(data); err != nil {
-				logger.Print(err)
+				log.Print(err)
 				return nil
 			} else {
 				checksums[i].written = int64(n)
@@ -37,7 +38,7 @@ func hashBytes(data []byte, checksums []*Checksum) []*Checksum {
 		go func(h *Checksum) {
 			defer wg.Done()
 			if n, err := h.Write(data); err != nil {
-				logger.Print(err)
+				log.Print(err)
 			} else {
 				h.written = int64(n)
 				h.sum = h.Sum(nil)
@@ -55,7 +56,7 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	initHashes(checksums)
 	if len(checksums) == 1 {
 		if n, err := io.Copy(checksums[0], f); err != nil {
-			logger.Print(err)
+			log.Print(err)
 			return nil
 		} else {
 			checksums[0].written = n
@@ -76,7 +77,7 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 			defer wg.Done()
 			for data := range channel {
 				if n, err := h.Write(data); err != nil {
-					logger.Print(err)
+					log.Print(err)
 					return
 				} else {
 					h.written += int64(n)
@@ -94,7 +95,7 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 			n, err := f.Read(b)
 			if err != nil {
 				if err != io.EOF {
-					logger.Print(err)
+					log.Print(err)
 				}
 				break
 			}
@@ -116,7 +117,7 @@ func hashFile(input *Checksums) *Checksums {
 	if err != nil {
 		stats.unreadable++
 		if !opts.ignore {
-			logger.Print(err)
+			log.Print(err)
 		}
 		return nil
 	}
@@ -124,11 +125,11 @@ func hashFile(input *Checksums) *Checksums {
 
 	info, err := f.Stat()
 	if err != nil {
-		logger.Print(err)
+		log.Print(err)
 		return nil
 	}
 	if info.IsDir() {
-		logger.Printf("%s is a directory", file)
+		log.Printf("%s is a directory", file)
 		return nil
 	}
 
@@ -137,7 +138,7 @@ func hashFile(input *Checksums) *Checksums {
 	if opts.mmap && info.Size() > 0 { // TODO: Check best size
 		m, err := mmap.Map(f, mmap.RDONLY, 0)
 		if err != nil {
-			logger.Printf("%s: mmap: %v", file, err)
+			log.Printf("%s: mmap: %v", file, err)
 		} else {
 			defer func() { m.Unmap() }()
 			checksums = hashBytes(m, input.checksums)

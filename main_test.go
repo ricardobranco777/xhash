@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto"
+	"log"
 	"strings"
 	"testing"
 	"text/template"
@@ -35,7 +36,7 @@ func Test_getOutput(t *testing.T) {
 		format := template.New(str)
 		format, err := format.Parse(str)
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 		b := new(strings.Builder)
 		format.Execute(b, getOutput(results))
@@ -54,7 +55,7 @@ func Test_getOutput(t *testing.T) {
 		format := template.New(str)
 		format, err := format.Parse(str)
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 		b := new(strings.Builder)
 		format.Execute(b, getOutput(results))
