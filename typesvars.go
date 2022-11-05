@@ -3,7 +3,6 @@ package main
 import (
 	"crypto"
 	"hash"
-	"io"
 	"regexp"
 	"testing/fstest"
 	"text/template"
@@ -141,13 +140,4 @@ var (
 var name2Hash = map[string]crypto.Hash{
 	"SHA512t256": crypto.SHA512_256,  // Used by FreeBSD's md5
 	"BLAKE2b":    crypto.BLAKE2b_512, // Used by GNU coreutils's btsum
-}
-
-// io.ReadCloser compatible interface used for mocking
-type ReadCloser struct {
-	io.Reader
-}
-
-func (r ReadCloser) Close() error {
-	return nil
 }

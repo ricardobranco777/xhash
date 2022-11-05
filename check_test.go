@@ -3,6 +3,7 @@ package main
 import (
 	"crypto"
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 	"testing"
@@ -200,7 +201,7 @@ func Test_inputFromCheck(t *testing.T) {
 	for input, want := range xinput {
 		for _, str := range []string{input, strings.ReplaceAll(strings.ReplaceAll(input, "\r\n", "\x00"), "\n", "\x00")} {
 			opts.zero = strings.Contains(str, "\x00")
-			reader := ReadCloser{strings.NewReader(str)}
+			reader := io.NopCloser(strings.NewReader(str))
 			for got := range inputFromCheck(reader) {
 				// Goroutines may return randomized stuff so swap if needed
 				i := 0

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"io/fs"
 	"os"
 	"reflect"
@@ -103,7 +104,7 @@ func Test_inputFromFile(t *testing.T) {
 	for input, want := range xwant {
 		for _, str := range []string{input, strings.ReplaceAll(strings.ReplaceAll(input, "\r\n", "\x00"), "\n", "\x00")} {
 			opts.zero = strings.Contains(str, "\x00")
-			reader := ReadCloser{strings.NewReader(str)}
+			reader := io.NopCloser(strings.NewReader(str))
 			var got []string
 			for input := range inputFromFile(reader) {
 				if input.checksums != nil {
