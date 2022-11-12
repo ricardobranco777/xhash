@@ -8,11 +8,13 @@ import (
 	"text/template"
 )
 
+// Algorithm type used for tracking algorithms in command line flags
 type Algorithm struct {
 	check bool
 	name  string
 }
 
+// Checksum type to hold a checksum
 type Checksum struct {
 	hash crypto.Hash
 	hash.Hash
@@ -21,19 +23,23 @@ type Checksum struct {
 	csum    []byte // Used by the -c option
 }
 
+// Checksums type to hold the checksums for a file
 type Checksums struct {
 	file      string
 	checksums []*Checksum
 }
 
+// Output type with available fields
 type Output struct {
 	Name string
 	File string
 	Sum  string
 }
 
+// Size type for file size
 type Size int
 
+// Constants for sizes
 const (
 	_       = iota
 	KB Size = 1 << (10 * iota)

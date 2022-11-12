@@ -19,13 +19,13 @@ func hashBytes(data []byte, checksums []*Checksum) []*Checksum {
 	}
 	if len(checksums) == 1 || len(data) == 0 { // TODO: Check best len(data)
 		for i := range checksums {
-			if n, err := checksums[i].Write(data); err != nil {
+			n, err := checksums[i].Write(data)
+			if err != nil {
 				log.Print(err)
 				return nil
-			} else {
-				checksums[i].written = int64(n)
-				checksums[i].sum = checksums[i].Sum(nil)
 			}
+			checksums[i].written = int64(n)
+			checksums[i].sum = checksums[i].Sum(nil)
 		}
 		return checksums
 	}
@@ -55,13 +55,13 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	}
 	initHashes(checksums)
 	if len(checksums) == 1 {
-		if n, err := io.Copy(checksums[0], f); err != nil {
+		n, err := io.Copy(checksums[0], f)
+		if err != nil {
 			log.Print(err)
 			return nil
-		} else {
-			checksums[0].written = n
-			checksums[0].sum = checksums[0].Sum(nil)
 		}
+		checksums[0].written = n
+		checksums[0].sum = checksums[0].Sum(nil)
 		return checksums
 	}
 
@@ -76,12 +76,12 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 		go func(h *Checksum, channel <-chan []byte) {
 			defer wg.Done()
 			for data := range channel {
-				if n, err := h.Write(data); err != nil {
+				n, err := h.Write(data)
+				if err != nil {
 					log.Print(err)
 					return
-				} else {
-					h.written += int64(n)
 				}
+				h.written += int64(n)
 			}
 			h.sum = h.Sum(nil)
 		}(h, channels[i])

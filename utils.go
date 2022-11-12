@@ -11,7 +11,7 @@ import (
 )
 
 // Wrapper for the Blake2 New() methods that need an optional key for MAC
-func blake2_(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
+func blake2(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
 	h, err := f(key)
 	if err != nil {
 		log.Fatal(err)
@@ -22,11 +22,11 @@ func blake2_(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
 func initHash(h *Checksum) {
 	switch h.hash {
 	case crypto.BLAKE2b_256:
-		h.Hash = blake2_(blake2b.New256, macKey)
+		h.Hash = blake2(blake2b.New256, macKey)
 	case crypto.BLAKE2b_384:
-		h.Hash = blake2_(blake2b.New384, macKey)
+		h.Hash = blake2(blake2b.New384, macKey)
 	case crypto.BLAKE2b_512:
-		h.Hash = blake2_(blake2b.New512, macKey)
+		h.Hash = blake2(blake2b.New512, macKey)
 	default:
 		if macKey != nil {
 			h.Hash = hmac.New(h.hash.New, macKey)
