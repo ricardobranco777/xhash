@@ -33,7 +33,7 @@ func Test_inputFromArgs(t *testing.T) {
 			got = append(got, input.file)
 		}
 		want = want[1:] // Strip progname
-		sort.Sort(sort.StringSlice(got))
+		sort.Strings(got)
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("inputFromArgs(%q) got %v, want %v", want, got, want)
 		}
@@ -57,7 +57,7 @@ func Test_inputFromDir(t *testing.T) {
 	for f := range fsys {
 		want = append(want, f)
 	}
-	sort.Sort(sort.StringSlice(want))
+	sort.Strings(want)
 
 	os.Args = []string{"progname", "."}
 	flag.Parse()
@@ -67,7 +67,7 @@ func Test_inputFromDir(t *testing.T) {
 	for input := range inputFromDir(nil) {
 		got = append(got, input.file)
 	}
-	sort.Sort(sort.StringSlice(got))
+	sort.Strings(got)
 
 	if !reflect.DeepEqual(got, want[:len(want)-1]) {
 		t.Errorf("#1 inputFromDir() got %v; want %v", got, want)
@@ -82,7 +82,7 @@ func Test_inputFromDir(t *testing.T) {
 	for input := range inputFromDir(nil) {
 		got = append(got, input.file)
 	}
-	sort.Sort(sort.StringSlice(got))
+	sort.Strings(got)
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("#2 inputFromDir() got %v; want %v", got, want)
@@ -112,7 +112,7 @@ func Test_inputFromFile(t *testing.T) {
 				}
 				got = append(got, input.file)
 			}
-			sort.Sort(sort.StringSlice(got))
+			sort.Strings(got)
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("inputFromFile(%q) got %v; want %v", str, got, want)
 			}
