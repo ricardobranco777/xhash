@@ -8,7 +8,7 @@ import (
 
 func Test_initHash(t *testing.T) {
 	oldChosen := chosen
-	chosen = []*Checksum{&Checksum{hash: crypto.SHA256}, &Checksum{hash: crypto.SHA512}}
+	chosen = []*Checksum{{hash: crypto.SHA256}, {hash: crypto.SHA512}}
 	defer func() { chosen = oldChosen }()
 
 	for _, h := range getChosen() {
@@ -21,7 +21,7 @@ func Test_initHash(t *testing.T) {
 
 func Test_initHashes(t *testing.T) {
 	oldChosen := chosen
-	chosen = []*Checksum{&Checksum{hash: crypto.SHA256}, &Checksum{hash: crypto.SHA512}}
+	chosen = []*Checksum{{hash: crypto.SHA256}, {hash: crypto.SHA512}}
 	defer func() { chosen = oldChosen }()
 
 	checksums := getChosen()

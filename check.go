@@ -90,7 +90,7 @@ func parseLine(line string, lineno uint64) *Checksums {
 	return &Checksums{
 		file: file,
 		checksums: []*Checksum{
-			&Checksum{
+			{
 				hash: hash,
 				csum: sum,
 			},

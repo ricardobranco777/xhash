@@ -201,7 +201,7 @@ func init() {
 			chosen = append(chosen, &Checksum{hash: crypto.SHA256})
 		}
 	} else {
-		chosen = []*Checksum{&Checksum{hash: hashes[0]}}
+		chosen = []*Checksum{{hash: hashes[0]}}
 		name2Hash[algorithms[hashes[0]].name] = hashes[0]
 	}
 

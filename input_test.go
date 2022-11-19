@@ -18,8 +18,8 @@ func Test_inputFromArgs(t *testing.T) {
 	defer func() { os.Args = oldArgs; flag.Parse() }()
 
 	xwant := [][]string{
-		[]string{"xhash", "/etc/passwd"},
-		[]string{"xhash", "/etc/passwd", "/etc/services"},
+		{"xhash", "/etc/passwd"},
+		{"xhash", "/etc/passwd", "/etc/services"},
 	}
 
 	for _, want := range xwant {
@@ -91,11 +91,11 @@ func Test_inputFromDir(t *testing.T) {
 
 func Test_inputFromFile(t *testing.T) {
 	xwant := map[string][]string{
-		"/etc/passwd":                      []string{"/etc/passwd"},
-		"/etc/passwd\n/etc/services":       []string{"/etc/passwd", "/etc/services"},
-		"/etc/passwd\n/etc/services\n":     []string{"/etc/passwd", "/etc/services"},
-		"\n/etc/passwd\n/etc/services\n\n": []string{"/etc/passwd", "/etc/services"},
-		"/etc/passwd\r\n/etc/services\r\n": []string{"/etc/passwd", "/etc/services"},
+		"/etc/passwd":                      {"/etc/passwd"},
+		"/etc/passwd\n/etc/services":       {"/etc/passwd", "/etc/services"},
+		"/etc/passwd\n/etc/services\n":     {"/etc/passwd", "/etc/services"},
+		"\n/etc/passwd\n/etc/services\n\n": {"/etc/passwd", "/etc/services"},
+		"/etc/passwd\r\n/etc/services\r\n": {"/etc/passwd", "/etc/services"},
 	}
 
 	oldZero := opts.zero
