@@ -7,6 +7,7 @@ import (
 	"golang.org/x/crypto/blake2b"
 	"hash"
 	"log"
+	"runtime/debug"
 	"strings"
 )
 
@@ -118,4 +119,21 @@ func scanLinesZ(data []byte, atEOF bool) (advance int, token []byte, err error) 
 	}
 	// Request more data.
 	return 0, nil, nil
+}
+
+func getCommit() string {
+	var commit, dirty string
+
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			switch {
+			case setting.Key == "vcs.revision":
+				commit = setting.Value
+			case setting.Key == "vcs.modified":
+				dirty = "-dirty"
+			}
+		}
+	}
+
+	return commit + dirty
 }
