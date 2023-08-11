@@ -1,12 +1,12 @@
 module xhash
 
-go 1.19
+go 1.20
 
 require (
 	github.com/edsrzf/mmap-go v1.1.0
 	github.com/spf13/pflag v1.0.5
-	golang.org/x/crypto v0.3.0
-	golang.org/x/exp v0.0.0-20221114191408-850992195362
+	golang.org/x/crypto v0.12.0
+	golang.org/x/exp v0.0.0-20230810033253-352e893a4cad
 )
 
-require golang.org/x/sys v0.2.0 // indirect
+require golang.org/x/sys v0.11.0 // indirect
