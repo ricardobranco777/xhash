@@ -48,11 +48,20 @@ const (
 	TB
 )
 
-// Keep sorted
+// Constants for hashes not in stdlib
+const (
+	_ crypto.Hash = 30 + iota // Don't conflict with https://pkg.go.dev/crypto#Hash
+	BLAKE3_256
+	BLAKE3_512
+)
+
+// Keep alphabetically sorted
 var hashes = []crypto.Hash{
 	crypto.BLAKE2b_256,
 	crypto.BLAKE2b_384,
 	crypto.BLAKE2b_512,
+	BLAKE3_256,
+	BLAKE3_512,
 	//crypto.MD4,
 	crypto.MD5,
 	crypto.SHA1,
@@ -115,6 +124,8 @@ var better = []crypto.Hash{
 	crypto.BLAKE2b_512,
 	crypto.BLAKE2b_384,
 	crypto.BLAKE2b_256,
+	BLAKE3_512,
+	BLAKE3_256,
 	crypto.SHA512, // SHA512 is faster than SHA256 on some architectures
 	crypto.SHA384,
 	crypto.SHA512_256, // Truncated SHA512 has security against length extension attacks
