@@ -142,13 +142,6 @@ func init() {
 		}
 	}
 
-	max := 0
-	for _, h := range hashes {
-		if int(h) > max {
-			max = int(h)
-		}
-	}
-
 	algorithms = make(map[crypto.Hash]*Algorithm)
 	for _, h := range hashes {
 		if h.Available() {
