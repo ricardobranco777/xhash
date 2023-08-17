@@ -23,10 +23,8 @@ func blake2(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
 
 func initHash(h *Checksum) {
 	switch h.hash {
-	case BLAKE3_256:
+	case BLAKE3:
 		h.Hash = blake3.New(32, macKey)
-	case BLAKE3_512:
-		h.Hash = blake3.New(64, macKey)
 	case crypto.BLAKE2b_256:
 		h.Hash = blake2(blake2b.New256, macKey)
 	case crypto.BLAKE2b_384:

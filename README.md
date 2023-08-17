@@ -39,8 +39,7 @@ Usage: xhash [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... 
       --blake2b-256      BLAKE2b-256 algorithm
       --blake2b-384      BLAKE2b-384 algorithm
       --blake2b-512      BLAKE2b-512 algorithm
-      --blake3-256       BLAKE3-256 algorithm
-      --blake3-512       BLAKE3-512 algorithm
+      --blake3           BLAKE3 algorithm
   -c, --check string     read checksums from file (use "" for stdin) (default "\x00")
   -f, --format string    output format (default "{{range .}}{{.Name}} ({{.File}}) = {{.Sum }}\n{{end}}")
       --gnu              output hashes in the format used by md5sum

@@ -130,7 +130,7 @@ func init() {
 		cmd := strings.TrimSuffix(strings.TrimSuffix(progname, ".exe"), "sum")
 		var defaults = map[string]crypto.Hash{
 			"b2":     crypto.BLAKE2b_512,
-			"b3":     BLAKE3_256,
+			"b3":     BLAKE3,
 			"md5":    crypto.MD5,
 			"sha1":   crypto.SHA1,
 			"sha224": crypto.SHA224,
@@ -145,10 +145,8 @@ func init() {
 
 	algorithms = make(map[crypto.Hash]*Algorithm)
 	for _, h := range hashes {
-		if h == BLAKE3_512 {
-			algorithms[h] = &Algorithm{name: "BLAKE3-512"}
-		} else if h == BLAKE3_256 {
-			algorithms[h] = &Algorithm{name: "BLAKE3-256"}
+		if h == BLAKE3 {
+			algorithms[h] = &Algorithm{name: "BLAKE3"}
 		} else if h.Available() {
 			algorithms[h] = &Algorithm{
 				name: strings.ReplaceAll(strings.ReplaceAll(h.String(), "SHA-", "SHA"), "/", "-"),
@@ -190,7 +188,7 @@ func init() {
 
 		// Initialize chosen and populate name2Hash
 		for _, h := range hashes {
-			available := h == BLAKE3_512 || h == BLAKE3_256 || h.Available()
+			available := h == BLAKE3 || h.Available()
 			if available && algorithms[h].check {
 				chosen = append(chosen, &Checksum{hash: h})
 			}

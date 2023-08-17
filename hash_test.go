@@ -110,10 +110,8 @@ func BenchmarkHashes(b *testing.B) {
 	for _, h := range hashes {
 		checksum := &Checksum{hash: h}
 		name := h.String()
-		if h == BLAKE3_512 {
-			name = "BLAKE3-512"
-		} else if h == BLAKE3_256 {
-			name = "BLAKE3-256"
+		if h == BLAKE3 {
+			name = "BLAKE3"
 		}
 		b.Run(name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
