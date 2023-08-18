@@ -59,7 +59,7 @@ var hashes = []crypto.Hash{
 	crypto.BLAKE2b_256,
 	crypto.BLAKE2b_384,
 	crypto.BLAKE2b_512,
-	BLAKE3, // Unfortunately, this version of Blake3 isn't fast enough
+	BLAKE3,
 	//crypto.MD4,
 	crypto.MD5,
 	crypto.SHA1,
@@ -119,10 +119,10 @@ var stats struct {
 
 // Choose the fastest and more secure.
 var better = []crypto.Hash{
+	BLAKE3,
 	crypto.BLAKE2b_512,
 	crypto.BLAKE2b_384,
 	crypto.BLAKE2b_256,
-	BLAKE3,
 	crypto.SHA512, // SHA512 is faster than SHA256 on some architectures
 	crypto.SHA384,
 	crypto.SHA512_256, // Truncated SHA512 has security against length extension attacks
@@ -134,6 +134,7 @@ var better = []crypto.Hash{
 	crypto.SHA3_224,
 	crypto.SHA3_512,
 	crypto.SHA3_384,
+	// These are insecure
 	crypto.SHA1,
 	crypto.MD5,
 	crypto.MD4,

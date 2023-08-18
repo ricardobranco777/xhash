@@ -7,9 +7,10 @@ import (
 	"golang.org/x/crypto/blake2b"
 	"hash"
 	"log"
-	"lukechampine.com/blake3"
 	"runtime/debug"
 	"strings"
+
+	blake3 "github.com/zeebo/blake3"
 )
 
 // Wrapper for the Blake2 New() methods that need an optional key for MAC
@@ -24,7 +25,15 @@ func blake2(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
 func initHash(h *Checksum) {
 	switch h.hash {
 	case BLAKE3:
-		h.Hash = blake3.New(32, macKey)
+		if macKey != nil {
+			var err error
+			h.Hash, err = blake3.NewKeyed(macKey)
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			h.Hash = blake3.New()
+		}
 	case crypto.BLAKE2b_256:
 		h.Hash = blake2(blake2b.New256, macKey)
 	case crypto.BLAKE2b_384:
