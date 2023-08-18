@@ -33,6 +33,10 @@ The output format is the same as the BSD commands.  Use `--gnu` to use the forma
 
 To use the format used by **hashdeep** use `--size -f '{{range .}}{{.Sum}},{{end}}{{(index . 0).File}}\n'`
 
+## Requirements
+
+- Go 1.21+
+
 ## Usage
 
 ```

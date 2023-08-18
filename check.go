@@ -4,10 +4,10 @@ import (
 	"bufio"
 	"crypto"
 	"encoding/hex"
-	"golang.org/x/exp/slices"
 	"io"
 	"log"
 	"os"
+	"slices"
 	"strings"
 )
 
