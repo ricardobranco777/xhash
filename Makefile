@@ -2,7 +2,7 @@ BIN	= xhash
 
 # Optionally create these hard-links
 hash	= b2sum b3sum md5sum sha1sum sha224sum sha256sum sha384sum sha512sum
-hashsum	= b2 b3sum md5 sha1 sha224 sha256 sha384 sha512
+hashsum	= b2 b3 md5 sha1 sha224 sha256 sha384 sha512
 ALL	= $(hashsum) $(hash)
 
 .PHONY: all
