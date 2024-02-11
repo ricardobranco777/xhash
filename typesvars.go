@@ -143,8 +143,10 @@ var better = []crypto.Hash{
 var regex = struct {
 	bsd, gnu *regexp.Regexp
 }{
-	regexp.MustCompile(`^([A-Z]+[a-z0-9-]*) ?\((.*?)\) ?= ([0-9a-f]{16,})$`), // Format used by OpenSSL dgst and *BSD md5, et al
-	regexp.MustCompile(`^[\\]?([0-9a-f]{16,}) [ \*](.*)$`),                   // Format used by md5sum, et al
+	// Format used by OpenSSL dgst, BSD digest & Solaris digest
+	regexp.MustCompile(`^([A-Za-z]+[a-z0-9-]*) ?\((.*?)\) ?= ([0-9a-f]{16,})$`),
+	// Format used by GNU *sum
+	regexp.MustCompile(`^[\\]?([0-9a-f]{16,}) [ \*](.*)$`),
 }
 
 var (
