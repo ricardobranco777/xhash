@@ -105,7 +105,6 @@ func init() {
 	}
 	flag.BoolVarP(&opts.ignore, "ignore-missing", "", false, "don't fail or report status for missing files")
 	flag.BoolVarP(&opts.quiet, "quiet", "q", false, "don't print OK for each successfully verified file")
-	flag.BoolVarP(&opts.mmap, "mmap", "M", false, "use mmap - EXPERIMENTAL")
 	flag.BoolVarP(&opts.recursive, "recursive", "r", false, "recurse into directories")
 	flag.BoolVarP(&opts.size, "size", "", false, "output size")
 	flag.BoolVarP(&opts.status, "status", "S", false, "don't output anything, status code shows success")

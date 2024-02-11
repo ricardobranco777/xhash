@@ -5,49 +5,7 @@ import (
 	"log"
 	"os"
 	"sync"
-
-	"github.com/edsrzf/mmap-go"
 )
-
-// Hash bytes
-func hashBytes(data []byte, checksums []*Checksum) []*Checksum {
-	if checksums == nil {
-		checksums = getChosen()
-	}
-	for h := range checksums {
-		initHash(checksums[h])
-	}
-	if len(checksums) == 1 || len(data) == 0 { // TODO: Check best len(data)
-		for i := range checksums {
-			n, err := checksums[i].Write(data)
-			if err != nil {
-				log.Print(err)
-				return nil
-			}
-			checksums[i].written = int64(n)
-			checksums[i].sum = checksums[i].Sum(nil)
-		}
-		return checksums
-	}
-
-	// Use goroutines if more than one algorithm
-	var wg sync.WaitGroup
-
-	wg.Add(len(checksums))
-	for _, h := range checksums {
-		go func(h *Checksum) {
-			defer wg.Done()
-			if n, err := h.Write(data); err != nil {
-				log.Print(err)
-			} else {
-				h.written = int64(n)
-				h.sum = h.Sum(nil)
-			}
-		}(h)
-	}
-	wg.Wait()
-	return checksums
-}
 
 func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	if checksums == nil {
@@ -133,20 +91,7 @@ func hashFile(input *Checksums) *Checksums {
 		return nil
 	}
 
-	var checksums []*Checksum
-
-	if opts.mmap && info.Size() > 0 { // TODO: Check best size
-		m, err := mmap.Map(f, mmap.RDONLY, 0)
-		if err != nil {
-			log.Printf("%s: mmap: %v", file, err)
-		} else {
-			defer func() { m.Unmap() }()
-			checksums = hashBytes(m, input.checksums)
-		}
-	}
-	if checksums == nil { // !opts.map or mmap failed
-		checksums = hashF(f, input.checksums)
-	}
+	checksums := hashF(f, input.checksums)
 
 	return &Checksums{
 		file:      file,

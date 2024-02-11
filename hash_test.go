@@ -4,14 +4,10 @@ import (
 	"bytes"
 	"crypto"
 	"io"
-	"log"
 	"os"
 	"reflect"
-	"strconv"
 	"strings"
 	"testing"
-
-	"github.com/edsrzf/mmap-go"
 )
 
 var xchecksum = map[string][]*Checksum{
@@ -137,58 +133,4 @@ func createTemp(t testing.TB, size int) *os.File {
 		panic(err)
 	}
 	return f
-}
-
-func BenchmarkSize(b *testing.B) {
-	oldChosen := chosen
-	chosen = []*Checksum{{hash: crypto.SHA256}, {hash: crypto.SHA512}}
-	initHashes(chosen)
-	defer func() { chosen = oldChosen }()
-
-	var checksums []*Checksum
-	for h := range algorithms {
-		checksums = append(checksums, &Checksum{hash: h})
-	}
-
-	// Test 1M, 128M & 256M
-	for _, size := range []Size{1 * MB, 128 * MB, 256 * MB} {
-		size := int(size)
-		f := createTemp(b, size)
-		defer os.Remove(f.Name())
-		b.Run("hashF_"+strconv.Itoa(size), func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
-				func() {
-					f, err := os.Open(f.Name())
-					if err != nil {
-						panic(err)
-					}
-					defer f.Close()
-					if hashF(f, checksums) == nil {
-						panic("hashF")
-					}
-				}()
-			}
-		})
-		b.Run("hashBytes_"+strconv.Itoa(size), func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
-				func() {
-					f, err := os.Open(f.Name())
-					if err != nil {
-						panic(err)
-					}
-					defer f.Close()
-					m, err := mmap.Map(f, mmap.RDONLY, 0)
-					if err != nil {
-						log.Printf("mmap: %v", err)
-					} else {
-						defer func() { m.Unmap() }()
-					}
-					if hashBytes(m, checksums) == nil {
-						panic("hashBytes")
-					}
-				}()
-			}
-		})
-		f.Close()
-	}
 }
