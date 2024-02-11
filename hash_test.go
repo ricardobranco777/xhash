@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto"
 	"io"
-	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -119,18 +118,4 @@ func BenchmarkHashes(b *testing.B) {
 			}
 		})
 	}
-}
-
-func createTemp(t testing.TB, size int) *os.File {
-	t.Helper()
-	buf := make([]byte, size)
-
-	f, err := os.CreateTemp("", "*")
-	if err != nil {
-		panic(err)
-	}
-	if n, err := f.Write(buf); n != size || err != nil {
-		panic(err)
-	}
-	return f
 }

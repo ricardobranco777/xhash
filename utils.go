@@ -8,7 +8,7 @@ import (
 	"hash"
 	"log"
 	"runtime/debug"
-	"strings"
+	"strconv"
 
 	blake3 "github.com/zeebo/blake3"
 )
@@ -68,21 +68,16 @@ func escapeFilename(filename string) (string, string) {
 	if opts.zero {
 		return "", filename
 	}
-	var replace = map[string]string{
-		"\r": "\\r",
-		"\n": "\\n",
-	}
-	prefix := ""
-	if strings.ContainsAny(filename, "\\\r\n") {
-		filename = strings.ReplaceAll(filename, "\\", "\\\\")
-		for s, ss := range replace {
-			filename = strings.ReplaceAll(filename, s, ss)
-		}
-		if !opts.gnu {
-			prefix = "\\"
+	if len(filename) > 0 {
+		s := strconv.Quote(filename)
+		s = s[1 : len(s)-1]
+		if len(s) == len(filename) {
+			return "", filename
+		} else {
+			return "\\", s
 		}
 	}
-	return prefix, filename
+	return "", ""
 }
 
 // *sum escapes filenames with backslash & newline
@@ -90,30 +85,20 @@ func unescapeFilename(filename string) string {
 	if opts.zero {
 		return filename
 	}
-	var replace = map[string]string{
-		"\\\\": "\\",
-		"\\r":  "\r",
-		"\\n":  "\n",
+	if s, err := strconv.Unquote(`"` + filename + `"`); err != nil {
+		return filename
+	} else {
+		return s
 	}
-	for s, ss := range replace {
-		filename = strings.ReplaceAll(filename, s, ss)
-	}
-	return filename
 }
 
 // Used to support the --format option
 func unescape(str string) string {
-	var replace = map[string]string{
-		"\\\\": "\\",
-		"\\r":  "\r",
-		"\\n":  "\n",
-		"\\t":  "\t",
-		"\\0":  "\x00",
+	if s, err := strconv.Unquote(`"` + str + `"`); err != nil {
+		return str
+	} else {
+		return s
 	}
-	for s, ss := range replace {
-		str = strings.ReplaceAll(str, s, ss)
-	}
-	return str
 }
 
 // scanLinesZ is a split function like bufio.ScanLines for NUL-terminated lines
