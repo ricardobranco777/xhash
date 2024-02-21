@@ -74,5 +74,5 @@ Usage: xhash [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... 
   -v, --verbose          verbose operation
       --version          show version and exit
   -w, --warn             warn about improperly formatted checksum lines
-  -z, --zero             consider NUL instead as EOL and disable file name escaping
+  -z, --zero             consider NUL as EOL when using -i option
 ``` 

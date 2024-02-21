@@ -195,12 +195,8 @@ func Test_inputFromCheck(t *testing.T) {
 	defer func() { chosen = oldChosen }()
 	chosen = nil
 
-	oldZero := opts.zero
-	defer func() { opts.zero = oldZero }()
-
 	for input, want := range xinput {
-		for _, str := range []string{input, strings.ReplaceAll(strings.ReplaceAll(input, "\r\n", "\x00"), "\n", "\x00")} {
-			opts.zero = strings.Contains(str, "\x00")
+		for _, str := range []string{input} {
 			reader := io.NopCloser(strings.NewReader(str))
 			for got := range inputFromCheck(reader) {
 				// Goroutines may return randomized stuff so swap if needed

@@ -65,9 +65,6 @@ func getChosen() []*Checksum {
 
 // *sum escapes filenames with backslash & newline
 func escapeFilename(filename string) string {
-	if opts.zero {
-		return filename
-	}
 	if len(filename) > 0 {
 		s := strconv.Quote(filename)
 		filename = s[1 : len(s)-1]
@@ -77,9 +74,6 @@ func escapeFilename(filename string) string {
 
 // *sum escapes filenames with backslash & newline
 func unescapeFilename(filename string) string {
-	if opts.zero {
-		return filename
-	}
 	if s, err := strconv.Unquote(`"` + filename + `"`); err != nil {
 		return filename
 	} else {
