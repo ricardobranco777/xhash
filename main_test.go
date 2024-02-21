@@ -45,10 +45,6 @@ func Test_getOutput(t *testing.T) {
 		}
 	}
 
-	oldZero := opts.zero
-	defer func() { opts.zero = oldZero }()
-	opts.zero = true
-
 	for str, want := range templates {
 		str = strings.ReplaceAll(strings.ReplaceAll(str, "\r\n", "\x00"), "\n", "\x00")
 		want = strings.ReplaceAll(strings.ReplaceAll(want, "\r\n", "\x00"), "\n", "\x00")

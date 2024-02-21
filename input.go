@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"io/fs"
 	"log"
@@ -61,12 +62,23 @@ func inputFromFile(f io.ReadCloser) <-chan *Checksums {
 		}
 	}
 
-	scanner := bufio.NewScanner(f)
-	if opts.zero {
-		scanner.Split(scanLinesZ)
-	} else {
-		scanner.Split(bufio.ScanLines)
+	// Detect if line is NUL terminated
+	const peekSize = 5000 // Longer than PATH_MAX
+	peek := make([]byte, peekSize)
+	n, err := f.Read(peek)
+	if err != nil && err != io.EOF {
+		log.Fatal(err)
+		return nil
 	}
+	var splitFunc bufio.SplitFunc
+	if bytes.IndexByte(peek[:n], 0) != -1 {
+		splitFunc = scanLinesZ
+	} else {
+		splitFunc = bufio.ScanLines
+	}
+
+	scanner := bufio.NewScanner(io.MultiReader(bytes.NewReader(peek[:n]), f))
+	scanner.Split(splitFunc)
 
 	files := make(chan *Checksums)
 	go func() {

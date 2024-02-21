@@ -105,7 +105,6 @@ var opts struct {
 	verbose   bool // Used by the -c option
 	version   bool
 	warn      bool // Used by the -c option
-	zero      bool
 }
 
 var stats struct {

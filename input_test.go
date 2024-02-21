@@ -98,12 +98,8 @@ func Test_inputFromFile(t *testing.T) {
 		"/etc/passwd\r\n/etc/services\r\n": {"/etc/passwd", "/etc/services"},
 	}
 
-	oldZero := opts.zero
-	defer func() { opts.zero = oldZero }()
-
 	for input, want := range xwant {
 		for _, str := range []string{input, strings.ReplaceAll(strings.ReplaceAll(input, "\r\n", "\x00"), "\n", "\x00")} {
-			opts.zero = strings.Contains(str, "\x00")
 			reader := io.NopCloser(strings.NewReader(str))
 			var got []string
 			for input := range inputFromFile(reader) {
