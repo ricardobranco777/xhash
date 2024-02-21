@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto"
-	"strings"
 	"testing"
 )
 
@@ -49,10 +48,7 @@ func Test_escapeFilename(t *testing.T) {
 		"a\nb\\c": "a\\nb\\\\c",
 	}
 	for str, want := range xwant {
-		prefix, got := escapeFilename(str)
-		if strings.ContainsAny(str, "\\\n") && prefix != "\\" {
-			t.Errorf("prefix in str %q got %q; want: \\", str, prefix)
-		}
+		got := escapeFilename(str)
 		if got != want {
 			t.Errorf("escapeFilename(%q) got %q; want %q", str, got, want)
 		}

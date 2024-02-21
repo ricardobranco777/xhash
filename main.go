@@ -27,7 +27,11 @@ const version string = "3.1"
 
 func getOutput(results *Checksums) []*Output {
 	outputs := make([]*Output, 0, len(results.checksums)+1)
-	prefix, file := escapeFilename(results.file)
+	file := escapeFilename(results.file)
+	backslash := "\\"
+	if len(file) == len(results.file) {
+		backslash = ""
+	}
 	if opts.size {
 		outputs = append(outputs, &Output{
 			File: file,
@@ -39,7 +43,7 @@ func getOutput(results *Checksums) []*Output {
 		outputs = append(outputs, &Output{
 			File: file,
 			Name: algorithms[results.checksums[i].hash].name,
-			Sum:  prefix + hex.EncodeToString(results.checksums[i].sum),
+			Sum:  backslash + hex.EncodeToString(results.checksums[i].sum),
 		})
 	}
 	return outputs
