@@ -63,7 +63,7 @@ func parseLine(line string, lineno uint64) *Checksums {
 	if !opts.gnu {
 		match = regex.bsd.FindStringSubmatch(line)
 		if match != nil {
-			algorithm, file, digest = match[1], match[2], strings.ToLower(match[3])
+			algorithm, file, digest = match[1], unescapeFilename(match[2]), strings.ToLower(match[3])
 		}
 	}
 	if match == nil {

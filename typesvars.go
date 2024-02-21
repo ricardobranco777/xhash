@@ -143,9 +143,10 @@ var regex = struct {
 	bsd, gnu *regexp.Regexp
 }{
 	// Format used by OpenSSL dgst, BSD digest & Solaris digest
-	regexp.MustCompile(`^([A-Za-z]+[a-z0-9-]*) ?\((.*?)\) ?= ([0-9a-f]{16,})$`),
+	// NOTE: The backslash is added by ourselves if escape the filename
+	regexp.MustCompile(`^([A-Za-z]+[a-z0-9-]*) ?\((.*?)\) ?= \\?([0-9a-f]{16,})$`),
 	// Format used by GNU *sum
-	regexp.MustCompile(`^[\\]?([0-9a-f]{16,}) [ \*](.*)$`),
+	regexp.MustCompile(`^\\?([0-9a-f]{16,}) [ \*](.*)$`),
 }
 
 var (
