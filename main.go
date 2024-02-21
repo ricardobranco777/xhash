@@ -50,11 +50,10 @@ func getOutput(results *Checksums) []*Output {
 }
 
 func display(results *Checksums) {
-	file := results.file
 	if opts.check != "\x00" {
-		var ok bool
-		var i int
-		for i = range results.checksums {
+		file := escapeFilename(results.file)
+		for i := range results.checksums {
+			var ok bool
 			if macKey != nil {
 				ok = hmac.Equal(results.checksums[i].sum, results.checksums[i].csum)
 			} else {
