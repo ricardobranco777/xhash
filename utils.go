@@ -111,6 +111,12 @@ func scanLinesZ(data []byte, atEOF bool) (advance int, token []byte, err error) 
 
 // Get scanner for NUL or CR/NL terminated lines
 func getScanner(f io.Reader) *bufio.Scanner {
+	if opts.zero {
+		scanner := bufio.NewScanner(f)
+		scanner.Split(scanLinesZ)
+		return scanner
+	}
+
 	const peekSize = 4200 // Longer than PATH_MAX
 
 	peek := make([]byte, peekSize)

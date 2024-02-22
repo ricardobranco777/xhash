@@ -105,6 +105,7 @@ var opts struct {
 	verbose   bool // Used by the -c option
 	version   bool
 	warn      bool // Used by the -c option
+	zero      bool
 }
 
 var stats struct {
@@ -143,9 +144,9 @@ var regex = struct {
 }{
 	// Format used by OpenSSL dgst, BSD digest & Solaris digest
 	// NOTE: The backslash is added by ourselves if escape the filename
-	regexp.MustCompile(`^([A-Za-z]+[a-z0-9-]*) ?\((.*?)\) ?= \\?([0-9a-f]{16,})$`),
+	regexp.MustCompile(`(?s)^([A-Za-z]+[a-z0-9-]*) ?\((.*?)\) ?= ([0-9a-f]{16,})$`),
 	// Format used by GNU *sum
-	regexp.MustCompile(`^\\?([0-9a-f]{16,}) [ \*](.*)$`),
+	regexp.MustCompile(`(?s)^\\?([0-9a-f]{16,}) [ \*](.*)$`),
 }
 
 var (

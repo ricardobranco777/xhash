@@ -62,19 +62,22 @@ func parseLine(line string, lineno uint64) *Checksums {
 	if !opts.gnu {
 		match = regex.bsd.FindStringSubmatch(line)
 		if match != nil {
-			algorithm, file, digest = match[1], unescapeFilename(match[2]), strings.ToLower(match[3])
+			algorithm, file, digest = match[1], match[2], strings.ToLower(match[3])
 		}
 	}
 	if match == nil {
 		match = regex.gnu.FindStringSubmatch(line)
 		if match != nil {
-			digest, file = strings.ToLower(match[1]), unescapeFilename(match[2])
+			digest, file = strings.ToLower(match[1]), match[2]
 			if len(chosen) == 1 {
 				algorithm = algorithms[chosen[0].hash].name
 			} else {
 				algorithm = size2hash[len(digest)]
 			}
 		}
+	}
+	if !opts.zero {
+		file = unescapeFilename(file)
 	}
 	sum, err = hex.DecodeString(digest)
 	if hash, ok = name2Hash[algorithm]; !ok || err != nil || len(chosen) > 0 && !isChosen(hash) {

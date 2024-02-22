@@ -27,9 +27,12 @@ const version string = "3.2.1"
 
 func getOutput(results *Checksums) []*Output {
 	outputs := make([]*Output, 0, len(results.checksums)+1)
-	file := escapeFilename(results.file)
+	file := results.file
+	if !opts.zero {
+		file = escapeFilename(file)
+	}
 	backslash := "\\"
-	if len(file) == len(results.file) {
+	if !opts.gnu || len(file) == len(results.file) {
 		backslash = ""
 	}
 	if opts.size {
@@ -117,6 +120,7 @@ func init() {
 	flag.BoolVarP(&opts.verbose, "verbose", "v", false, "verbose operation")
 	flag.BoolVarP(&opts.version, "version", "", false, "show version and exit")
 	flag.BoolVarP(&opts.warn, "warn", "w", false, "warn about improperly formatted checksum lines")
+	flag.BoolVarP(&opts.zero, "zero", "z", false, "end each output line with NUL, not newline, and disable file name escaping")
 	flag.StringVarP(&opts.check, "check", "c", "\x00", "read checksums from file (use \"\" for stdin)")
 	flag.StringVarP(&opts.input, "input", "i", "\x00", "read pathnames from file (use \"\" for stdin)")
 	flag.StringVarP(&opts.key, "hmac", "H", "\x00", "key for HMAC (in hexadecimal) or read from specified pathname")
@@ -224,6 +228,9 @@ func init() {
 		opts.format = bsdFormat
 	}
 	opts.format = unescape(opts.format)
+	if opts.zero && !strings.Contains(opts.format, "\x00") {
+		opts.format = strings.ReplaceAll(opts.format, "\n", "\x00")
+	}
 	var err error
 	format, err = format.Parse(opts.format)
 	if err != nil {
