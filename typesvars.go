@@ -57,21 +57,21 @@ const (
 // Keep alphabetically sorted
 var hashes = []crypto.Hash{
 	crypto.BLAKE2b_256,
-	crypto.BLAKE2b_384,
+	//crypto.BLAKE2b_384,
 	crypto.BLAKE2b_512,
 	BLAKE3,
 	//crypto.MD4,
 	crypto.MD5,
 	crypto.SHA1,
-	crypto.SHA224,
+	//crypto.SHA224,
 	crypto.SHA256,
-	crypto.SHA384,
+	//crypto.SHA384,
 	crypto.SHA512,
-	crypto.SHA512_224,
+	//crypto.SHA512_224,
 	crypto.SHA512_256,
-	crypto.SHA3_224,
+	//crypto.SHA3_224,
 	crypto.SHA3_256,
-	crypto.SHA3_384,
+	//crypto.SHA3_384,
 	crypto.SHA3_512,
 }
 
@@ -120,19 +120,19 @@ var stats struct {
 var better = []crypto.Hash{
 	BLAKE3,
 	crypto.BLAKE2b_512,
-	crypto.BLAKE2b_384,
+	//crypto.BLAKE2b_384,
 	crypto.BLAKE2b_256,
 	crypto.SHA512, // SHA512 is faster than SHA256 on some architectures
-	crypto.SHA384,
+	//crypto.SHA384,
 	crypto.SHA512_256, // Truncated SHA512 has security against length extension attacks
 	crypto.SHA256,
-	crypto.SHA512_224, // Truncated SHA512 has security against length extension attacks
-	crypto.SHA224,
+	//crypto.SHA512_224, // Truncated SHA512 has security against length extension attacks
+	//crypto.SHA224,
 	// SHA-3 are slow
 	crypto.SHA3_256,
-	crypto.SHA3_224,
+	//crypto.SHA3_224,
 	crypto.SHA3_512,
-	crypto.SHA3_384,
+	//crypto.SHA3_384,
 	// These are insecure
 	crypto.SHA1,
 	crypto.MD5,
