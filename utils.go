@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"crypto"
 	"crypto/hmac"
 	"golang.org/x/crypto/blake2b"
 	"hash"
+	"io"
 	"log"
 	"runtime/debug"
 	"strconv"
@@ -107,6 +109,32 @@ func scanLinesZ(data []byte, atEOF bool) (advance int, token []byte, err error) 
 	return 0, nil, nil
 }
 
+// Get scanner for NUL or CR/NL terminated lines
+func getScanner(f io.Reader) *bufio.Scanner {
+	const peekSize = 4200 // Longer than PATH_MAX
+
+	peek := make([]byte, peekSize)
+	n, err := f.Read(peek)
+	if err != nil && err != io.EOF {
+		log.Fatal(err)
+		return nil
+	}
+
+	var splitFunc bufio.SplitFunc
+	// Detect if line is NUL terminated
+	if bytes.IndexByte(peek[:n], 0) != -1 {
+		splitFunc = scanLinesZ
+	} else {
+		splitFunc = bufio.ScanLines
+	}
+
+	scanner := bufio.NewScanner(io.MultiReader(bytes.NewReader(peek[:n]), f))
+	scanner.Split(splitFunc)
+
+	return scanner
+}
+
+// Get commit id
 func getCommit() string {
 	var commit, dirty string
 

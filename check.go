@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"crypto"
 	"encoding/hex"
 	"io"
@@ -114,8 +113,7 @@ func inputFromCheck(f io.ReadCloser) <-chan *Checksums {
 	}
 
 	checksums := []*Checksum{}
-	scanner := bufio.NewScanner(f)
-	scanner.Split(bufio.ScanLines)
+	scanner := getScanner(f)
 
 	files := make(chan *Checksums)
 	go func() {
