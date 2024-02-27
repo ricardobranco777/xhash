@@ -6,6 +6,7 @@ import (
 	"crypto"
 	"crypto/hmac"
 	"golang.org/x/crypto/blake2b"
+	"golang.org/x/crypto/blake2s"
 	"hash"
 	"io"
 	"log"
@@ -36,6 +37,8 @@ func initHash(h *Checksum) {
 		} else {
 			h.Hash = blake3.New()
 		}
+	case crypto.BLAKE2s_256:
+		h.Hash = blake2(blake2s.New256, macKey)
 	case crypto.BLAKE2b_256:
 		h.Hash = blake2(blake2b.New256, macKey)
 	case crypto.BLAKE2b_384:

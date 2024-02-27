@@ -58,6 +58,7 @@ var hashes = []crypto.Hash{
 	crypto.BLAKE2b_256,
 	//crypto.BLAKE2b_384,
 	crypto.BLAKE2b_512,
+	crypto.BLAKE2s_256,
 	BLAKE3,
 	//crypto.MD4,
 	crypto.MD5,
@@ -156,4 +157,5 @@ var (
 var name2Hash = map[string]crypto.Hash{
 	"SHA512t256": crypto.SHA512_256,  // Used by FreeBSD's md5
 	"BLAKE2b":    crypto.BLAKE2b_512, // Used by GNU coreutils's btsum
+	"BLAKE2s":    crypto.BLAKE2s_256, // Used by NetBSD
 }

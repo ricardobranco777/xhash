@@ -44,6 +44,7 @@ Usage: xhash [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... 
   -a, --all              all algorithms (except others specified, if any)
       --blake2b-256      BLAKE2b-256 algorithm
       --blake2b-512      BLAKE2b-512 algorithm
+      --blake2s-256      BLAKE2s-256 algorithm
       --blake3           BLAKE3 algorithm
   -c, --check string     read checksums from file (use "" for stdin) (default "\x00")
   -f, --format string    output format (default "{{range .}}{{.Name}} ({{.File}}) = {{.Sum }}\n{{end}}")
