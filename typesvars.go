@@ -45,7 +45,6 @@ const (
 	KB Size = 1 << (10 * iota)
 	MB
 	GB
-	TB
 )
 
 // Constants for hashes not in stdlib
