@@ -56,4 +56,4 @@ install-all: $(ALL)
 
 .PHONY: uninstall-all
 uninstall-all:
-	@for f in $(ALL) ; do rm -vf $(BINDIR)/$$f ; done
+	@for f in $(ALL) ; do rm -f $(BINDIR)/$$f ; done
