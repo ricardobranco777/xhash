@@ -1,7 +1,7 @@
 BIN	= xhash
 
 # Optionally create these hard-links
-ALL	= b2sum b3sum md5sum sha1sum sha224sum sha256sum sha384sum sha512sum
+ALL	= b2sum b3sum md5sum sha1sum sha256sum sha512sum
 
 .PHONY: all
 all:	$(BIN)
