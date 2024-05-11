@@ -155,7 +155,17 @@ var (
 )
 
 var name2Hash = map[string]crypto.Hash{
-	"SHA512t256": crypto.SHA512_256,  // Used by FreeBSD's md5
-	"BLAKE2b":    crypto.BLAKE2b_512, // Used by GNU coreutils's btsum
-	"BLAKE2s":    crypto.BLAKE2s_256, // Used by NetBSD
+	"BLAKE2b":     crypto.BLAKE2b_512, // Used by GNU coreutils's btsum
+	"BLAKE2s":     crypto.BLAKE2s_256, // Used by NetBSD
+	"BLAKE2B-512": crypto.BLAKE2b_512, // Used by OpenSSL's dgst
+	"BLAKE2S-256": crypto.BLAKE2s_256, // Used by OpenSSL's dgst
+	"SHA2-224":    crypto.SHA224,      // Used by OpenSSL's dgst
+	"SHA2-256":    crypto.SHA256,      // Used by OpenSSL's dgst
+	"SHA2-384":    crypto.SHA384,      // Used by OpenSSL's dgst
+	"SHA2-512":    crypto.SHA512,      // Used by OpenSSL's dgst
+	"SHA3-224":    crypto.SHA3_224,    // Used by OpenSSL's dgst
+	"SHA3-256":    crypto.SHA3_256,    // Used by OpenSSL's dgst
+	"SHA3-384":    crypto.SHA3_384,    // Used by OpenSSL's dgst
+	"SHA3-512":    crypto.SHA3_512,    // Used by OpenSSL's dgst
+	"SHA512t256":  crypto.SHA512_256,  // Used by FreeBSD's md5
 }
