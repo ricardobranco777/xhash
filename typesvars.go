@@ -141,8 +141,9 @@ var better = []crypto.Hash{
 }
 
 var regex = struct {
-	bsd, gnu *regexp.Regexp
+	base64, bsd, gnu *regexp.Regexp
 }{
+	regexp.MustCompile(`^[g-zG-Z/+]`),
 	// Format used by OpenSSL dgst, BSD digest & Solaris digest
 	// NOTE: The backslash is added by ourselves if escape the filename
 	regexp.MustCompile(`(?s)^([A-Za-z]+[a-z0-9-]*) ?\((.*?)\) ?= ([0-9a-zA-Z/+]{16,}={0,2})$`),

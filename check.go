@@ -81,7 +81,7 @@ func parseLine(line string, lineno uint64) *Checksums {
 		file = unescapeFilename(file)
 	}
 	/* All hashes except 384-bits have Base64 padding */
-	if strings.HasSuffix(digest, "=") || strings.ContainsAny(digest, "/+") {
+	if opts.base64 || strings.HasSuffix(digest, "=") || regex.base64.MatchString(digest) {
 		sum, err = base64.StdEncoding.DecodeString(digest)
 	} else {
 		sum, err = hex.DecodeString(digest)
