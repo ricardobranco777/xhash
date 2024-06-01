@@ -8,6 +8,7 @@ import (
 	_ "crypto/sha1"
 	_ "crypto/sha256"
 	_ "crypto/sha512"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	_ "golang.org/x/crypto/sha3"
@@ -43,10 +44,16 @@ func getOutput(results *Checksums) []*Output {
 		})
 	}
 	for i := range results.checksums {
+		var sum string
+		if opts.base64 {
+			sum = base64.StdEncoding.EncodeToString(results.checksums[i].sum)
+		} else {
+			sum = hex.EncodeToString(results.checksums[i].sum)
+		}
 		outputs = append(outputs, &Output{
 			File: file,
 			Name: algorithms[results.checksums[i].hash].name,
-			Sum:  backslash + hex.EncodeToString(results.checksums[i].sum),
+			Sum:  backslash + sum,
 		})
 	}
 	return outputs
@@ -102,6 +109,7 @@ func init() {
 	if strings.HasPrefix(progname, "xhash") {
 		flag.BoolVarP(&opts.all, "all", "a", false, "all algorithms (except others specified, if any)")
 	}
+	flag.BoolVarP(&opts.base64, "base64", "", false, "output hash in Base64 encoding format")
 	if strings.Contains(progname, "sum") {
 		flag.BoolVarP(&opts.dummy, "binary", "b", false, "read in binary mode")
 		flag.BoolVarP(&opts.dummy, "text", "t", false, "read in text mode (default)")

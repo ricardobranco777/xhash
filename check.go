@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto"
+	"encoding/base64"
 	"encoding/hex"
 	"io"
 	"log"
@@ -62,13 +63,13 @@ func parseLine(line string, lineno uint64) *Checksums {
 	if !opts.gnu {
 		match = regex.bsd.FindStringSubmatch(line)
 		if match != nil {
-			algorithm, file, digest = match[1], match[2], strings.ToLower(match[3])
+			algorithm, file, digest = match[1], match[2], match[3]
 		}
 	}
 	if match == nil {
 		match = regex.gnu.FindStringSubmatch(line)
 		if match != nil {
-			digest, file = strings.ToLower(match[1]), match[2]
+			digest, file = match[1], match[2]
 			if len(chosen) == 1 {
 				algorithm = algorithms[chosen[0].hash].name
 			} else {
@@ -79,7 +80,12 @@ func parseLine(line string, lineno uint64) *Checksums {
 	if !opts.zero {
 		file = unescapeFilename(file)
 	}
-	sum, err = hex.DecodeString(digest)
+	/* All hashes except 384-bits have Base64 padding */
+	if strings.HasSuffix(digest, "=") || strings.ContainsAny(digest, "/+") {
+		sum, err = base64.StdEncoding.DecodeString(digest)
+	} else {
+		sum, err = hex.DecodeString(digest)
+	}
 	if hash, ok = name2Hash[algorithm]; !ok || err != nil || len(chosen) > 0 && !isChosen(hash) {
 		stats.invalid++
 		if opts.warn {
