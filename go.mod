@@ -1,4 +1,4 @@
-module github.com/ricardobranco777/xhash
+module github.com/ricardobranco777/xhash/v3
 
 go 1.21
 
