@@ -26,7 +26,7 @@ clean:
 .PHONY: gen
 gen:
 	@rm -f go.mod go.sum
-	@go mod init $(BIN)
+	@go mod init github.com/ricardobranco777/$(BIN)
 	@go mod tidy
 
 euid	= $(shell id -u)
