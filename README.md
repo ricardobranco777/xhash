@@ -42,7 +42,7 @@ To use the format used by **hashdeep** use `--size -f '{{range .}}{{.Sum}},{{end
 ```
 Usage: xhash [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... DIRECTORY...]
   -a, --all              all algorithms (except others specified, if any)
-      --base64           output hash in Base64 encoding format
+  -b, --base64           output hash in Base64 encoding format
       --blake2b-256      BLAKE2b-256 algorithm
       --blake2b-512      BLAKE2b-512 algorithm
       --blake2s-256      BLAKE2s-256 algorithm

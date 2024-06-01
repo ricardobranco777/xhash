@@ -109,12 +109,13 @@ func init() {
 	if strings.HasPrefix(progname, "xhash") {
 		flag.BoolVarP(&opts.all, "all", "a", false, "all algorithms (except others specified, if any)")
 	}
-	flag.BoolVarP(&opts.base64, "base64", "", false, "output hash in Base64 encoding format")
 	if strings.Contains(progname, "sum") {
+		flag.BoolVarP(&opts.base64, "base64", "", false, "output hash in Base64 encoding format")
 		flag.BoolVarP(&opts.dummy, "binary", "b", false, "read in binary mode")
 		flag.BoolVarP(&opts.dummy, "text", "t", false, "read in text mode (default)")
 		flag.BoolVarP(&opts.tag, "tag", "", false, "create a BSD-style checksum")
 	} else {
+		flag.BoolVarP(&opts.base64, "base64", "b", false, "output hash in Base64 encoding format")
 		flag.BoolVarP(&opts.gnu, "gnu", "", false, "output hashes in the format used by md5sum")
 	}
 	flag.BoolVarP(&opts.ignore, "ignore-missing", "", false, "don't fail or report status for missing files")
