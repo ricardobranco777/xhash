@@ -148,12 +148,19 @@ var regex = struct {
 	// NOTE: The backslash is added by ourselves if escape the filename
 	regexp.MustCompile(`(?s)^([A-Za-z]+[a-z0-9-]*) ?\((.*?)\) ?= ([0-9a-zA-Z/+]{16,}={0,2})$`),
 	// Format used by GNU *sum
-	regexp.MustCompile(`(?s)^\\?([0-9a-fA-F]{16,}) [ \*](.*)$`),
+	regexp.MustCompile(`(?s)^\\?([0-9a-zA-Z/+]{16,}={0,2}) [ \*](.*)$`),
 }
 
 var (
 	insecure  = []crypto.Hash{crypto.MD4, crypto.MD5, crypto.RIPEMD160, crypto.SHA1}
-	size2hash = map[int]string{128: "SHA512", 96: "SHA384", 64: "SHA256", 56: "SHA224", 40: "SHA1", 32: "MD5"}
+	size2hash = map[int]string{
+		crypto.SHA512.Size(): "SHA512",
+		crypto.SHA384.Size(): "SHA384",
+		crypto.SHA256.Size(): "SHA256",
+		crypto.SHA224.Size(): "SHA224",
+		crypto.SHA1.Size():   "SHA1",
+		crypto.MD5.Size():    "MD5",
+	}
 )
 
 var name2Hash = map[string]crypto.Hash{

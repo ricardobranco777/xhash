@@ -70,11 +70,6 @@ func parseLine(line string, lineno uint64) *Checksums {
 		match = regex.gnu.FindStringSubmatch(line)
 		if match != nil {
 			digest, file = match[1], match[2]
-			if len(chosen) == 1 {
-				algorithm = algorithms[chosen[0].hash].name
-			} else {
-				algorithm = size2hash[len(digest)]
-			}
 		}
 	}
 	if !opts.zero {
@@ -85,6 +80,14 @@ func parseLine(line string, lineno uint64) *Checksums {
 		sum, err = base64.StdEncoding.DecodeString(digest)
 	} else {
 		sum, err = hex.DecodeString(digest)
+	}
+	/* Guess algorithm if not specified */
+	if algorithm == "" {
+		if len(chosen) == 1 {
+			algorithm = algorithms[chosen[0].hash].name
+		} else {
+			algorithm = size2hash[len(sum)]
+		}
 	}
 	if hash, ok = name2Hash[algorithm]; !ok || err != nil || len(chosen) > 0 && !isChosen(hash) {
 		stats.invalid++
