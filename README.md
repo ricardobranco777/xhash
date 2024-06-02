@@ -44,6 +44,7 @@ Usage: xhash [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... 
   -a, --all              all algorithms (except others specified, if any)
   -b, --base64           output hash in Base64 encoding format
       --blake2b-256      BLAKE2b-256 algorithm
+      --blake2b-384      BLAKE2b-384 algorithm
       --blake2b-512      BLAKE2b-512 algorithm
       --blake2s-256      BLAKE2s-256 algorithm
       --blake3           BLAKE3 algorithm
@@ -57,10 +58,15 @@ Usage: xhash [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... 
   -q, --quiet            don't print OK for each successfully verified file
   -r, --recursive        recurse into directories
       --sha1             SHA1 algorithm
+      --sha224           SHA224 algorithm
       --sha256           SHA256 algorithm
+      --sha3-224         SHA3-224 algorithm
       --sha3-256         SHA3-256 algorithm
+      --sha3-384         SHA3-384 algorithm
       --sha3-512         SHA3-512 algorithm
+      --sha384           SHA384 algorithm
       --sha512           SHA512 algorithm
+      --sha512-224       SHA512-224 algorithm
       --sha512-256       SHA512-256 algorithm
       --size             output size
   -S, --status           don't output anything, status code shows success
@@ -71,4 +77,4 @@ Usage: xhash [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... 
       --version          show version and exit
   -w, --warn             warn about improperly formatted checksum lines
   -z, --zero             end each output line with NUL, not newline, and disable file name escaping
-``` 
+```
