@@ -24,7 +24,7 @@ import (
 
 import flag "github.com/spf13/pflag"
 
-const version string = "3.4.3"
+const version string = "3.4.4"
 
 func getOutput(results *Checksums) []*Output {
 	outputs := make([]*Output, 0, len(results.checksums)+1)
