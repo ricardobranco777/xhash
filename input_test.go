@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"golang.org/x/sync/errgroup"
 	"io"
 	"io/fs"
 	"os"
@@ -26,7 +28,8 @@ func Test_inputFromArgs(t *testing.T) {
 		var got []string
 		os.Args = want
 		flag.Parse()
-		for input := range inputFromArgs(nil) {
+		g, ctx := errgroup.WithContext(context.Background())
+		for input := range inputFromArgs(g, ctx, nil) {
 			if input.checksums != nil {
 				panic(input.checksums)
 			}
@@ -37,6 +40,7 @@ func Test_inputFromArgs(t *testing.T) {
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("inputFromArgs(%q) got %v, want %v", want, got, want)
 		}
+		g.Wait()
 	}
 }
 
@@ -64,9 +68,11 @@ func Test_inputFromDir(t *testing.T) {
 
 	// Test without -L option
 	var got []string
-	for input := range inputFromDir(nil) {
+	g, ctx := errgroup.WithContext(context.Background())
+	for input := range inputFromDir(g, ctx, nil) {
 		got = append(got, input.file)
 	}
+	g.Wait()
 	sort.Strings(got)
 
 	if !reflect.DeepEqual(got, want[:len(want)-1]) {
@@ -79,9 +85,11 @@ func Test_inputFromDir(t *testing.T) {
 	defer func() { opts.symlinks = oldSymlinks }()
 
 	got = nil
-	for input := range inputFromDir(nil) {
+	g, ctx = errgroup.WithContext(context.Background())
+	for input := range inputFromDir(g, ctx, nil) {
 		got = append(got, input.file)
 	}
+	g.Wait()
 	sort.Strings(got)
 
 	if !reflect.DeepEqual(got, want) {
@@ -102,7 +110,8 @@ func Test_inputFromFile(t *testing.T) {
 		for _, str := range []string{input, strings.ReplaceAll(strings.ReplaceAll(input, "\r\n", "\x00"), "\n", "\x00")} {
 			reader := io.NopCloser(strings.NewReader(str))
 			var got []string
-			for input := range inputFromFile(reader) {
+			g, ctx := errgroup.WithContext(context.Background())
+			for input := range inputFromFile(g, ctx, reader) {
 				if input.checksums != nil {
 					panic(input.checksums)
 				}
@@ -112,6 +121,7 @@ func Test_inputFromFile(t *testing.T) {
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("inputFromFile(%q) got %v; want %v", str, got, want)
 			}
+			g.Wait()
 		}
 	}
 }

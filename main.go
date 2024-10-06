@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto"
 	"crypto/hmac"
 	_ "crypto/md5"
@@ -12,14 +13,15 @@ import (
 	"encoding/hex"
 	"fmt"
 	_ "golang.org/x/crypto/sha3"
+	"golang.org/x/sync/errgroup"
 	"io"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 import flag "github.com/spf13/pflag"
@@ -269,23 +271,30 @@ func main() {
 		os.Exit(0)
 	}
 
-	var wg sync.WaitGroup
-	channel := make(chan *Checksums)
-
+	checksums := make(chan *Checksums, 100)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	g, ctx := errgroup.WithContext(ctx)
+	g.SetLimit(runtime.NumCPU() + 1)
 	go func() {
-		for input := range inputFrom(nil) {
-			wg.Add(1)
-			go func(input *Checksums) {
-				defer wg.Done()
-				channel <- hashFile(input)
-			}(input)
-
+		for path := range inputFrom(g, ctx, nil) {
+			path := path
+			g.Go(func() error {
+				select {
+				case checksums <- hashFile(path):
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+				return nil
+			})
 		}
-		wg.Wait()
-		close(channel)
+		if err := g.Wait(); err != nil {
+			log.Fatal(err)
+		}
+		close(checksums)
 	}()
 
-	for checksum := range channel {
+	for checksum := range checksums {
 		if checksum != nil {
 			display(checksum)
 		}

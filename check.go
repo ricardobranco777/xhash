@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"crypto"
 	"encoding/base64"
 	"encoding/hex"
+	"golang.org/x/sync/errgroup"
 	"io"
 	"log"
 	"os"
@@ -109,7 +111,7 @@ func parseLine(line string, lineno uint64) *Checksums {
 	}
 }
 
-func inputFromCheck(f io.ReadCloser) <-chan *Checksums {
+func inputFromCheck(g *errgroup.Group, ctx context.Context, f io.ReadCloser) <-chan *Checksums {
 	var current string
 	var lineno uint64
 	var input *Checksums
@@ -127,8 +129,11 @@ func inputFromCheck(f io.ReadCloser) <-chan *Checksums {
 	checksums := []*Checksum{}
 	scanner := getScanner(f)
 
-	files := make(chan *Checksums)
-	go func() {
+	files := make(chan *Checksums, 1024)
+
+	g.Go(func() error {
+		defer close(files)
+		defer f.Close()
 		for {
 			lineno++
 			eof := !scanner.Scan()
@@ -140,7 +145,11 @@ func inputFromCheck(f io.ReadCloser) <-chan *Checksums {
 			if input != nil && current != input.file || eof {
 				if current != "" {
 					if best := bestHashes(checksums); best != nil {
-						files <- &Checksums{file: current, checksums: best}
+						select {
+						case files <- &Checksums{file: current, checksums: best}:
+						case <-ctx.Done():
+							return ctx.Err()
+						}
 					}
 				}
 				if eof {
@@ -156,8 +165,8 @@ func inputFromCheck(f io.ReadCloser) <-chan *Checksums {
 				checksums = append(checksums, input.checksums[0])
 			}
 		}
-		close(files)
-		f.Close()
-	}()
+		return nil
+	})
+
 	return files
 }

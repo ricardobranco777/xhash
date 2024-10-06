@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"golang.org/x/sync/errgroup"
 	"io"
 	"io/fs"
 	"log"
@@ -10,19 +12,26 @@ import (
 
 import flag "github.com/spf13/pflag"
 
-func inputFromArgs(f io.ReadCloser) <-chan *Checksums {
-	files := make(chan *Checksums)
-	go func() {
+func inputFromArgs(g *errgroup.Group, ctx context.Context, f io.ReadCloser) <-chan *Checksums {
+	files := make(chan *Checksums, 1024)
+
+	g.Go(func() error {
+		defer close(files)
 		for _, arg := range flag.Args() {
-			files <- &Checksums{file: arg}
+			select {
+			case files <- &Checksums{file: arg}:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
 		}
-		close(files)
-	}()
+		return nil
+	})
+
 	return files
 }
 
 // Used by the -r option
-func inputFromDir(f io.ReadCloser) <-chan *Checksums {
+func inputFromDir(g *errgroup.Group, ctx context.Context, f io.ReadCloser) <-chan *Checksums {
 	isSymlink := func(d fs.DirEntry) bool { return d.Type()&fs.ModeType == fs.ModeSymlink }
 
 	walkDir := filepath.WalkDir
@@ -30,25 +39,34 @@ func inputFromDir(f io.ReadCloser) <-chan *Checksums {
 		walkDir = func(root string, fn fs.WalkDirFunc) error { return fs.WalkDir(fsys, root, fn) }
 	}
 
-	files := make(chan *Checksums)
-	go func() {
+	files := make(chan *Checksums, 1024)
+
+	g.Go(func() error {
+		defer close(files)
 		for _, arg := range flag.Args() {
-			walkDir(arg, func(path string, d fs.DirEntry, err error) error {
+			if err := walkDir(arg, func(path string, d fs.DirEntry, err error) error {
 				if err != nil {
 					log.Print(err)
 				} else if opts.symlinks && isSymlink(d) || !d.IsDir() && !isSymlink(d) {
-					files <- &Checksums{file: path}
+					select {
+					case files <- &Checksums{file: path}:
+					case <-ctx.Done():
+						return ctx.Err()
+					}
 				}
 				return nil
-			})
+			}); err != nil {
+				return err
+			}
 		}
-		close(files)
-	}()
+		return nil
+	})
+
 	return files
 }
 
 // Used by the -i option
-func inputFromFile(f io.ReadCloser) <-chan *Checksums {
+func inputFromFile(g *errgroup.Group, ctx context.Context, f io.ReadCloser) <-chan *Checksums {
 	var err error
 
 	if f == nil {
@@ -60,22 +78,30 @@ func inputFromFile(f io.ReadCloser) <-chan *Checksums {
 		}
 	}
 
-	files := make(chan *Checksums)
 	scanner := getScanner(f)
+	files := make(chan *Checksums, 1024)
 
-	go func() {
+	g.Go(func() error {
+		defer close(files)
+		defer f.Close()
 		for scanner.Scan() {
 			if err := scanner.Err(); err != nil {
-				log.Fatal(err)
+				return err
 			}
 			file := scanner.Text()
 			if file != "" {
-				files <- &Checksums{file: scanner.Text()}
+				select {
+				case files <- &Checksums{file: scanner.Text()}:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
 			}
 		}
-		close(files)
-		f.Close()
-	}()
+		if err := scanner.Err(); err != nil {
+			return err
+		}
+		return nil
+	})
 
 	return files
 }
