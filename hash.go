@@ -57,8 +57,10 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 				}
 				break
 			}
+			bCopy := make([]byte, n)
+			copy(bCopy, b[:n])
 			for i := range channels {
-				channels[i] <- b[:n]
+				channels[i] <- bCopy
 			}
 		}
 		for i := range channels {
