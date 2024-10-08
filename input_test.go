@@ -35,12 +35,12 @@ func Test_inputFromArgs(t *testing.T) {
 			}
 			got = append(got, input.file)
 		}
+		g.Wait()
 		want = want[1:] // Strip progname
 		sort.Strings(got)
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("inputFromArgs(%q) got %v, want %v", want, got, want)
 		}
-		g.Wait()
 	}
 }
 
@@ -117,11 +117,11 @@ func Test_inputFromFile(t *testing.T) {
 				}
 				got = append(got, input.file)
 			}
+			g.Wait()
 			sort.Strings(got)
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("inputFromFile(%q) got %v; want %v", str, got, want)
 			}
-			g.Wait()
 		}
 	}
 }

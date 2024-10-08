@@ -254,13 +254,19 @@ func init() {
 }
 
 func main() {
+	checksums := make(chan *Checksums, 100)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+	g, ctx := errgroup.WithContext(ctx)
+	g.SetLimit(runtime.NumCPU() + 1)
+
 	inputFrom := inputFromArgs
 	if opts.check != "\x00" {
 		inputFrom = inputFromCheck
 	} else if opts.input != "\x00" {
 		inputFrom = inputFromFile
 	} else if flag.NArg() == 0 {
-		display(hashStdin(nil))
+		display(hashStdin(g, ctx, nil))
 		os.Exit(0)
 	} else if opts.recursive {
 		inputFrom = inputFromDir
@@ -271,17 +277,12 @@ func main() {
 		os.Exit(0)
 	}
 
-	checksums := make(chan *Checksums, 100)
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
-	g, ctx := errgroup.WithContext(ctx)
-	g.SetLimit(runtime.NumCPU() + 1)
 	go func() {
 		for path := range inputFrom(g, ctx, nil) {
 			path := path
 			g.Go(func() error {
 				select {
-				case checksums <- hashFile(path):
+				case checksums <- hashFile(g, ctx, path):
 				case <-ctx.Done():
 					return ctx.Err()
 				}

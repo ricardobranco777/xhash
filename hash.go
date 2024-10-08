@@ -1,13 +1,15 @@
 package main
 
 import (
+	"context"
+	"golang.org/x/sync/errgroup"
 	"io"
 	"log"
 	"os"
 	"sync"
 )
 
-func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
+func hashF(g *errgroup.Group, ctx context.Context, f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	if checksums == nil {
 		checksums = getChosen()
 	}
@@ -31,18 +33,19 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 
 	for i, h := range checksums {
 		channels[i] = make(chan []byte)
-		go func(h *Checksum, channel <-chan []byte) {
+		g.Go(func() error {
 			defer wg.Done()
-			for data := range channel {
+			for data := range channels[i] {
 				n, err := h.Write(data)
 				if err != nil {
 					log.Print(err)
-					return
+					return err
 				}
 				h.written += int64(n)
 			}
 			h.sum = h.Sum(nil)
-		}(h, channels[i])
+			return nil
+		})
 	}
 
 	wg.Add(1)
@@ -71,7 +74,7 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	return checksums
 }
 
-func hashFile(input *Checksums) *Checksums {
+func hashFile(g *errgroup.Group, ctx context.Context, input *Checksums) *Checksums {
 	file := input.file
 	f, err := os.Open(file)
 	if err != nil {
@@ -93,7 +96,7 @@ func hashFile(input *Checksums) *Checksums {
 		return nil
 	}
 
-	checksums := hashF(f, input.checksums)
+	checksums := hashF(g, ctx, f, input.checksums)
 
 	return &Checksums{
 		file:      file,
@@ -101,13 +104,13 @@ func hashFile(input *Checksums) *Checksums {
 	}
 }
 
-func hashStdin(f io.ReadCloser) *Checksums {
+func hashStdin(g *errgroup.Group, ctx context.Context, f io.ReadCloser) *Checksums {
 	if f == nil {
 		f = os.Stdin
 	}
 	return &Checksums{
 		file:      "",
-		checksums: hashF(f, nil),
+		checksums: hashF(g, ctx, f, nil),
 	}
 }
 
