@@ -10,32 +10,11 @@ func Test_initHash(t *testing.T) {
 	chosen = []*Checksum{{hash: crypto.SHA256}, {hash: crypto.SHA512}}
 	defer func() { chosen = oldChosen }()
 
-	for _, h := range getChosen() {
+	for _, h := range chosen {
 		initHash(h)
 		if h == nil {
 			t.Errorf("initHash(%v) = nil", h)
 		}
-	}
-}
-
-func Test_initHashes(t *testing.T) {
-	oldChosen := chosen
-	chosen = []*Checksum{{hash: crypto.SHA256}, {hash: crypto.SHA512}}
-	defer func() { chosen = oldChosen }()
-
-	checksums := getChosen()
-	initHashes(checksums)
-	for _, h := range checksums {
-		if h == nil {
-			t.Errorf("initHash(%v) = nil", h)
-		}
-	}
-}
-
-func Test_getChosen(t *testing.T) {
-	got := getChosen()
-	if len(got) != 1 && got[0].hash != crypto.SHA256 {
-		t.Errorf("getChosen() = %v; want %v", got[0].hash, crypto.SHA256)
 	}
 }
 

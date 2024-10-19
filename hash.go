@@ -1,78 +1,75 @@
 package main
 
 import (
+	"golang.org/x/sync/errgroup"
 	"io"
 	"log"
 	"os"
-	"sync"
 )
 
 func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	if checksums == nil {
-		checksums = getChosen()
+		checksums = make([]*Checksum, len(chosen))
+		copy(checksums, chosen)
 	}
-	initHashes(checksums)
+
 	if len(checksums) == 1 {
-		n, err := io.Copy(checksums[0], f)
+		h := checksums[0]
+                initHash(h)
+		n, err := io.Copy(h, f)
 		if err != nil {
 			log.Print(err)
 			return nil
 		}
-		checksums[0].written = n
-		checksums[0].sum = checksums[0].Sum(nil)
+		h.written = n
+		h.sum = h.Sum(nil)
 		return checksums
 	}
 
-	// Use goroutines if more than one algorithm
+	var writers []io.Writer
+	var pipeWriters []*io.PipeWriter
 
-	var wg sync.WaitGroup
-	wg.Add(len(checksums))
-	channels := make([]chan []byte, len(checksums))
-
-	for i, h := range checksums {
-		channels[i] = make(chan []byte)
-		go func(h *Checksum, channel <-chan []byte) {
-			defer wg.Done()
-			for data := range channel {
-				n, err := h.Write(data)
-				if err != nil {
-					log.Print(err)
-					return
-				}
-				h.written += int64(n)
+	g := new(errgroup.Group)
+	for _, h := range checksums {
+                initHash(h)
+		pr, pw := io.Pipe()
+		writers = append(writers, pw)
+		pipeWriters = append(pipeWriters, pw)
+		g.Go(func() error {
+			defer pr.Close()
+			n, err := io.Copy(h, pr)
+			if err != nil {
+				return err
 			}
+			h.written = n
 			h.sum = h.Sum(nil)
-		}(h, channels[i])
+			return nil
+		})
 	}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		b := make([]byte, 64*KB) // TODO: Check best buffer size
-		for {
-			n, err := f.Read(b)
-			if err != nil {
-				if err != io.EOF {
-					log.Print(err)
-				}
-				break
+	g.Go(func() error {
+		defer func() {
+			for _, pw := range pipeWriters {
+				pw.Close()
 			}
-			bCopy := make([]byte, n)
-			copy(bCopy, b[:n])
-			for i := range channels {
-				channels[i] <- bCopy
-			}
+		}()
+		// build the multiwriter for all the pipes
+		mw := io.MultiWriter(writers...)
+		// copy the data into the multiwriter
+		if _, err := io.Copy(mw, f); err != nil {
+			return err
 		}
-		for i := range channels {
-			close(channels[i])
-		}
-	}()
-	wg.Wait()
+		return nil
+	})
+	if err := g.Wait(); err != nil {
+		log.Print(err)
+		return nil
+	}
+
 	return checksums
 }
 
-func hashFile(input *Checksums) *Checksums {
-	file := input.file
+func hashFile(file string, checksums []*Checksum) *Checksums {
 	f, err := os.Open(file)
 	if err != nil {
 		stats.unreadable++
@@ -93,11 +90,9 @@ func hashFile(input *Checksums) *Checksums {
 		return nil
 	}
 
-	checksums := hashF(f, input.checksums)
-
 	return &Checksums{
 		file:      file,
-		checksums: checksums,
+		checksums: hashF(f, checksums),
 	}
 }
 
@@ -112,7 +107,8 @@ func hashStdin(f io.ReadCloser) *Checksums {
 }
 
 func hashString(str string) *Checksums {
-	checksums := getChosen()
+	checksums := make([]*Checksum, len(chosen))
+	copy(checksums, chosen)
 	for _, h := range checksums {
 		initHash(h)
 		h.Write([]byte(str))

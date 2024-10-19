@@ -39,14 +39,6 @@ type Output struct {
 // Size type for file size
 type Size int
 
-// Constants for sizes
-const (
-	_       = iota
-	KB Size = 1 << (10 * iota)
-	MB
-	GB
-)
-
 // Constants for hashes not in stdlib
 const (
 	_ crypto.Hash = 30 + iota // Don't conflict with https://pkg.go.dev/crypto#Hash

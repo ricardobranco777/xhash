@@ -100,7 +100,7 @@ func Test_hashF(t *testing.T) {
 }
 
 func BenchmarkHashes(b *testing.B) {
-	buf := make([]byte, 16*KB)
+	buf := make([]byte, 16384)
 
 	for _, h := range hashes {
 		checksum := &Checksum{hash: h}

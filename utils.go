@@ -53,20 +53,6 @@ func initHash(h *Checksum) {
 	}
 }
 
-func initHashes(checksums []*Checksum) {
-	for _, h := range checksums {
-		initHash(h)
-	}
-}
-
-func getChosen() []*Checksum {
-	checksums := make([]*Checksum, len(chosen))
-	for i := range chosen {
-		checksums[i] = &Checksum{hash: chosen[i].hash}
-	}
-	return checksums
-}
-
 // *sum escapes filenames with backslash & newline
 func escapeFilename(filename string) string {
 	if len(filename) > 0 {

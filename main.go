@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"crypto"
 	"crypto/hmac"
 	_ "crypto/md5"
@@ -17,7 +16,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -254,6 +252,7 @@ func init() {
 }
 
 func main() {
+	checksums := make(chan *Checksums, 100)
 	inputFrom := inputFromArgs
 	if opts.check != "\x00" {
 		inputFrom = inputFromCheck
@@ -271,20 +270,17 @@ func main() {
 		os.Exit(0)
 	}
 
-	checksums := make(chan *Checksums, 100)
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
-	g, ctx := errgroup.WithContext(ctx)
-	g.SetLimit(runtime.NumCPU() + 1)
+	g := new(errgroup.Group)
+	if len(chosen) < 2 {
+		g.SetLimit(runtime.NumCPU())
+	} else {
+		g.SetLimit(2)
+	}
+
 	go func() {
-		for path := range inputFrom(g, ctx, nil) {
-			path := path
+		for check := range inputFrom(nil) {
 			g.Go(func() error {
-				select {
-				case checksums <- hashFile(path):
-				case <-ctx.Done():
-					return ctx.Err()
-				}
+				checksums <- hashFile(check.file, check.checksums)
 				return nil
 			})
 		}

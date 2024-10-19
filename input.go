@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"golang.org/x/sync/errgroup"
 	"io"
 	"io/fs"
 	"log"
@@ -12,26 +10,21 @@ import (
 
 import flag "github.com/spf13/pflag"
 
-func inputFromArgs(g *errgroup.Group, ctx context.Context, f io.ReadCloser) <-chan *Checksums {
+func inputFromArgs(f io.ReadCloser) <-chan *Checksums {
 	files := make(chan *Checksums, 1024)
 
-	g.Go(func() error {
+	go func() {
 		defer close(files)
 		for _, arg := range flag.Args() {
-			select {
-			case files <- &Checksums{file: arg}:
-			case <-ctx.Done():
-				return ctx.Err()
-			}
+			files <- &Checksums{file: arg}
 		}
-		return nil
-	})
+	}()
 
 	return files
 }
 
 // Used by the -r option
-func inputFromDir(g *errgroup.Group, ctx context.Context, f io.ReadCloser) <-chan *Checksums {
+func inputFromDir(f io.ReadCloser) <-chan *Checksums {
 	isSymlink := func(d fs.DirEntry) bool { return d.Type()&fs.ModeType == fs.ModeSymlink }
 
 	walkDir := filepath.WalkDir
@@ -41,32 +34,25 @@ func inputFromDir(g *errgroup.Group, ctx context.Context, f io.ReadCloser) <-cha
 
 	files := make(chan *Checksums, 1024)
 
-	g.Go(func() error {
+	go func() {
 		defer close(files)
 		for _, arg := range flag.Args() {
-			if err := walkDir(arg, func(path string, d fs.DirEntry, err error) error {
+			walkDir(arg, func(path string, d fs.DirEntry, err error) error {
 				if err != nil {
 					log.Print(err)
 				} else if opts.symlinks && isSymlink(d) || !d.IsDir() && !isSymlink(d) {
-					select {
-					case files <- &Checksums{file: path}:
-					case <-ctx.Done():
-						return ctx.Err()
-					}
+					files <- &Checksums{file: path}
 				}
 				return nil
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		return nil
-	})
+	}()
 
 	return files
 }
 
 // Used by the -i option
-func inputFromFile(g *errgroup.Group, ctx context.Context, f io.ReadCloser) <-chan *Checksums {
+func inputFromFile(f io.ReadCloser) <-chan *Checksums {
 	var err error
 
 	if f == nil {
@@ -78,30 +64,25 @@ func inputFromFile(g *errgroup.Group, ctx context.Context, f io.ReadCloser) <-ch
 		}
 	}
 
-	scanner := getScanner(f)
 	files := make(chan *Checksums, 1024)
 
-	g.Go(func() error {
+	go func() {
 		defer close(files)
 		defer f.Close()
+		scanner := getScanner(f)
 		for scanner.Scan() {
 			if err := scanner.Err(); err != nil {
-				return err
+				log.Fatal(err)
 			}
 			file := scanner.Text()
 			if file != "" {
-				select {
-				case files <- &Checksums{file: scanner.Text()}:
-				case <-ctx.Done():
-					return ctx.Err()
-				}
+				files <- &Checksums{file: scanner.Text()}
 			}
 		}
 		if err := scanner.Err(); err != nil {
-			return err
+			log.Fatal(err)
 		}
-		return nil
-	})
+	}()
 
 	return files
 }
