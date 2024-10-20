@@ -185,7 +185,7 @@ func init() {
 	}
 
 	if opts.version {
-		fmt.Printf("v%s %v %s/%s %s\n", version, runtime.Version(), runtime.GOOS, runtime.GOARCH, getCommit())
+		fmt.Printf("v%s %v %s/%s\n", version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 		fmt.Printf("Supported hashes:")
 		for _, h := range hashes {
 			fmt.Printf(" %s", algorithms[h].name)

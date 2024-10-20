@@ -10,7 +10,6 @@ import (
 	"hash"
 	"io"
 	"log"
-	"runtime/debug"
 	"strconv"
 
 	blake3 "github.com/zeebo/blake3"
@@ -141,22 +140,4 @@ func getScanner(f io.Reader) *bufio.Scanner {
 	scanner.Split(splitFunc)
 
 	return scanner
-}
-
-// Get commit id
-func getCommit() string {
-	var commit, dirty string
-
-	if info, ok := debug.ReadBuildInfo(); ok {
-		for _, setting := range info.Settings {
-			switch {
-			case setting.Key == "vcs.revision":
-				commit = setting.Value
-			case setting.Key == "vcs.modified":
-				dirty = "-dirty"
-			}
-		}
-	}
-
-	return commit + dirty
 }
