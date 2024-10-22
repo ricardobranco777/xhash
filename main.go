@@ -20,21 +20,24 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
 )
 
 import flag "github.com/spf13/pflag"
 
 const version string = "3.5.1"
 
-func getOutput(results *Checksums) []*Output {
+func getOutput(results *Checksums, noEscape bool) []*Output {
+	var backslash string
 	outputs := make([]*Output, 0, len(results.checksums)+1)
 	file := results.file
-	if !opts.zero {
-		file = escapeFilename(file)
-	}
-	backslash := "\\"
-	if !opts.gnu || len(file) == len(results.file) {
-		backslash = ""
+	if !noEscape {
+		if !opts.zero {
+			file = escapeFilename(file)
+		}
+		if opts.gnu && len(file) != len(results.file) {
+			backslash = "\\"
+		}
 	}
 	if opts.size {
 		outputs = append(outputs, &Output{
@@ -59,7 +62,7 @@ func getOutput(results *Checksums) []*Output {
 	return outputs
 }
 
-func display(results *Checksums) {
+func display(results *Checksums, noEscape bool) (unmatched int) {
 	if opts.check != "\x00" {
 		file := escapeFilename(results.file)
 		for i := range results.checksums {
@@ -78,7 +81,7 @@ func display(results *Checksums) {
 					}
 				}
 			} else {
-				stats.unmatched++
+				unmatched++
 				if !opts.status {
 					if opts.verbose {
 						fmt.Printf("%s: %s FAILED with %s\n", file, algorithms[results.checksums[i].hash].name, hex.EncodeToString(results.checksums[i].sum))
@@ -89,10 +92,11 @@ func display(results *Checksums) {
 			}
 		}
 	} else {
-		if err := format.Execute(os.Stdout, getOutput(results)); err != nil {
+		if err := format.Execute(os.Stdout, getOutput(results, noEscape)); err != nil {
 			log.Print(err)
 		}
 	}
+	return unmatched
 }
 
 func init() {
@@ -125,7 +129,7 @@ func init() {
 	flag.BoolVarP(&opts.status, "status", "S", false, "don't output anything, status code shows success")
 	flag.BoolVarP(&opts.strict, "strict", "", false, "exit non-zero for improperly formatted checksum lines")
 	flag.BoolVarP(&opts.str, "string", "s", false, "treat arguments as strings")
-	flag.BoolVarP(&opts.symlinks, "symlinks", "L", false, "don't follow symbolic links with the -r option")
+	flag.BoolVarP(&opts.followSymlinks, "symlinks", "L", false, "follow symbolic links while recursing directories")
 	flag.BoolVarP(&opts.verbose, "verbose", "v", false, "verbose operation")
 	flag.BoolVarP(&opts.version, "version", "", false, "show version and exit")
 	flag.BoolVarP(&opts.warn, "warn", "w", false, "warn about improperly formatted checksum lines")
@@ -251,67 +255,95 @@ func init() {
 	}
 }
 
+func openFileOrStdin(filename string) io.ReadCloser {
+	var err error
+	f := os.Stdin
+	if filename != "" {
+		if f, err = os.Open(filename); err != nil {
+			log.Fatal(err)
+		}
+	}
+	return f
+}
+
 func main() {
-	checksums := make(chan *Checksums, 100)
-	inputFrom := inputFromArgs
+	var lines <-chan *Checksums
 	if opts.check != "\x00" {
-		inputFrom = inputFromCheck
+		onError := ErrorIgnore
+		if opts.warn {
+			onError = ErrorWarn
+		} else if opts.strict {
+			onError = ErrorExit
+		}
+		f := openFileOrStdin(opts.check)
+		defer f.Close()
+		lines = inputFromCheck(f, opts.zero, opts.base64, onError)
 	} else if opts.input != "\x00" {
-		inputFrom = inputFromFile
+		f := openFileOrStdin(opts.input)
+		defer f.Close()
+		lines = inputFromFile(f, opts.zero)
 	} else if flag.NArg() == 0 {
-		display(hashStdin(nil))
+		display(hashStdin(), true)
 		os.Exit(0)
 	} else if opts.recursive {
-		inputFrom = inputFromDir
+		lines = inputFromDir(flag.Args(), opts.followSymlinks)
 	} else if opts.str {
 		for _, s := range flag.Args() {
-			display(hashString(s))
+			display(hashString(s), true)
 		}
 		os.Exit(0)
-	}
-
-	g := new(errgroup.Group)
-	if len(chosen) < 2 {
-		g.SetLimit(runtime.NumCPU())
 	} else {
-		g.SetLimit(2)
+		lines = inputFromArgs(flag.Args())
 	}
 
+	var unreadable atomic.Uint64
+	g := new(errgroup.Group)
+	g.SetLimit(runtime.NumCPU())
+
+	checksums := make(chan *Checksums)
 	go func() {
-		for check := range inputFrom(nil) {
+		defer close(checksums)
+		for line := range lines {
 			g.Go(func() error {
-				checksums <- hashFile(check.file, check.checksums)
+				if checksum, err := hashFile(line.file, line.checksums); err != nil {
+					unreadable.Add(1)
+					if !opts.ignore {
+						log.Print(err)
+					}
+				} else {
+					checksums <- checksum
+				}
 				return nil
 			})
 		}
 		if err := g.Wait(); err != nil {
 			log.Fatal(err)
 		}
-		close(checksums)
 	}()
 
+	unmatched := 0
 	for checksum := range checksums {
-		if checksum != nil {
-			display(checksum)
-		}
+		n := display(checksum, false)
+		unmatched += n
 	}
 
+	unreadableFiles := unreadable.Load()
 	if opts.check != "\x00" || opts.input != "\x00" {
 		plural := ""
-		if !opts.status && stats.unreadable > 0 {
-			if stats.unreadable > 1 {
+		if !opts.status && unreadableFiles > 0 {
+			if unreadableFiles > 1 {
 				plural = "s"
 			}
-			fmt.Fprintf(os.Stderr, "WARNING: %d listed file%s could not be read\n", stats.unreadable, plural)
+			fmt.Fprintf(os.Stderr, "WARNING: %d listed file%s could not be read\n", unreadableFiles, plural)
 		}
-		if !opts.status && stats.unmatched > 0 {
-			if stats.unmatched > 1 {
+		if !opts.status && unmatched > 0 {
+			if unmatched > 1 {
 				plural = "s"
 			}
-			fmt.Fprintf(os.Stderr, "WARNING: %d computed checksum%s did NOT match\n", stats.unmatched, plural)
+			fmt.Fprintf(os.Stderr, "WARNING: %d computed checksum%s did NOT match\n", unmatched, plural)
 		}
 	}
-	if stats.unreadable > 0 || stats.unmatched > 0 || stats.invalid > 0 {
+	if unreadableFiles > 0 || unmatched > 0 {
 		os.Exit(1)
 	}
 }

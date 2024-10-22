@@ -36,9 +36,6 @@ type Output struct {
 	Sum  string
 }
 
-// Size type for file size
-type Size int
-
 // Constants for hashes not in stdlib
 const (
 	_ crypto.Hash = 30 + iota // Don't conflict with https://pkg.go.dev/crypto#Hash
@@ -78,36 +75,38 @@ var (
 )
 
 var opts struct {
-	all       bool
-	base64    bool
-	check     string
-	format    string
-	dummy     bool // Used to support unsupported options
-	gnu       bool
-	input     string
-	ignore    bool
-	key       string
-	size      bool
-	symlinks  bool // Used by the -r option
-	quiet     bool // Used by the -c option
-	recursive bool
-	status    bool // Used by the -c option
-	strict    bool // Used by the -c option
-	str       bool
-	tag       bool
-	verbose   bool // Used by the -c option
-	version   bool
-	warn      bool // Used by the -c option
-	zero      bool
-}
-
-var stats struct {
-	invalid    uint64
-	unmatched  uint64
-	unreadable uint64
+	all            bool
+	base64         bool
+	check          string
+	format         string
+	dummy          bool // Used to support unsupported options
+	gnu            bool
+	input          string
+	ignore         bool
+	key            string
+	size           bool
+	followSymlinks bool // Used by the -r option
+	quiet          bool // Used by the -c option
+	recursive      bool
+	status         bool // Used by the -c option
+	strict         bool // Used by the -c option
+	str            bool
+	tag            bool
+	verbose        bool // Used by the -c option
+	version        bool
+	warn           bool // Used by the -c option
+	zero           bool
 }
 
 // Used by the -c option
+
+type ErrorAction int
+
+const (
+	ErrorIgnore ErrorAction = iota
+	ErrorWarn
+	ErrorExit
+)
 
 // Choose the fastest and more secure.
 var better = []crypto.Hash{

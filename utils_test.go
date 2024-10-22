@@ -6,11 +6,8 @@ import (
 )
 
 func Test_initHash(t *testing.T) {
-	oldChosen := chosen
-	chosen = []*Checksum{{hash: crypto.SHA256}, {hash: crypto.SHA512}}
-	defer func() { chosen = oldChosen }()
-
-	for _, h := range chosen {
+	hashes := []*Checksum{{hash: crypto.SHA256}, {hash: crypto.SHA512}}
+	for _, h := range hashes {
 		initHash(h)
 		if h == nil {
 			t.Errorf("initHash(%v) = nil", h)

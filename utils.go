@@ -9,7 +9,6 @@ import (
 	"golang.org/x/crypto/blake2s"
 	"hash"
 	"io"
-	"log"
 	"strconv"
 
 	blake3 "github.com/zeebo/blake3"
@@ -19,7 +18,7 @@ import (
 func blake2(f func([]byte) (hash.Hash, error), key []byte) hash.Hash {
 	h, err := f(key)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	return h
 }
@@ -31,7 +30,7 @@ func initHash(h *Checksum) {
 			var err error
 			h.Hash, err = blake3.NewKeyed(macKey)
 			if err != nil {
-				log.Fatal(err)
+				panic(err)
 			}
 		} else {
 			h.Hash = blake3.New()
@@ -98,32 +97,26 @@ func scanLinesZ(data []byte, atEOF bool) (advance int, token []byte, err error) 
 }
 
 // Get scanner for NUL or CR/NL terminated lines
-func getScanner(f io.Reader) *bufio.Scanner {
-	if opts.zero {
+func getScanner(f io.Reader, zeroTerminated bool) (*bufio.Scanner, error) {
+	if zeroTerminated {
 		scanner := bufio.NewScanner(f)
 		scanner.Split(scanLinesZ)
-		return scanner
+		return scanner, nil
 	}
 
-	const peekSize = 4200 // Longer than PATH_MAX
-
-	peek := make([]byte, peekSize)
+	peek := make([]byte, 8192)
 	n, err := f.Read(peek)
 	if err != nil && err != io.EOF {
-		log.Fatal(err)
-		return nil
+		return nil, err
 	}
 
-	var splitFunc bufio.SplitFunc
-	// Detect if line is NUL terminated
-	if bytes.IndexByte(peek[:n], 0) != -1 {
+	splitFunc := bufio.ScanLines
+	if bytes.IndexByte(peek[:n], '\x00') != -1 {
 		splitFunc = scanLinesZ
-	} else {
-		splitFunc = bufio.ScanLines
 	}
 
 	scanner := bufio.NewScanner(io.MultiReader(bytes.NewReader(peek[:n]), f))
 	scanner.Split(splitFunc)
 
-	return scanner
+	return scanner, nil
 }

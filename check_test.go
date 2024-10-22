@@ -58,7 +58,6 @@ func Test_isChosen(t *testing.T) {
 }
 
 func Test_parseLine(t *testing.T) {
-	lineno := uint64(1)
 	xwant := map[string]*Checksums{
 		"44301b466258398bfee1c974a4a40831  /etc/passwd": {
 			file: "/etc/passwd",
@@ -102,8 +101,8 @@ func Test_parseLine(t *testing.T) {
 	chosen = nil
 
 	for line, want := range xwant {
-		got := parseLine(line, lineno)
-		if got == nil {
+		got, err := parseLine(line, false, false)
+		if err != nil {
 			panic("nil")
 		}
 		if !reflect.DeepEqual(got, want) {
@@ -195,14 +194,11 @@ func Test_inputFromCheck(t *testing.T) {
 	defer func() { chosen = oldChosen }()
 	chosen = nil
 
-	oldZero := opts.zero
-	defer func() { opts.zero = oldZero }()
-
 	for input, want := range xinput {
 		for _, str := range []string{input, strings.ReplaceAll(strings.ReplaceAll(input, "\r\n", "\x00"), "\n", "\x00")} {
-			opts.zero = strings.Contains(str, "\x00")
+			zero := strings.Contains(str, "\x00")
 			reader := io.NopCloser(strings.NewReader(str))
-			for got := range inputFromCheck(reader) {
+			for got := range inputFromCheck(reader, zero, false, ErrorIgnore) {
 				// Goroutines may return randomized stuff so swap if needed
 				i := 0
 				if len(want) > 1 && got.file != want[0].file {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"golang.org/x/sync/errgroup"
 	"io"
 	"log"
@@ -28,15 +29,15 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 		return checksums
 	}
 
-	var writers []io.Writer
-	var pipeWriters []*io.PipeWriter
+	writers := make([]io.Writer, len(checksums))
+	pipeWriters := make([]*io.PipeWriter, len(checksums))
 
 	g := new(errgroup.Group)
-	for _, h := range checksums {
+	for i, h := range checksums {
 		initHash(h)
 		pr, pw := io.Pipe()
-		writers = append(writers, pw)
-		pipeWriters = append(pipeWriters, pw)
+		writers[i] = pw
+		pipeWriters[i] = pw
 		g.Go(func() error {
 			defer pr.Close()
 			n, err := io.Copy(h, pr)
@@ -71,52 +72,41 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	return checksums
 }
 
-func hashFile(file string, checksums []*Checksum) *Checksums {
+func hashFile(file string, checksums []*Checksum) (*Checksums, error) {
 	f, err := os.Open(file)
 	if err != nil {
-		stats.unreadable++
-		if !opts.ignore {
-			log.Print(err)
-		}
-		return nil
+		return nil, err
 	}
 	defer f.Close()
 
 	info, err := f.Stat()
 	if err != nil {
-		log.Print(err)
-		return nil
+		return nil, err
 	}
 	if info.IsDir() {
-		log.Printf("%s is a directory", file)
-		return nil
+		return nil, fmt.Errorf("%s is a directory", file)
 	}
 
 	return &Checksums{
 		file:      file,
 		checksums: hashF(f, checksums),
-	}
+	}, nil
 }
 
-func hashStdin(f io.ReadCloser) *Checksums {
-	if f == nil {
-		f = os.Stdin
-	}
+func hashStdin() *Checksums {
 	return &Checksums{
 		file:      "",
-		checksums: hashF(f, nil),
+		checksums: hashF(os.Stdin, nil),
 	}
 }
 
 func hashString(str string) *Checksums {
 	checksums := make([]*Checksum, len(chosen))
-	for i := range chosen {
-		checksums[i] = &Checksum{hash: chosen[i].hash}
-	}
-	for _, h := range checksums {
-		initHash(h)
-		h.Write([]byte(str))
-		h.sum = h.Sum(nil)
+	for i, h := range chosen {
+		checksums[i] = &Checksum{hash: h.hash}
+		initHash(checksums[i])
+		checksums[i].Write([]byte(str))
+		checksums[i].sum = checksums[i].Sum(nil)
 	}
 	return &Checksums{
 		file:      `"` + str + `"`,

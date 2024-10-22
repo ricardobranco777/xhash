@@ -4,16 +4,16 @@ import (
 	"crypto"
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"log"
-	"os"
 	"slices"
 	"strings"
 )
 
 // Choose the algorithm with the longest digest size
 func bestHash(checksums []*Checksum, ignore crypto.Hash) *Checksum {
-	minIndex := 777
+	minIndex := int(^uint(0) >> 1) // math.MaxInt32
 
 	var best *Checksum
 	for _, checksum := range checksums {
@@ -44,43 +44,32 @@ func bestHashes(checksums []*Checksum) (best []*Checksum) {
 }
 
 func isChosen(h crypto.Hash) bool {
-	for i := range chosen {
-		if chosen[i].hash == h {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(chosen, func(c *Checksum) bool {
+		return c.hash == h
+	})
 }
 
-func parseLine(line string, lineno uint64) *Checksums {
+func parseLine(line string, zeroTerminated bool, useBase64 bool) (*Checksums, error) {
 	var algorithm, file, digest string
-	var hash crypto.Hash
-	var match []string
-	var sum []byte
-	var err error
-	var ok bool
+	if match := regex.bsd.FindStringSubmatch(line); match != nil {
+		algorithm, file, digest = match[1], match[2], match[3]
+	} else if match = regex.gnu.FindStringSubmatch(line); match != nil {
+		digest, file = match[1], match[2]
+	}
 
-	if !opts.gnu {
-		match = regex.bsd.FindStringSubmatch(line)
-		if match != nil {
-			algorithm, file, digest = match[1], match[2], match[3]
-		}
-	}
-	if match == nil {
-		match = regex.gnu.FindStringSubmatch(line)
-		if match != nil {
-			digest, file = match[1], match[2]
-		}
-	}
-	if !opts.zero {
+	if !zeroTerminated {
 		file = unescapeFilename(file)
 	}
+
 	/* All hashes except 384-bits have Base64 padding */
-	if opts.base64 || strings.HasSuffix(digest, "=") || regex.base64.MatchString(digest) {
+	var sum []byte
+	var err error
+	if useBase64 || strings.HasSuffix(digest, "=") || regex.base64.MatchString(digest) {
 		sum, err = base64.StdEncoding.DecodeString(digest)
 	} else {
 		sum, err = hex.DecodeString(digest)
 	}
+
 	/* Guess algorithm if not specified */
 	if algorithm == "" {
 		if len(chosen) == 1 {
@@ -89,58 +78,55 @@ func parseLine(line string, lineno uint64) *Checksums {
 			algorithm = size2hash[len(sum)]
 		}
 	}
-	if hash, ok = name2Hash[algorithm]; !ok || err != nil || len(chosen) > 0 && !isChosen(hash) {
-		stats.invalid++
-		if opts.warn {
-			log.Printf("Invalid digest at line %d\n", lineno)
-		} else if opts.strict {
-			log.Fatalf("Invalid digest at line %d\n", lineno)
-		}
-		return nil
-	}
-	return &Checksums{
-		file: file,
-		checksums: []*Checksum{
-			{
-				hash: hash,
-				csum: sum,
+	if hash, ok := name2Hash[algorithm]; !ok || err != nil || len(chosen) > 0 && !isChosen(hash) {
+		return nil, fmt.Errorf("invalid digest")
+	} else {
+		return &Checksums{
+			file: file,
+			checksums: []*Checksum{
+				{
+					hash: hash,
+					csum: sum,
+				},
 			},
-		},
+		}, nil
 	}
 }
 
-func inputFromCheck(f io.ReadCloser) <-chan *Checksums {
-	var current string
-	var lineno uint64
-	var input *Checksums
-	var err error
-
-	if f == nil {
-		f = os.Stdin
-		if opts.check != "" {
-			if f, err = os.Open(opts.check); err != nil {
-				log.Fatal(err)
-			}
-		}
-	}
-
-	checksums := []*Checksum{}
-	scanner := getScanner(f)
-
+func inputFromCheck(f io.ReadCloser, zeroTerminated bool, useBase64 bool, onError ErrorAction) <-chan *Checksums {
 	files := make(chan *Checksums, 1024)
 
 	go func() {
 		defer close(files)
 		defer f.Close()
+
+		var checksums []*Checksum
+		var input *Checksums
+		var current string
+		var lineno uint64
+
+		scanner, err := getScanner(f, zeroTerminated)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		for {
 			lineno++
 			eof := !scanner.Scan()
 			if !eof {
-				if input = parseLine(scanner.Text(), lineno); input != nil && current == "" {
+				input, err = parseLine(scanner.Text(), zeroTerminated, useBase64)
+				if err != nil {
+					if onError == ErrorWarn {
+						log.Printf("%v at line %d", err, lineno)
+					} else if onError == ErrorExit {
+						log.Fatalf("%v at line %d", err, lineno)
+					}
+					continue
+				} else if current == "" {
 					current = input.file
 				}
 			}
-			if input != nil && current != input.file || eof {
+			if current != input.file || eof {
 				if current != "" {
 					if best := bestHashes(checksums); best != nil {
 						files <- &Checksums{file: current, checksums: best}
@@ -155,9 +141,7 @@ func inputFromCheck(f io.ReadCloser) <-chan *Checksums {
 				current = input.file
 				checksums = []*Checksum{}
 			}
-			if input != nil {
-				checksums = append(checksums, input.checksums[0])
-			}
+			checksums = append(checksums, input.checksums[0])
 		}
 	}()
 

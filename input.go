@@ -4,18 +4,17 @@ import (
 	"io"
 	"io/fs"
 	"log"
-	"os"
 	"path/filepath"
 )
 
-import flag "github.com/spf13/pflag"
+const chanSize = 1024
 
-func inputFromArgs(f io.ReadCloser) <-chan *Checksums {
-	files := make(chan *Checksums, 1024)
+func inputFromArgs(args []string) <-chan *Checksums {
+	files := make(chan *Checksums, min(len(args), chanSize))
 
 	go func() {
 		defer close(files)
-		for _, arg := range flag.Args() {
+		for _, arg := range args {
 			files <- &Checksums{file: arg}
 		}
 	}()
@@ -24,7 +23,7 @@ func inputFromArgs(f io.ReadCloser) <-chan *Checksums {
 }
 
 // Used by the -r option
-func inputFromDir(f io.ReadCloser) <-chan *Checksums {
+func inputFromDir(args []string, followSymlinks bool) <-chan *Checksums {
 	isSymlink := func(d fs.DirEntry) bool { return d.Type()&fs.ModeType == fs.ModeSymlink }
 
 	walkDir := filepath.WalkDir
@@ -32,15 +31,15 @@ func inputFromDir(f io.ReadCloser) <-chan *Checksums {
 		walkDir = func(root string, fn fs.WalkDirFunc) error { return fs.WalkDir(fsys, root, fn) }
 	}
 
-	files := make(chan *Checksums, 1024)
+	files := make(chan *Checksums, chanSize)
 
 	go func() {
 		defer close(files)
-		for _, arg := range flag.Args() {
+		for _, arg := range args {
 			walkDir(arg, func(path string, d fs.DirEntry, err error) error {
 				if err != nil {
 					log.Print(err)
-				} else if opts.symlinks && isSymlink(d) || !d.IsDir() && !isSymlink(d) {
+				} else if followSymlinks && isSymlink(d) || !d.IsDir() && !isSymlink(d) {
 					files <- &Checksums{file: path}
 				}
 				return nil
@@ -52,24 +51,17 @@ func inputFromDir(f io.ReadCloser) <-chan *Checksums {
 }
 
 // Used by the -i option
-func inputFromFile(f io.ReadCloser) <-chan *Checksums {
-	var err error
-
-	if f == nil {
-		f = os.Stdin
-		if opts.input != "" {
-			if f, err = os.Open(opts.input); err != nil {
-				log.Fatal(err)
-			}
-		}
-	}
-
-	files := make(chan *Checksums, 1024)
+func inputFromFile(f io.ReadCloser, zeroTerminated bool) <-chan *Checksums {
+	files := make(chan *Checksums, chanSize)
 
 	go func() {
 		defer close(files)
 		defer f.Close()
-		scanner := getScanner(f)
+
+		scanner, err := getScanner(f, zeroTerminated)
+		if err != nil {
+			log.Fatal(err)
+		}
 		for scanner.Scan() {
 			if err := scanner.Err(); err != nil {
 				log.Fatal(err)

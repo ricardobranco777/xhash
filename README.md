@@ -72,7 +72,7 @@ Usage: xhash [OPTIONS] [-s STRING...]|[-c FILE]|[-i FILE]|[FILE...]|[-r FILE... 
   -S, --status           don't output anything, status code shows success
       --strict           exit non-zero for improperly formatted checksum lines
   -s, --string           treat arguments as strings
-  -L, --symlinks         don't follow symbolic links with the -r option
+  -L, --symlinks         follow symbolic links while recursing directories
   -v, --verbose          verbose operation
       --version          show version and exit
   -w, --warn             warn about improperly formatted checksum lines
