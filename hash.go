@@ -10,12 +10,14 @@ import (
 func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	if checksums == nil {
 		checksums = make([]*Checksum, len(chosen))
-		copy(checksums, chosen)
+		for i := range chosen {
+			checksums[i] = &Checksum{hash: chosen[i].hash}
+		}
 	}
 
 	if len(checksums) == 1 {
 		h := checksums[0]
-                initHash(h)
+		initHash(h)
 		n, err := io.Copy(h, f)
 		if err != nil {
 			log.Print(err)
@@ -31,7 +33,7 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 
 	g := new(errgroup.Group)
 	for _, h := range checksums {
-                initHash(h)
+		initHash(h)
 		pr, pw := io.Pipe()
 		writers = append(writers, pw)
 		pipeWriters = append(pipeWriters, pw)
@@ -108,7 +110,9 @@ func hashStdin(f io.ReadCloser) *Checksums {
 
 func hashString(str string) *Checksums {
 	checksums := make([]*Checksum, len(chosen))
-	copy(checksums, chosen)
+	for i := range chosen {
+		checksums[i] = &Checksum{hash: chosen[i].hash}
+	}
 	for _, h := range checksums {
 		initHash(h)
 		h.Write([]byte(str))
