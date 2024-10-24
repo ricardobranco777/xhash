@@ -59,10 +59,8 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 		// build the multiwriter for all the pipes
 		mw := io.MultiWriter(writers...)
 		// copy the data into the multiwriter
-		if _, err := io.Copy(mw, f); err != nil {
-			return err
-		}
-		return nil
+		_, err := io.Copy(mw, f)
+		return err
 	})
 	if err := g.Wait(); err != nil {
 		log.Print(err)

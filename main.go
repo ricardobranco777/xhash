@@ -62,38 +62,38 @@ func getOutput(results *Checksums, noEscape bool) []*Output {
 	return outputs
 }
 
-func display(results *Checksums, noEscape bool) (unmatched int) {
-	if opts.check != "\x00" {
-		file := escapeFilename(results.file)
-		for i := range results.checksums {
-			var ok bool
-			if macKey != nil {
-				ok = hmac.Equal(results.checksums[i].sum, results.checksums[i].csum)
-			} else {
-				ok = bytes.Equal(results.checksums[i].sum, results.checksums[i].csum)
-			}
-			if ok {
-				if !opts.quiet && !opts.status {
-					if opts.verbose {
-						fmt.Printf("%s: %s OK\n", file, algorithms[results.checksums[i].hash].name)
-					} else {
-						fmt.Printf("%s: OK\n", file)
-					}
-				}
-			} else {
-				unmatched++
-				if !opts.status {
-					if opts.verbose {
-						fmt.Printf("%s: %s FAILED with %s\n", file, algorithms[results.checksums[i].hash].name, hex.EncodeToString(results.checksums[i].sum))
-					} else {
-						fmt.Printf("%s: FAILED\n", file)
-					}
-				}
-			}
+func printChecksums(results *Checksums, noEscape bool) {
+	if err := format.Execute(os.Stdout, getOutput(results, noEscape)); err != nil {
+		panic(err)
+	}
+}
+
+func printCheckResults(results *Checksums, noEscape bool) (unmatched int) {
+	file := escapeFilename(results.file)
+	for i := range results.checksums {
+		var ok bool
+		if macKey != nil {
+			ok = hmac.Equal(results.checksums[i].sum, results.checksums[i].csum)
+		} else {
+			ok = bytes.Equal(results.checksums[i].sum, results.checksums[i].csum)
 		}
-	} else {
-		if err := format.Execute(os.Stdout, getOutput(results, noEscape)); err != nil {
-			log.Print(err)
+		if ok {
+			if !opts.quiet && !opts.status {
+				if opts.verbose {
+					fmt.Printf("%s: %s OK\n", file, algorithms[results.checksums[i].hash].name)
+				} else {
+					fmt.Printf("%s: OK\n", file)
+				}
+			}
+		} else {
+			unmatched++
+			if !opts.status {
+				if opts.verbose {
+					fmt.Printf("%s: %s FAILED with %s\n", file, algorithms[results.checksums[i].hash].name, hex.EncodeToString(results.checksums[i].sum))
+				} else {
+					fmt.Printf("%s: FAILED\n", file)
+				}
+			}
 		}
 	}
 	return unmatched
@@ -281,13 +281,13 @@ func main() {
 		defer f.Close()
 		lines = inputFromFile(f, opts.zero)
 	} else if flag.NArg() == 0 {
-		display(hashStdin(), true)
+		printChecksums(hashStdin(), true)
 		os.Exit(0)
 	} else if opts.recursive {
 		lines = inputFromDir(flag.Args(), opts.followSymlinks)
 	} else if opts.str {
 		for _, s := range flag.Args() {
-			display(hashString(s), true)
+			printChecksums(hashString(s), true)
 		}
 		os.Exit(0)
 	} else {
@@ -319,10 +319,18 @@ func main() {
 		}
 	}()
 
+	if opts.check == "\x00" {
+		for checksum := range checksums {
+			printChecksums(checksum, false)
+		}
+		os.Exit(0)
+	}
+
+	// Handle -c option
+
 	unmatched := 0
 	for checksum := range checksums {
-		n := display(checksum, false)
-		unmatched += n
+		unmatched += printCheckResults(checksum, false)
 	}
 
 	unreadableFiles := unreadable.Load()
