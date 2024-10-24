@@ -45,22 +45,15 @@ const (
 // Keep alphabetically sorted
 var hashes = []crypto.Hash{
 	crypto.BLAKE2b_256,
-	crypto.BLAKE2b_384,
 	crypto.BLAKE2b_512,
 	crypto.BLAKE2s_256,
 	BLAKE3,
-	//crypto.MD4,
 	crypto.MD5,
 	crypto.SHA1,
-	crypto.SHA224,
 	crypto.SHA256,
-	crypto.SHA384,
 	crypto.SHA512,
-	crypto.SHA512_224,
 	crypto.SHA512_256,
-	crypto.SHA3_224,
 	crypto.SHA3_256,
-	crypto.SHA3_384,
 	crypto.SHA3_512,
 }
 
@@ -112,19 +105,13 @@ const (
 var better = []crypto.Hash{
 	BLAKE3,
 	crypto.BLAKE2b_512,
-	crypto.BLAKE2b_384,
 	crypto.BLAKE2b_256,
-	crypto.SHA512, // SHA512 is faster than SHA256 on some architectures
-	crypto.SHA384,
+	crypto.SHA512,     // SHA512 is faster than SHA256 on some architectures
 	crypto.SHA512_256, // Truncated SHA512 has security against length extension attacks
 	crypto.SHA256,
-	crypto.SHA512_224, // Truncated SHA512 has security against length extension attacks
-	crypto.SHA224,
 	// SHA-3 are slow
 	crypto.SHA3_256,
-	crypto.SHA3_224,
 	crypto.SHA3_512,
-	crypto.SHA3_384,
 	// These are insecure
 	crypto.SHA1,
 	crypto.MD5,
@@ -146,9 +133,7 @@ var (
 	insecure  = []crypto.Hash{crypto.MD4, crypto.MD5, crypto.RIPEMD160, crypto.SHA1}
 	size2hash = map[int]string{
 		crypto.SHA512.Size(): "SHA512",
-		crypto.SHA384.Size(): "SHA384",
 		crypto.SHA256.Size(): "SHA256",
-		crypto.SHA224.Size(): "SHA224",
 		crypto.SHA1.Size():   "SHA1",
 		crypto.MD5.Size():    "MD5",
 	}
@@ -159,13 +144,9 @@ var name2Hash = map[string]crypto.Hash{
 	"BLAKE2s":     crypto.BLAKE2s_256, // Used by NetBSD
 	"BLAKE2B-512": crypto.BLAKE2b_512, // Used by OpenSSL's dgst
 	"BLAKE2S-256": crypto.BLAKE2s_256, // Used by OpenSSL's dgst
-	"SHA2-224":    crypto.SHA224,      // Used by OpenSSL's dgst
 	"SHA2-256":    crypto.SHA256,      // Used by OpenSSL's dgst
-	"SHA2-384":    crypto.SHA384,      // Used by OpenSSL's dgst
 	"SHA2-512":    crypto.SHA512,      // Used by OpenSSL's dgst
-	"SHA3-224":    crypto.SHA3_224,    // Used by OpenSSL's dgst
 	"SHA3-256":    crypto.SHA3_256,    // Used by OpenSSL's dgst
-	"SHA3-384":    crypto.SHA3_384,    // Used by OpenSSL's dgst
 	"SHA3-512":    crypto.SHA3_512,    // Used by OpenSSL's dgst
 	"SHA512t256":  crypto.SHA512_256,  // Used by FreeBSD's md5
 }

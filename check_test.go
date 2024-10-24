@@ -101,7 +101,7 @@ func Test_parseLine(t *testing.T) {
 	chosen = nil
 
 	for line, want := range xwant {
-		got, err := parseLine(line, false, false)
+		got, err := parseLine(line, false)
 		if err != nil {
 			panic("nil")
 		}
@@ -198,7 +198,7 @@ func Test_inputFromCheck(t *testing.T) {
 		for _, str := range []string{input, strings.ReplaceAll(strings.ReplaceAll(input, "\r\n", "\x00"), "\n", "\x00")} {
 			zero := strings.Contains(str, "\x00")
 			reader := io.NopCloser(strings.NewReader(str))
-			for got := range inputFromCheck(reader, zero, false, ErrorIgnore) {
+			for got := range inputFromCheck(reader, zero, ErrorIgnore) {
 				// Goroutines may return randomized stuff so swap if needed
 				i := 0
 				if len(want) > 1 && got.file != want[0].file {

@@ -49,7 +49,7 @@ func isChosen(h crypto.Hash) bool {
 	})
 }
 
-func parseLine(line string, zeroTerminated bool, useBase64 bool) (*Checksums, error) {
+func parseLine(line string, zeroTerminated bool) (*Checksums, error) {
 	var algorithm, file, digest string
 	if match := regex.bsd.FindStringSubmatch(line); match != nil {
 		algorithm, file, digest = match[1], match[2], match[3]
@@ -61,10 +61,10 @@ func parseLine(line string, zeroTerminated bool, useBase64 bool) (*Checksums, er
 		file = unescapeFilename(file)
 	}
 
-	/* All hashes except 384-bits have Base64 padding */
 	var sum []byte
 	var err error
-	if useBase64 || strings.HasSuffix(digest, "=") || regex.base64.MatchString(digest) {
+	/* All hashes except those with 384-bits have Base64 padding */
+	if strings.HasSuffix(digest, "=") {
 		sum, err = base64.StdEncoding.DecodeString(digest)
 	} else {
 		sum, err = hex.DecodeString(digest)
@@ -93,7 +93,7 @@ func parseLine(line string, zeroTerminated bool, useBase64 bool) (*Checksums, er
 	}
 }
 
-func inputFromCheck(f io.ReadCloser, zeroTerminated bool, useBase64 bool, onError ErrorAction) <-chan *Checksums {
+func inputFromCheck(f io.ReadCloser, zeroTerminated bool, onError ErrorAction) <-chan *Checksums {
 	files := make(chan *Checksums, 1024)
 
 	go func() {
@@ -114,7 +114,7 @@ func inputFromCheck(f io.ReadCloser, zeroTerminated bool, useBase64 bool, onErro
 			lineno++
 			eof := !scanner.Scan()
 			if !eof {
-				input, err = parseLine(scanner.Text(), zeroTerminated, useBase64)
+				input, err = parseLine(scanner.Text(), zeroTerminated)
 				if err != nil {
 					if onError == ErrorWarn {
 						log.Printf("%v at line %d", err, lineno)

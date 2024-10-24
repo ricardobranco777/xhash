@@ -39,8 +39,6 @@ func initHash(h *Checksum) {
 		h.Hash = blake2(blake2s.New256, macKey)
 	case crypto.BLAKE2b_256:
 		h.Hash = blake2(blake2b.New256, macKey)
-	case crypto.BLAKE2b_384:
-		h.Hash = blake2(blake2b.New384, macKey)
 	case crypto.BLAKE2b_512:
 		h.Hash = blake2(blake2b.New512, macKey)
 	default:

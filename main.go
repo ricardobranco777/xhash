@@ -147,13 +147,11 @@ func init() {
 	if !strings.HasPrefix(progname, "xhash") {
 		cmd := strings.TrimSuffix(strings.TrimSuffix(progname, ".exe"), "sum")
 		var defaults = map[string]crypto.Hash{
-			"b2":   crypto.BLAKE2b_512,
-			"b3":   BLAKE3,
-			"md5":  crypto.MD5,
-			"sha1": crypto.SHA1,
-			//"sha224": crypto.SHA224,
+			"b2":     crypto.BLAKE2b_512,
+			"b3":     BLAKE3,
+			"md5":    crypto.MD5,
+			"sha1":   crypto.SHA1,
 			"sha256": crypto.SHA256,
-			//"sha384": crypto.SHA384,
 			"sha512": crypto.SHA512,
 		}
 		if h, ok := defaults[cmd]; ok {
@@ -277,7 +275,7 @@ func main() {
 		}
 		f := openFileOrStdin(opts.check)
 		defer f.Close()
-		lines = inputFromCheck(f, opts.zero, opts.base64, onError)
+		lines = inputFromCheck(f, opts.zero, onError)
 	} else if opts.input != "\x00" {
 		f := openFileOrStdin(opts.input)
 		defer f.Close()
