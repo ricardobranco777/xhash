@@ -11,8 +11,8 @@ import (
 func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 	if checksums == nil {
 		checksums = make([]*Checksum, len(chosen))
-		for i := range chosen {
-			checksums[i] = &Checksum{hash: chosen[i].hash}
+		for i, h := range chosen {
+			checksums[i] = &Checksum{hash: h}
 		}
 	}
 
@@ -101,7 +101,7 @@ func hashStdin() *Checksums {
 func hashString(str string) *Checksums {
 	checksums := make([]*Checksum, len(chosen))
 	for i, h := range chosen {
-		checksums[i] = &Checksum{hash: h.hash}
+		checksums[i] = &Checksum{hash: h}
 		initHash(checksums[i])
 		checksums[i].Write([]byte(str))
 		checksums[i].sum = checksums[i].Sum(nil)

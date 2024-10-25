@@ -59,7 +59,7 @@ var hashes = []crypto.Hash{
 
 var (
 	algorithms map[crypto.Hash]*Algorithm
-	chosen     []*Checksum
+	chosen     []crypto.Hash
 	format     = template.New("format")
 	fsys       fstest.MapFS
 	macKey     []byte

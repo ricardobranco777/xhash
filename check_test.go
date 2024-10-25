@@ -51,12 +51,6 @@ func Test_bestHashes(t *testing.T) {
 	}
 }
 
-func Test_isChosen(t *testing.T) {
-	if !isChosen(crypto.SHA256) {
-		t.Errorf("ischosen(%v) = false; want true", crypto.SHA256)
-	}
-}
-
 func Test_parseLine(t *testing.T) {
 	xwant := map[string]*Checksums{
 		"44301b466258398bfee1c974a4a40831  /etc/passwd": {

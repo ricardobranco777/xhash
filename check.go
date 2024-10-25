@@ -43,12 +43,6 @@ func bestHashes(checksums []*Checksum) (best []*Checksum) {
 	return best
 }
 
-func isChosen(h crypto.Hash) bool {
-	return slices.ContainsFunc(chosen, func(c *Checksum) bool {
-		return c.hash == h
-	})
-}
-
 func parseLine(line string, zeroTerminated bool) (*Checksums, error) {
 	var algorithm, file, digest string
 	if match := regex.bsd.FindStringSubmatch(line); match != nil {
@@ -73,12 +67,12 @@ func parseLine(line string, zeroTerminated bool) (*Checksums, error) {
 	/* Guess algorithm if not specified */
 	if algorithm == "" {
 		if len(chosen) == 1 {
-			algorithm = algorithms[chosen[0].hash].name
+			algorithm = algorithms[chosen[0]].name
 		} else {
 			algorithm = size2hash[len(sum)]
 		}
 	}
-	if hash, ok := name2Hash[algorithm]; !ok || err != nil || len(chosen) > 0 && !isChosen(hash) {
+	if hash, ok := name2Hash[algorithm]; !ok || err != nil || len(chosen) > 0 && !slices.Contains(chosen, hash) {
 		return nil, fmt.Errorf("invalid digest")
 	} else {
 		return &Checksums{

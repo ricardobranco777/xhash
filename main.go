@@ -206,17 +206,17 @@ func init() {
 		for _, h := range hashes {
 			available := h == BLAKE3 || h.Available()
 			if available && algorithms[h].check {
-				chosen = append(chosen, &Checksum{hash: h})
+				chosen = append(chosen, h)
 			}
 			name2Hash[algorithms[h].name] = h
 		}
 
 		if opts.check == "\x00" && len(chosen) == 0 {
 			// SHA-256 is default
-			chosen = append(chosen, &Checksum{hash: crypto.SHA256})
+			chosen = append(chosen, crypto.SHA256)
 		}
 	} else {
-		chosen = []*Checksum{{hash: hashes[0]}}
+		chosen = []crypto.Hash{hashes[0]}
 		name2Hash[algorithms[hashes[0]].name] = hashes[0]
 	}
 
