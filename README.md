@@ -35,7 +35,7 @@ To use the format used by **hashdeep** use `--size -f '{{range .}}{{.Sum}},{{end
 
 ## Requirements
 
-- Go 1.21+
+- Go 1.22+
 
 ## Usage
 
