@@ -43,7 +43,7 @@ func getOutput(results *Checksums, noEscape bool) []*Output {
 		outputs = append(outputs, &Output{
 			File: file,
 			Name: "SIZE",
-			Sum:  strconv.FormatInt(results.checksums[0].written, 10),
+			Sum:  strconv.FormatInt(results.size, 10),
 		})
 	}
 	for i := range results.checksums {

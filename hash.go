@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
+func hashF(f io.ReadCloser, checksums []*Checksum) ([]*Checksum, Size) {
 	if checksums == nil {
 		checksums = make([]*Checksum, len(chosen))
 		for i, h := range chosen {
@@ -22,11 +22,10 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 		n, err := io.Copy(h, f)
 		if err != nil {
 			log.Print(err)
-			return nil
+			return nil, 0
 		}
-		h.written = n
 		h.sum = h.Sum(nil)
-		return checksums
+		return checksums, Size(n)
 	}
 
 	writers := make([]io.Writer, len(checksums))
@@ -40,16 +39,15 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 		pipeWriters[i] = pw
 		g.Go(func() error {
 			defer pr.Close()
-			n, err := io.Copy(h, pr)
-			if err != nil {
+			if _, err := io.Copy(h, pr); err != nil {
 				return err
 			}
-			h.written = n
 			h.sum = h.Sum(nil)
 			return nil
 		})
 	}
 
+	var size Size
 	g.Go(func() error {
 		defer func() {
 			for _, pw := range pipeWriters {
@@ -59,15 +57,16 @@ func hashF(f io.ReadCloser, checksums []*Checksum) []*Checksum {
 		// build the multiwriter for all the pipes
 		mw := io.MultiWriter(writers...)
 		// copy the data into the multiwriter
-		_, err := io.Copy(mw, f)
+		n, err := io.Copy(mw, f)
+		size = Size(n)
 		return err
 	})
 	if err := g.Wait(); err != nil {
 		log.Print(err)
-		return nil
+		return nil, 0
 	}
 
-	return checksums
+	return checksums, size
 }
 
 func hashFile(file string, checksums []*Checksum) (*Checksums, error) {
@@ -85,16 +84,20 @@ func hashFile(file string, checksums []*Checksum) (*Checksums, error) {
 		return nil, fmt.Errorf("%s is a directory", file)
 	}
 
+	checksums, size := hashF(f, checksums)
 	return &Checksums{
 		file:      file,
-		checksums: hashF(f, checksums),
+		size:      size,
+		checksums: checksums,
 	}, nil
 }
 
 func hashStdin() *Checksums {
+	checksums, size := hashF(os.Stdin, nil)
 	return &Checksums{
 		file:      "",
-		checksums: hashF(os.Stdin, nil),
+		size:      size,
+		checksums: checksums,
 	}
 }
 
@@ -108,6 +111,7 @@ func hashString(str string) *Checksums {
 	}
 	return &Checksums{
 		file:      `"` + str + `"`,
+		size:      Size(len(str)),
 		checksums: checksums,
 	}
 }

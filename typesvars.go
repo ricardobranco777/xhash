@@ -18,14 +18,16 @@ type Algorithm struct {
 type Checksum struct {
 	hash crypto.Hash
 	hash.Hash
-	written int64
-	sum     []byte
-	csum    []byte // Used by the -c option
+	sum  []byte
+	csum []byte // Used by the -c option
 }
+
+type Size = int64
 
 // Checksums type to hold the checksums for a file
 type Checksums struct {
 	file      string
+	size      Size
 	checksums []*Checksum
 }
 
