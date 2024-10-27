@@ -69,7 +69,7 @@ var (
 	gnuFormat  string = "{{range .}}{{.Sum}}  {{.File}}\n{{end}}"
 )
 
-var opts struct {
+type Options struct {
 	all            bool
 	base64         bool
 	check          string
@@ -92,6 +92,8 @@ var opts struct {
 	warn           bool // Used by the -c option
 	zero           bool
 }
+
+var opts Options
 
 // Used by the -c option
 

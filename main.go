@@ -27,7 +27,7 @@ import flag "github.com/spf13/pflag"
 
 const version string = "3.5.2"
 
-func getOutput(results *Checksums, noEscape bool) []*Output {
+func getOutput(results *Checksums, noEscape bool, opts Options) []*Output {
 	var backslash string
 	outputs := make([]*Output, 0, len(results.checksums)+1)
 	file := results.file
@@ -62,13 +62,13 @@ func getOutput(results *Checksums, noEscape bool) []*Output {
 	return outputs
 }
 
-func printChecksums(results *Checksums, noEscape bool) {
-	if err := format.Execute(os.Stdout, getOutput(results, noEscape)); err != nil {
+func printChecksums(results *Checksums, noEscape bool, opts Options) {
+	if err := format.Execute(os.Stdout, getOutput(results, noEscape, opts)); err != nil {
 		panic(err)
 	}
 }
 
-func printCheckResults(results *Checksums, noEscape bool) (unmatched int) {
+func printCheckResults(results *Checksums) (unmatched int) {
 	file := escapeFilename(results.file)
 	for i := range results.checksums {
 		var ok bool
@@ -281,13 +281,13 @@ func main() {
 		defer f.Close()
 		lines = inputFromFile(f, opts.zero)
 	} else if flag.NArg() == 0 {
-		printChecksums(hashStdin(), true)
+		printChecksums(hashStdin(), true, opts)
 		os.Exit(0)
 	} else if opts.recursive {
 		lines = inputFromDir(flag.Args(), opts.followSymlinks)
 	} else if opts.str {
 		for _, s := range flag.Args() {
-			printChecksums(hashString(s), true)
+			printChecksums(hashString(s), true, opts)
 		}
 		os.Exit(0)
 	} else {
@@ -321,7 +321,7 @@ func main() {
 
 	if opts.check == "\x00" {
 		for checksum := range checksums {
-			printChecksums(checksum, false)
+			printChecksums(checksum, false, opts)
 		}
 		os.Exit(0)
 	}
@@ -330,7 +330,7 @@ func main() {
 
 	unmatched := 0
 	for checksum := range checksums {
-		unmatched += printCheckResults(checksum, false)
+		unmatched += printCheckResults(checksum)
 	}
 
 	unreadableFiles := unreadable.Load()
