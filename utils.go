@@ -10,6 +10,7 @@ import (
 	"hash"
 	"io"
 	"strconv"
+	"strings"
 
 	blake3 "github.com/zeebo/blake3"
 )
@@ -50,22 +51,32 @@ func initHash(h *Checksum) {
 	}
 }
 
-// *sum escapes filenames with backslash & newline
+// *sum escapes filenames with backslash & newline characters
 func escapeFilename(filename string) string {
-	if len(filename) > 0 {
-		s := strconv.Quote(filename)
-		filename = s[1 : len(s)-1]
+	var replace = map[string]string{
+		"\\": "\\\\",
+		"\r": "\\r",
+		"\n": "\\n",
+	}
+	keys := []string{"\\", "\r", "\n"}
+	for _, s := range keys {
+		filename = strings.ReplaceAll(filename, s, replace[s])
 	}
 	return filename
 }
 
-// *sum escapes filenames with backslash & newline
+// *sum escapes filenames with backslash & newline characters
 func unescapeFilename(filename string) string {
-	if s, err := strconv.Unquote(`"` + filename + `"`); err != nil {
-		return filename
-	} else {
-		return s
+	var replace = map[string]string{
+		"\\r":  "\r",
+		"\\n":  "\n",
+		"\\\\": "\\",
 	}
+	keys := []string{"\\r", "\\n", "\\\\"}
+	for _, s := range keys {
+		filename = strings.ReplaceAll(filename, s, replace[s])
+	}
+	return filename
 }
 
 // Used to support the --format option
