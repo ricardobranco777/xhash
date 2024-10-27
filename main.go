@@ -27,14 +27,12 @@ import flag "github.com/spf13/pflag"
 
 const version string = "3.5.2"
 
-func getOutput(results *Checksums, noEscape bool, opts Options) []*Output {
+func getOutput(results *Checksums, opts Options) []*Output {
 	var backslash string
 	outputs := make([]*Output, 0, len(results.checksums)+1)
 	file := results.file
-	if !noEscape {
-		if !opts.zero {
-			file = escapeFilename(file)
-		}
+	if !opts.zero {
+		file = escapeFilename(file)
 		if opts.gnu && len(file) != len(results.file) {
 			backslash = "\\"
 		}
@@ -62,8 +60,8 @@ func getOutput(results *Checksums, noEscape bool, opts Options) []*Output {
 	return outputs
 }
 
-func printChecksums(results *Checksums, noEscape bool, opts Options) {
-	if err := format.Execute(os.Stdout, getOutput(results, noEscape, opts)); err != nil {
+func printChecksums(results *Checksums, opts Options) {
+	if err := format.Execute(os.Stdout, getOutput(results, opts)); err != nil {
 		panic(err)
 	}
 }
@@ -281,13 +279,13 @@ func main() {
 		defer f.Close()
 		lines = inputFromFile(f, opts.zero)
 	} else if flag.NArg() == 0 {
-		printChecksums(hashStdin(), true, opts)
+		printChecksums(hashStdin(), opts)
 		os.Exit(0)
 	} else if opts.recursive {
 		lines = inputFromDir(flag.Args(), opts.followSymlinks)
 	} else if opts.str {
 		for _, s := range flag.Args() {
-			printChecksums(hashString(s), true, opts)
+			printChecksums(hashString(s), opts)
 		}
 		os.Exit(0)
 	} else {
@@ -321,7 +319,7 @@ func main() {
 
 	if opts.check == "\x00" {
 		for checksum := range checksums {
-			printChecksums(checksum, false, opts)
+			printChecksums(checksum, opts)
 		}
 		os.Exit(0)
 	}

@@ -39,7 +39,7 @@ func Test_getOutput(t *testing.T) {
 			log.Fatal(err)
 		}
 		b := new(strings.Builder)
-		format.Execute(b, getOutput(results, false, opts))
+		format.Execute(b, getOutput(results, opts))
 		if b.String() != want {
 			t.Errorf("got %v; want %v", b.String(), want)
 		}
@@ -54,7 +54,7 @@ func Test_getOutput(t *testing.T) {
 			log.Fatal(err)
 		}
 		b := new(strings.Builder)
-		format.Execute(b, getOutput(results, false, opts))
+		format.Execute(b, getOutput(results, opts))
 		if b.String() != want {
 			t.Errorf("got %v; want %v", b.String(), want)
 		}
