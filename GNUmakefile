@@ -38,6 +38,7 @@ endif
 
 .PHONY: install
 install: $(BIN)
+	@mkdir -p $(BINDIR)
 	@install -s -m 0755 $(BIN) $(BINDIR)
 
 .PHONY: uninstall
