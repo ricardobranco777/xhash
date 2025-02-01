@@ -25,7 +25,7 @@ import (
 
 import flag "github.com/spf13/pflag"
 
-const version string = "3.5.3"
+const version = "3.5.3"
 
 func getOutput(results *Checksums, opts Options) []*Output {
 	var backslash string
