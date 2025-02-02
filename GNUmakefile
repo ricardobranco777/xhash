@@ -4,13 +4,12 @@ BIN	= xhash
 ALL	= b2sum b3sum md5sum sha1sum sha256sum sha512sum
 
 GO	:= go
-CGO_ENABLED := 0
 
 .PHONY: all
 all:	$(BIN)
 
 $(BIN): *.go
-	CGO_ENABLED=$(CGO_ENABLED) $(GO) build
+	CGO_ENABLED=0 $(GO) build -trimpath -ldflags="-s -w -buildid=" -buildmode=pie
 
 .PHONY: test
 test:
@@ -24,11 +23,11 @@ bench:
 .PHONY: clean
 clean:
 	$(GO) clean
-	rm -f $(ALL)
+	$(RM) $(ALL)
 
 .PHONY: gen
 gen:
-	rm -f go.mod go.sum
+	$(RM) go.mod go.sum
 	$(GO) mod init $(BIN)
 	$(GO) mod tidy
 
@@ -46,7 +45,7 @@ install: $(BIN)
 
 .PHONY: uninstall
 uninstall:
-	rm -f $(BINDIR)/$(BIN)
+	$(RM) $(BINDIR)/$(BIN)
 
 $(ALL):	$(BIN)
 	@for f in $(ALL) ; do ln -f $(BIN) $$f ; done
