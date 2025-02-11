@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         runner: [ubuntu-latest, macos-latest, windows-latest]
-        go: [ '1.22', '1.23' ]
+        go: [ '1.23', '1.24' ]
 
     runs-on: ${{matrix.runner}}
     name: OS ${{matrix.runner}} Go ${{matrix.go}}
@@ -40,5 +40,5 @@ jobs:
     - name: static check
       if: runner.os == 'Linux'
       run: |
-        GOBIN=$HOME/.local/bin go install honnef.co/go/tools/cmd/staticcheck@2024.1.1
+        GOBIN=$HOME/.local/bin go install honnef.co/go/tools/cmd/staticcheck@2025.1
         staticcheck
