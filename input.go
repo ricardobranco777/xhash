@@ -36,7 +36,7 @@ func inputFromDir(args []string, followSymlinks bool) <-chan *Checksums {
 	go func() {
 		defer close(files)
 		for _, arg := range args {
-			walkDir(arg, func(path string, d fs.DirEntry, err error) error {
+			_ = walkDir(arg, func(path string, d fs.DirEntry, err error) error {
 				if err != nil {
 					log.Print(err)
 				} else if followSymlinks && isSymlink(d) || !d.IsDir() && !isSymlink(d) {

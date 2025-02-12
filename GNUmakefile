@@ -21,8 +21,14 @@ all:	$(BIN)
 
 .PHONY: test
 test:
-	$(GO) vet
 	$(GO) test -v
+	$(GO) vet
+	staticcheck
+	gofmt -s -l .
+
+.PHONY: lint
+lint:
+	golangci-lint run ./...
 
 .PHONY: bench
 bench:
