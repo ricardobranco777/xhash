@@ -24,7 +24,7 @@ all:	$(BIN)
 build:
 	image=$$( $(DOCKER) build -q . ) && \
 	container=$$( $(DOCKER) create $$image ) && \
-	$(DOCKER) cp $$container:/usr/local/bin/restartable . && \
+	$(DOCKER) cp $$container:/usr/local/bin/$(BIN) . && \
 	$(DOCKER) rm -vf $$container && \
 	$(DOCKER) rmi $$image
 
