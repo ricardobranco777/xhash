@@ -1,4 +1,4 @@
-FROM	golang as builder
+FROM	docker.io/library/golang AS builder
 
 WORKDIR	/go/src/xhash
 COPY	. .

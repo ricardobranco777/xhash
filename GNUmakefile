@@ -3,7 +3,8 @@ BIN	= xhash
 # Optionally create these hard-links
 ALL	= b2sum b3sum md5sum sha1sum sha256sum sha512sum
 
-GO	:= go
+DOCKER	?= podman
+GO	?= go
 
 # https://github.com/golang/go/issues/64875
 arch := $(shell uname -m)
@@ -18,6 +19,14 @@ $(BIN): *.go
 
 .PHONY: all
 all:	$(BIN)
+
+.PHONY: build
+build:
+	image=$$( $(DOCKER) build -q . ) && \
+	container=$$( $(DOCKER) create $$image ) && \
+	$(DOCKER) cp $$container:/usr/local/bin/restartable . && \
+	$(DOCKER) rm -vf $$container && \
+	$(DOCKER) rmi $$image
 
 .PHONY: test
 test:
