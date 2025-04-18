@@ -120,7 +120,7 @@ func inputFromCheck(f io.ReadCloser, zeroTerminated bool, onError ErrorAction) <
 					current = input.file
 				}
 			}
-			if current != input.file || eof {
+			if input != nil && current != input.file || eof {
 				if current != "" {
 					if best := bestHashes(checksums); best != nil {
 						files <- &Checksums{file: current, checksums: best}
