@@ -71,6 +71,8 @@ func parseLine(line string, zeroTerminated bool) (*Checksums, error) {
 		} else {
 			algorithm = size2hash[len(sum)]
 		}
+	} else {
+		algorithm = strings.ToUpper(algorithm)
 	}
 	if hash, ok := name2Hash[algorithm]; !ok || err != nil || len(chosen) > 0 && !slices.Contains(chosen, hash) {
 		return nil, fmt.Errorf("invalid digest")
