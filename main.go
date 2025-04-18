@@ -25,8 +25,6 @@ import (
 
 import flag "github.com/spf13/pflag"
 
-const version = "3.5.3"
-
 func getOutput(results *Checksums, opts Options) []*Output {
 	var backslash string
 	outputs := make([]*Output, 0, len(results.checksums)+1)
