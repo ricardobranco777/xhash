@@ -235,7 +235,7 @@ func init() {
 		opts.format = bsdFormat
 	}
 	opts.format = unescape(opts.format)
-	if opts.zero && !strings.Contains(opts.format, "\x00") {
+	if opts.zero && !strings.ContainsRune(opts.format, '\x00') {
 		opts.format = strings.ReplaceAll(opts.format, "\n", "\x00")
 	}
 	var err error
