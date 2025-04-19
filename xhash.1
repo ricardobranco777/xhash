@@ -1,0 +1,127 @@
+.Dd April 19, 2025
+.Dt XHASH 1
+.Os
+.Sh NAME
+.Nm xhash
+.Nd compute multiple hashes on strings, files, and directories
+.Sh SYNOPSIS
+.Nm
+.Op OPTIONS
+.Op Fl s Ar STRING ...
+.Op Fl c Ar FILE
+.Op Fl i Ar FILE
+.Op Ar FILE ...
+.Op Fl r Ar FILE ... DIRECTORY ...
+.Sh DESCRIPTION
+.Nm
+is a Go program that uses goroutines to calculate multiple hashes on strings, files, and directories.
+By default, it reads from standard input.
+
+The output format is fully configurable.
+
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl a , Fl -all
+Use all algorithms (except others specified, if any)
+.It Fl b , Fl -base64
+Output hash in Base64 encoding format
+.It Fl -blake2b-256
+Use BLAKE2b-256 algorithm
+.It Fl -blake2b-512
+Use BLAKE2b-512 algorithm
+.It Fl -blake2s-256
+Use BLAKE2s-256 algorithm
+.It Fl -blake3
+Use BLAKE3 algorithm
+.It Fl c , Fl -check Ar file
+Read checksums from file (use "" for stdin) (default "\\x00")
+.It Fl f , Fl -format Ar string
+Output format (default "{{range .}}{{.Name}} ({{.File}}) = {{.Sum }}\\n{{end}}")
+.It Fl -gnu
+Use the GNU
+.Nm md5sum
+output format
+.It Fl H , Fl -hmac Ar key
+Key for HMAC (in hexadecimal) or read from specified pathname (default "\\x00")
+.It Fl -ignore-missing
+Don't fail or report status for missing files
+.It Fl i , Fl -input Ar file
+Read pathnames from file (use "" for stdin) (default "\\x00")
+.It Fl -md5
+Use MD5 algorithm
+.It Fl q , Fl -quiet
+Don't print OK for each successfully verified file
+.It Fl r , Fl -recursive
+Recurse into directories
+.It Fl -sha1
+Use SHA1 algorithm
+.It Fl -sha256
+Use SHA256 algorithm
+.It Fl -sha3-256
+Use SHA3-256 algorithm
+.It Fl -sha3-512
+Use SHA3-512 algorithm
+.It Fl -sha512
+Use SHA512 algorithm
+.It Fl -sha512-256
+Use SHA512-256 algorithm
+.It Fl -size
+Include file size in output
+.It Fl S , Fl -status
+Don't output anything; status code shows success
+.It Fl -strict
+Exit non-zero for improperly formatted checksum lines
+.It Fl s , Fl -string
+Treat arguments as strings
+.It Fl L , Fl -symlinks
+Follow symbolic links while recursing directories
+.It Fl v , Fl -verbose
+Verbose operation
+.It Fl -version
+Show version and exit
+.It Fl w , Fl -warn
+Warn about improperly formatted checksum lines
+.It Fl z , Fl -zero
+End each output line with NUL, not newline, and disable file name escaping
+.El
+.Sh EXAMPLES
+To hash every file in your home directory using both SHA-512 and SHA-256:
+.Bd -literal
+xhash -r -sha512 -sha256 $HOME
+.Ed
+
+To hash the /etc/passwd file with all algorithms except MD5 and SHA-1:
+.Bd -literal
+xhash -all -md5 -sha1 /etc/passwd
+.Ed
+
+To hash the string "abc" with all algorithms:
+.Bd -literal
+xhash -all -s "abc"
+.Ed
+
+To check the hashes in /tmp/hashes.md5:
+.Bd -literal
+xhash -c /tmp/hashes.md5
+.Ed
+
+To hash all files specified in /tmp/files.list:
+.Bd -literal
+xhash -i /tmp/files.list
+.Ed
+.Sh OUTPUT FORMAT
+The default format is the same as the BSD commands.
+Use
+.Fl -gnu
+to use the format used by
+.Nm md5sum .
+
+To mimic the format used by
+.Nm hashdeep ,
+use:
+.Bd -literal
+--size -f '{{range .}}{{.Sum}},{{end}}{{(index . 0).File}}\\n'
+.Ed
+.Sh AUTHORS
+.An Ricardo Branco
+
