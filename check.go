@@ -115,9 +115,10 @@ func inputFromCheck(f io.ReadCloser, zeroTerminated bool, onError ErrorAction) <
 			if !eof {
 				input, err = parseLine(scanner.Text(), zeroTerminated)
 				if err != nil {
-					if onError == ErrorWarn {
+					switch (onError) {
+					case ErrorWarn:
 						log.Printf("%v at line %d", err, lineno)
-					} else if onError == ErrorExit {
+					case ErrorExit:
 						log.Fatalf("%v at line %d", err, lineno)
 					}
 					continue
