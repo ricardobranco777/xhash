@@ -14,9 +14,10 @@ else
 CGO_ENABLED ?= 0
 endif
 
-# https://github.com/golang/go/issues/59866
+# FreeBSD: https://github.com/golang/go/issues/64875
+# OpenBSD: https://github.com/golang/go/issues/59866
 os := $(shell uname -s)
-ifneq ($(os),OpenBSD)
+ifeq ($(os),Linux)
 FLAGS	:= -buildmode=pie
 endif
 
