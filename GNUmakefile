@@ -14,8 +14,14 @@ else
 CGO_ENABLED ?= 0
 endif
 
+# https://github.com/golang/go/issues/59866
+os := $(shell uname -s)
+ifneq ($(os),OpenBSD)
+FLAGS	:= -buildmode=pie
+endif
+
 $(BIN): *.go
-	CGO_ENABLED=$(CGO_ENABLED) $(GO) build -trimpath -ldflags="-s -w -buildid=" -buildmode=pie
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) build -trimpath -ldflags="-s -w -buildid=" $(FLAGS)
 
 .PHONY: all
 all:	$(BIN)
