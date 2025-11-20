@@ -109,7 +109,7 @@ func BenchmarkHashes(b *testing.B) {
 			name = "BLAKE3"
 		}
 		b.Run(name, func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				initHash(checksum)
 				if _, err := checksum.Write(buf); err != nil {
 					panic(err)
