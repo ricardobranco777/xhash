@@ -123,7 +123,7 @@ var better = []crypto.Hash{
 }
 
 var regex = struct {
-	base64, bsd, gnu *regexp.Regexp
+	base64, bsd, gnu, docker *regexp.Regexp
 }{
 	regexp.MustCompile(`^[g-zG-Z/+]`),
 	// Format used by OpenSSL dgst, BSD digest & Solaris digest
@@ -131,6 +131,8 @@ var regex = struct {
 	regexp.MustCompile(`(?s)^([A-Za-z]+[a-z0-9-]*) ?\((.*?)\) ?= ([0-9a-zA-Z/+]{16,}={0,2})$`),
 	// Format used by GNU *sum
 	regexp.MustCompile(`(?s)^\\?([0-9a-zA-Z/+]{16,}={0,2}) [ \*](.*)$`),
+	// Format used by Docker distribution digest
+	regexp.MustCompile(`(?s)^([A-Za-z]+[a-z0-9-]*):([0-9a-zA-Z/+]{16,}) (.*)`),
 }
 
 var (

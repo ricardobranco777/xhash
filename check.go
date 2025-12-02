@@ -49,6 +49,8 @@ func parseLine(line string, zeroTerminated bool) (*Checksums, error) {
 		algorithm, file, digest = match[1], match[2], match[3]
 	} else if match = regex.gnu.FindStringSubmatch(line); match != nil {
 		digest, file = match[1], match[2]
+	} else if match = regex.docker.FindStringSubmatch(line); match != nil {
+		algorithm, digest, file = match[1], match[2], match[3]
 	}
 
 	if !zeroTerminated {
@@ -115,7 +117,7 @@ func inputFromCheck(f io.ReadCloser, zeroTerminated bool, onError ErrorAction) <
 			if !eof {
 				input, err = parseLine(scanner.Text(), zeroTerminated)
 				if err != nil {
-					switch (onError) {
+					switch onError {
 					case ErrorWarn:
 						log.Printf("%v at line %d", err, lineno)
 					case ErrorExit:
