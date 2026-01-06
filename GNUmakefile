@@ -11,13 +11,7 @@ ifeq ($(arch),amd64)
 GOAMD64 ?= $(shell cpuid | awk '/^Microarchitecture level:/ { print "v" $$3; exit }')
 endif
 
-# https://github.com/golang/go/issues/64875
-arch := $(shell uname -m)
-ifeq ($(arch),s390x)
-CGO_ENABLED := 1
-else
 CGO_ENABLED ?= 0
-endif
 
 LDFLAGS	:= -s -w -buildid= -extldflags "-static-pie"
 ifneq ($(strip $(GOAMD64)),)
