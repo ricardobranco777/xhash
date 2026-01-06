@@ -15,20 +15,13 @@ else
 CGO_ENABLED ?= 0
 endif
 
-# FreeBSD: https://github.com/golang/go/issues/64875
-# OpenBSD: https://github.com/golang/go/issues/59866
-os := $(shell uname -s)
-ifeq ($(os),Linux)
-FLAGS	:= -buildmode=pie
-endif
-
-LDFLAGS	:= -s -w -buildid=
+LDFLAGS	:= -s -w -buildid= -extldflags "-static-pie"
 ifneq ($(strip $(GOAMD64)),)
 	LDFLAGS	+= -X main.goamd64=$(GOAMD64)
 endif
 
 $(BIN): *.go
-	CGO_ENABLED=$(CGO_ENABLED) GOAMD64=$(GOAMD64) $(GO) build -trimpath -ldflags="$(LDFLAGS)" $(FLAGS)
+	CGO_ENABLED=$(CGO_ENABLED) GOAMD64=$(GOAMD64) $(GO) build -trimpath -ldflags="$(LDFLAGS)"
 
 .PHONY: all
 all:	$(BIN)
