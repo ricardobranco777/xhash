@@ -5,7 +5,11 @@ ALL	= b2sum b3sum md5sum sha1sum sha256sum sha512sum
 
 DOCKER	?= podman
 GO	?= go
+
+goarch	:= $(shell $(GO) env GOARCH)
+ifeq ($(arch),amd64)
 GOAMD64 ?= $(shell cpuid | awk '/^Microarchitecture level:/ { print "v" $$3; exit }')
+endif
 
 # https://github.com/golang/go/issues/64875
 arch := $(shell uname -m)
