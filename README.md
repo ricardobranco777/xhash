@@ -35,7 +35,13 @@ To use the format used by **hashdeep** use `--size -f '{{range .}}{{.Sum}},{{end
 
 ## Requirements
 
-- Go 1.24+
+- Go 1.25+
+
+## Notes
+
+To compile with [microarchitecture support](https://go.dev/wiki/MinimumRequirements#microarchitecture-support):
+
+`go install github.com/klauspost/cpuid/v2/cmd/cpuid@v2.3.0`
 
 ## Usage
 
