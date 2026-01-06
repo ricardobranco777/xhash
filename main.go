@@ -181,7 +181,11 @@ func init() {
 	}
 
 	if opts.version {
-		fmt.Printf("v%s %v %s/%s\n", version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+		if goamd64 != "" {
+			fmt.Printf("v%s %v %s/%s%s\n", version, runtime.Version(), runtime.GOOS, runtime.GOARCH, goamd64)
+		} else {
+			fmt.Printf("v%s %v %s/%s\n", version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+		}
 		fmt.Printf("Supported hashes:")
 		for _, h := range hashes {
 			fmt.Printf(" %s", algorithms[h].name)
