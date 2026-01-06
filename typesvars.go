@@ -157,3 +157,5 @@ var name2Hash = map[string]crypto.Hash{
 	"SHA3-512":    crypto.SHA3_512,    // Used by OpenSSL's dgst
 	"SHA512T256":  crypto.SHA512_256,  // Used by FreeBSD's sha512t256
 }
+
+var goamd64 string // set via -ldflags -X
