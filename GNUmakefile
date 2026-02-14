@@ -38,6 +38,7 @@ test:
 	$(GO) vet
 	staticcheck
 	gofmt -s -l .
+	golangci-lint run -D errcheck
 
 .PHONY: lint
 lint:
