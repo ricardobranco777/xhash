@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"crypto"
-	"crypto/hmac"
 	_ "crypto/md5"
 	_ "crypto/sha1"
 	_ "crypto/sha256"
@@ -12,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"github.com/pkg/xattr"
 	"golang.org/x/sync/errgroup"
 	"io"
 	"log"
@@ -64,30 +63,25 @@ func printChecksums(results *Checksums, opts Options) {
 	}
 }
 
-func printCheckResults(results *Checksums) (unmatched int) {
+func printCheckResults(w io.Writer, results *Checksums) (unmatched int) {
 	file := escapeFilename(results.file)
 	for i := range results.checksums {
-		var ok bool
-		if macKey != nil {
-			ok = hmac.Equal(results.checksums[i].sum, results.checksums[i].csum)
-		} else {
-			ok = bytes.Equal(results.checksums[i].sum, results.checksums[i].csum)
-		}
+		ok := checksumsMatch(results.checksums[i].sum, results.checksums[i].csum)
 		if ok {
 			if !opts.quiet && !opts.status {
 				if opts.verbose {
-					fmt.Printf("%s: %s OK\n", file, algorithms[results.checksums[i].hash].name)
+					_, _ = fmt.Fprintf(w, "%s: %s OK\n", file, algorithms[results.checksums[i].hash].name)
 				} else {
-					fmt.Printf("%s: OK\n", file)
+					_, _ = fmt.Fprintf(w, "%s: OK\n", file)
 				}
 			}
 		} else {
 			unmatched++
 			if !opts.status {
 				if opts.verbose {
-					fmt.Printf("%s: %s FAILED with %s\n", file, algorithms[results.checksums[i].hash].name, hex.EncodeToString(results.checksums[i].sum))
+					_, _ = fmt.Fprintf(w, "%s: %s FAILED with %s\n", file, algorithms[results.checksums[i].hash].name, hex.EncodeToString(results.checksums[i].sum))
 				} else {
-					fmt.Printf("%s: FAILED\n", file)
+					_, _ = fmt.Fprintf(w, "%s: FAILED\n", file)
 				}
 			}
 		}
@@ -129,6 +123,8 @@ func init() {
 	flag.BoolVarP(&opts.verbose, "verbose", "v", false, "verbose operation")
 	flag.BoolVarP(&opts.version, "version", "", false, "show version and exit")
 	flag.BoolVarP(&opts.warn, "warn", "w", false, "warn about improperly formatted checksum lines")
+	flag.StringVarP(&opts.xattr, "xattr", "x", "", "check/store checksums in extended attributes (user.checksum.*); MODE is one of store, verify (default), force -- use -x=MODE or --xattr=MODE, not a space, to set it")
+	flag.Lookup("xattr").NoOptDefVal = xattrVerify
 	flag.BoolVarP(&opts.zero, "zero", "z", false, "end each output line with NUL, not newline, and disable file name escaping")
 	flag.StringVarP(&opts.check, "check", "c", "\x00", "read checksums from file (use \"\" for stdin)")
 	flag.StringVarP(&opts.input, "input", "i", "\x00", "read pathnames from file (use \"\" for stdin)")
@@ -178,6 +174,16 @@ func init() {
 
 	if opts.input != "\x00" && opts.check != "\x00" {
 		log.Fatal("The --input & --check options are mutually exclusive")
+	}
+
+	switch opts.xattr {
+	case "", xattrStore, xattrVerify, xattrForce:
+	default:
+		log.Fatalf("invalid --xattr mode %q (must be %s, %s, or %s)", opts.xattr, xattrStore, xattrVerify, xattrForce)
+	}
+
+	if opts.xattr != "" && !xattr.XATTR_SUPPORTED {
+		log.Fatal("--xattr is not supported on this platform")
 	}
 
 	if opts.version {
@@ -303,7 +309,11 @@ func main() {
 		defer close(checksums)
 		for line := range lines {
 			g.Go(func() error {
-				if checksum, err := hashFile(line.file, line.checksums); err != nil {
+				lineChecksums := line.checksums
+				if lineChecksums == nil && (opts.xattr == xattrVerify || opts.xattr == xattrForce) {
+					lineChecksums = xattrChecksums(line.file)
+				}
+				if checksum, err := hashFile(line.file, lineChecksums); err != nil {
 					unreadable.Add(1)
 					if !opts.ignore {
 						log.Print(err)
@@ -320,8 +330,22 @@ func main() {
 	}()
 
 	if opts.check == "\x00" {
+		unmatched := 0
 		for checksum := range checksums {
 			printChecksums(checksum, opts)
+			if opts.xattr == xattrVerify || opts.xattr == xattrForce {
+				unmatched += printCheckResults(os.Stderr, checksum)
+			}
+		}
+		if unmatched > 0 {
+			if !opts.status {
+				plural := ""
+				if unmatched > 1 {
+					plural = "s"
+				}
+				fmt.Fprintf(os.Stderr, "WARNING: %d computed checksum%s did NOT match\n", unmatched, plural)
+			}
+			os.Exit(1)
 		}
 		os.Exit(0)
 	}
@@ -330,7 +354,7 @@ func main() {
 
 	unmatched := 0
 	for checksum := range checksums {
-		unmatched += printCheckResults(checksum)
+		unmatched += printCheckResults(os.Stdout, checksum)
 	}
 
 	unreadableFiles := unreadable.Load()

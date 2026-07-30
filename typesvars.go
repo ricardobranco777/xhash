@@ -90,10 +90,18 @@ type Options struct {
 	verbose        bool // Used by the -c option
 	version        bool
 	warn           bool // Used by the -c option
+	xattr          string
 	zero           bool
 }
 
 var opts Options
+
+// Modes for the -x/--xattr option
+const (
+	xattrStore  = "store"
+	xattrVerify = "verify"
+	xattrForce  = "force"
+)
 
 // Used by the -c option
 

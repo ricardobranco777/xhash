@@ -81,6 +81,46 @@ Verbose operation
 Show version and exit
 .It Fl w , Fl -warn
 Warn about improperly formatted checksum lines
+.It Fl x , Fl -xattr Op = Ns Ar mode
+Check or store checksums in extended attributes
+.Pq Sy user.checksum.* .
+The optional
+.Ar mode
+is one of
+.Sq store ,
+.Sq verify ,
+or
+.Sq force ,
+and determines what happens the same way on every run, regardless of
+whatever might already be cached for a given file.
+.Pp
+.Sq store
+always computes the checksum and unconditionally overwrites the stored
+value; it never compares against what was there before.
+.Sq verify
+(the default when no mode is given, i.e. plain
+.Fl x )
+always compares the freshly computed checksum against whatever is cached,
+printing
+.Sq OK
+or
+.Sq FAILED
+to stderr and reflecting any mismatch in the exit status; it never writes,
+and nothing cached counts as a failure.
+.Sq force
+behaves like
+.Sq verify ,
+but a failed comparison, including nothing cached, also overwrites the
+cache with the new value, accepting it as the new baseline.
+.Pp
+Because of how optional flag arguments are parsed, a mode must be attached
+with
+.Sq = :
+use
+.Fl x= Ns Ar mode
+or
+.Fl -xattr= Ns Ar mode ,
+not a space-separated argument.
 .It Fl z , Fl -zero
 End each output line with NUL, not newline, and disable file name escaping
 .El
