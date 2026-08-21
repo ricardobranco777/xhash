@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         runner: [ubuntu-latest, macos-latest]
-        go: ['1.25', '1.26']
+        go: ['1.26', '1.27']
 
     runs-on: ${{matrix.runner}}
     name: OS ${{matrix.runner}} Go ${{matrix.go}}
@@ -35,6 +35,6 @@ jobs:
 
     - name: Run tests
       run: |
-        GOBIN=$HOME/.local/bin go install honnef.co/go/tools/cmd/staticcheck@2026.1
-        GOBIN=$HOME/.local/bin go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.9.0
+        GOBIN=$HOME/.local/bin go install honnef.co/go/tools/cmd/staticcheck@2026.2
+        GOBIN=$HOME/.local/bin go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.1
         make test
